@@ -38,18 +38,9 @@ Direct tests for all 9 schemas using `schema.safeParse()`. This protects the fro
 
 ~25-30 test cases, all following the same `safeParse` pattern. Already picked up by vitest workspace (`shared` entry includes `src/**/*.test.ts`).
 
-### 3. Coverage Tracking
+### 3. Coverage Tracking ✅
 
-**Install:** `@vitest/coverage-v8` as root devDependency
-
-**New script in root `package.json`:** `"test:coverage": "vitest run --coverage"`
-
-**Edit:** `vitest.workspace.ts` — add coverage `include`/`exclude` per workspace entry to scope reporting:
-- `api`: include `src/**/*.ts`, exclude `src/db/migrations/**`
-- `shared`: include `src/**/*.ts`
-- `web`: include `src/**/*.ts`
-
-No thresholds or CI gating — just visibility into which code paths are uncovered.
+**Status: Completed** — `@vitest/coverage-v8` installed, `test:coverage` script added, coverage config in `vitest.config.ts` (root-level, not workspace entries). Baseline: 75.6% statement coverage.
 
 ### 4. Targeted Gap Tests
 

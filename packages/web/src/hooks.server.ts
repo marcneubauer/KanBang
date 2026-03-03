@@ -31,7 +31,8 @@ export const handle: Handle = async ({ event, resolve }) => {
       method: event.request.method,
       headers: event.request.headers,
       body: event.request.method !== 'GET' ? await event.request.text() : undefined,
-      duplex: 'half' as any,
+      // @ts-expect-error: duplex is required at runtime for streaming bodies but missing from RequestInit types
+      duplex: 'half',
     });
 
     // Build headers manually — the Fetch API's Headers object strips Set-Cookie

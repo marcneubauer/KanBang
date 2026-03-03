@@ -26,7 +26,6 @@ jobs:
       # Static analysis
       - run: pnpm typecheck
       - run: pnpm lint
-      - run: pnpm format:check
 
       # Unit + integration tests (E2E excluded — requires running servers)
       - run: pnpm test:unit

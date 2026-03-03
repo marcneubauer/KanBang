@@ -20,15 +20,9 @@
       "Bash(/bin/bash -c 'export PATH=\"\"/Users/mneubauer/.nvm/versions/node/v22.14.0/bin:$PATH\"\" && pnpm approve-builds argon2 better-sqlite3 esbuild 2>&1')",
       "Bash(/bin/bash -c 'export PATH=\"\"/Users/mneubauer/.nvm/versions/node/v22.14.0/bin:$PATH\"\" && pnpm ls -r --depth 0 2>&1')",
       "Bash(/bin/bash -c 'export PATH=\"\"/Users/mneubauer/.nvm/versions/node/v22.14.0/bin:$PATH\"\" && npx vitest run --project shared 2>&1')",
-      "Bash(/bin/bash -c 'export PATH=\"\"/Users/mneubauer/.nvm/versions/node/v22.14.0/bin:$PATH\"\" && cd /Users/mneubauer/Documents/code/trailo/packages/api && npx drizzle-kit generate 2>&1')",
-      "Bash(git -C /Users/mneubauer/Documents/code/trailo status -u)",
-      "Bash(git -C /Users/mneubauer/Documents/code/trailo log --oneline -5)",
-      "Bash(git -C /Users/mneubauer/Documents/code/trailo add .gitignore .nvmrc .npmrc .prettierrc .env.example eslint.config.js package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json vitest.workspace.ts packages/shared packages/api packages/web specs)",
       "Bash(git -C:*)",
-      "Bash(/bin/bash -c 'export PATH=\"\"/Users/mneubauer/.nvm/versions/node/v22.14.0/bin:$PATH\"\" && pnpm ls fastify-plugin --filter @trailo/api 2>&1')",
       "Bash(/bin/bash -c 'export PATH=\"\"/Users/mneubauer/.nvm/versions/node/v22.14.0/bin:$PATH\"\" && npx vitest run --project api 2>&1')",
       "Bash(/bin/bash -c 'export PATH=\"\"/Users/mneubauer/.nvm/versions/node/v22.14.0/bin:$PATH\"\" && npx vitest run --project shared --project api 2>&1')",
-      "Bash(/bin/bash -c 'export PATH=\"\"/Users/mneubauer/.nvm/versions/node/v22.14.0/bin:$PATH\"\" && pnpm --filter @trailo/web build 2>&1')",
       "Bash(/bin/bash -c 'export PATH=\"\"/Users/mneubauer/.nvm/versions/node/v22.14.0/bin:$PATH\"\" && git status')",
       "Bash(/bin/bash -c 'export PATH=\"\"/Users/mneubauer/.nvm/versions/node/v22.14.0/bin:$PATH\"\" && git log --oneline -5')"
     ]

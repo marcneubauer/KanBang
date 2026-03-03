@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import type { LightMyRequestResponse } from 'light-my-request';
 import { buildApp } from '../../src/app.js';
 
 export async function createTestApp() {
@@ -10,9 +11,9 @@ export async function createTestApp() {
   return app;
 }
 
-export function getSessionCookie(response: any): string | undefined {
+export function getSessionCookie(response: LightMyRequestResponse): string | undefined {
   const cookies = response.cookies as Array<{ name: string; value: string }>;
-  return cookies?.find((c: any) => c.name === 'kanbang_session')?.value;
+  return cookies?.find((c) => c.name === 'kanbang_session')?.value;
 }
 
 export async function registerUser(

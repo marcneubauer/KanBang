@@ -1,10 +1,11 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply } from 'fastify';
+import type { RegistrationResponseJSON, AuthenticationResponseJSON } from '@simplewebauthn/server';
 import { COOKIE_NAME, SESSION_MAX_AGE } from '../../plugins/auth.js';
 
 const CHALLENGE_COOKIE = 'kanbang_webauthn_challenge';
 const CHALLENGE_MAX_AGE = 5 * 60; // 5 minutes
 
-function setChallengeCookie(reply: any, challenge: string) {
+function setChallengeCookie(reply: FastifyReply, challenge: string) {
   reply.setCookie(CHALLENGE_COOKIE, challenge, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -14,7 +15,7 @@ function setChallengeCookie(reply: any, challenge: string) {
   });
 }
 
-function clearChallengeCookie(reply: any) {
+function clearChallengeCookie(reply: FastifyReply) {
   reply.clearCookie(CHALLENGE_COOKIE, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -23,7 +24,7 @@ function clearChallengeCookie(reply: any) {
   });
 }
 
-function setSessionCookie(reply: any, sessionId: string) {
+function setSessionCookie(reply: FastifyReply, sessionId: string) {
   reply.setCookie(COOKIE_NAME, sessionId, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -92,7 +93,7 @@ export default async function passkeyRoutes(fastify: FastifyInstance) {
         const verified = await fastify.passkeyService.verifyAndSaveRegistration(
           request.user!.id,
           challenge,
-          request.body as any,
+          request.body as RegistrationResponseJSON,
         );
 
         clearChallengeCookie(reply);
@@ -105,10 +106,10 @@ export default async function passkeyRoutes(fastify: FastifyInstance) {
         }
 
         return { verified: true };
-      } catch (err: any) {
+      } catch (err: unknown) {
         clearChallengeCookie(reply);
         return reply.code(400).send({
-          error: err.message || 'Registration verification failed',
+          error: err instanceof Error ? err.message : 'Registration verification failed',
           code: 'VERIFICATION_FAILED',
         });
       }
@@ -135,7 +136,7 @@ export default async function passkeyRoutes(fastify: FastifyInstance) {
     try {
       const user = await fastify.passkeyService.verifyAuthentication(
         challenge,
-        request.body as any,
+        request.body as AuthenticationResponseJSON,
       );
 
       clearChallengeCookie(reply);
@@ -150,10 +151,10 @@ export default async function passkeyRoutes(fastify: FastifyInstance) {
       const session = await fastify.authService.createSession(user.id);
       setSessionCookie(reply, session.id);
       return { user };
-    } catch (err: any) {
+    } catch (err: unknown) {
       clearChallengeCookie(reply);
       return reply.code(401).send({
-        error: err.message || 'Authentication failed',
+        error: err instanceof Error ? err.message : 'Authentication failed',
         code: 'UNAUTHORIZED',
       });
     }

@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
+import type { LightMyRequestResponse } from 'light-my-request';
 import { createTestApp, registerUser, authHeader } from './helpers.js';
 
-function getChallengeCookie(response: any): string | undefined {
+function getChallengeCookie(response: LightMyRequestResponse): string | undefined {
   const cookies = response.cookies as Array<{ name: string; value: string }>;
-  return cookies?.find((c: any) => c.name === 'kanbang_webauthn_challenge')?.value;
+  return cookies?.find((c) => c.name === 'kanbang_webauthn_challenge')?.value;
 }
 
 describe('Passkey routes', () => {

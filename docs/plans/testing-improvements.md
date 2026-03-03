@@ -10,22 +10,9 @@ KanBang has ~75 automated tests (47 API integration, 16 shared unit, 19 E2E) but
 
 **Status: Completed** — `.github/workflows/ci.yml` created. Runs typecheck, lint, format:check, test:unit, and build on push to main and all PRs. Uses `pnpm/action-setup@v4` with `packageManager` field in `package.json`. CI badge added to README.
 
-### 2. Zod Schema Validation Tests
+### 2. Zod Schema Validation Tests ✅
 
-**New file:** `packages/shared/src/validation/__tests__/schemas.test.ts`
-
-Direct tests for all 9 schemas using `schema.safeParse()`. This protects the frontend-backend contract:
-
-- **registerSchema**: valid input, invalid email, short username, invalid username chars, short/long password, trim/lowercase transforms
-- **loginSchema**: valid input, invalid email, empty password
-- **createBoardSchema / updateBoardSchema**: valid name, empty name, over-length, trim transform
-- **createCardSchema**: valid with/without description, empty title, over-length description
-- **updateCardSchema**: partial updates, nullable description
-- **moveCardSchema**: requires both listId and position
-- **createListSchema / updateListSchema**: valid name, empty name, trim
-- **reorderListSchema**: requires position string
-
-~25-30 test cases, all following the same `safeParse` pattern. Already picked up by vitest workspace (`shared` entry includes `src/**/*.test.ts`).
+**Status: Completed** — `packages/shared/src/validation/__tests__/schemas.test.ts` created with 47 test cases covering all 9 schemas via `safeParse()`. Protects the frontend-backend contract against accidental validation rule changes.
 
 ### 3. Coverage Tracking ✅
 

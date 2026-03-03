@@ -140,8 +140,8 @@ describe('Card routes', () => {
         headers: authHeader(cookie),
       });
       const boardBody = JSON.parse(boardRes.body);
-      const sourceList = boardBody.board.lists.find((l: any) => l.id === listId);
-      const targetList = boardBody.board.lists.find((l: any) => l.id === list2Body.list.id);
+      const sourceList = boardBody.board.lists.find((l: { id: string }) => l.id === listId);
+      const targetList = boardBody.board.lists.find((l: { id: string }) => l.id === list2Body.list.id);
       expect(sourceList.cards).toHaveLength(0);
       expect(targetList.cards).toHaveLength(1);
     });

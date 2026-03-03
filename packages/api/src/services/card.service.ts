@@ -1,7 +1,7 @@
 import { eq, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { Database } from '../db/index.js';
-import { cards, lists } from '../db/schema.js';
+import { cards } from '../db/schema.js';
 import { generateKeyBetween } from '@kanbang/shared/utils/fractional-index.js';
 import type { CreateCardInput, UpdateCardInput } from '@kanbang/shared/validation/card.js';
 

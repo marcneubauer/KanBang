@@ -8,6 +8,7 @@ import {
 import type {
   RegistrationResponseJSON,
   AuthenticationResponseJSON,
+  AuthenticatorTransportFuture,
 } from '@simplewebauthn/server';
 import type { Database } from '../db/index.js';
 import { credentials } from '../db/schema.js';
@@ -44,7 +45,7 @@ export class PasskeyService {
       attestationType: 'none',
       excludeCredentials: existingCreds.map((c) => ({
         id: c.id,
-        transports: c.transports as any,
+        transports: c.transports as AuthenticatorTransportFuture[],
       })),
       authenticatorSelection: {
         residentKey: 'preferred',
@@ -114,7 +115,7 @@ export class PasskeyService {
         id: cred.id,
         publicKey: cred.publicKey,
         counter: cred.counter,
-        transports: cred.transports as any,
+        transports: cred.transports as AuthenticatorTransportFuture[],
       },
       requireUserVerification: false,
     });

@@ -5,11 +5,27 @@
   import { dndzone } from 'svelte-dnd-action';
   import { generateKeyBetween } from '@kanbang/shared';
 
+  interface CardItem {
+    id: string;
+    title: string;
+    description: string | null;
+    listId: string;
+    position: string;
+  }
+
+  interface ListItem {
+    id: string;
+    name: string;
+    boardId: string;
+    position: string;
+    cards: CardItem[];
+  }
+
   let { data } = $props();
 
-  let lists = $state(data.board.lists.map((l: any) => ({
+  let lists: ListItem[] = $state(data.board.lists.map((l: ListItem) => ({
     ...l,
-    cards: l.cards.map((c: any) => ({ ...c })),
+    cards: l.cards.map((c: CardItem) => ({ ...c })),
   })));
 
   const flipDurationMs = 200;
@@ -40,7 +56,7 @@
   async function addList(e: Event) {
     e.preventDefault();
     if (!newListName.trim()) return;
-    const { list } = await api<{ list: any }>(`/boards/${data.board.id}/lists`, {
+    const { list } = await api<{ list: ListItem }>(`/boards/${data.board.id}/lists`, {
       method: 'POST',
       body: JSON.stringify({ name: newListName.trim() }),
     });
@@ -58,16 +74,16 @@
   async function deleteList(listId: string) {
     if (!confirm('Delete this list and all its cards?')) return;
     await api(`/lists/${listId}`, { method: 'DELETE' });
-    lists = lists.filter((l: any) => l.id !== listId);
+    lists = lists.filter((l) => l.id !== listId);
   }
 
   // --- Card actions ---
   async function addCard(listId: string, title: string) {
-    const { card } = await api<{ card: any }>(`/lists/${listId}/cards`, {
+    const { card } = await api<{ card: CardItem }>(`/lists/${listId}/cards`, {
       method: 'POST',
       body: JSON.stringify({ title }),
     });
-    const listIndex = lists.findIndex((l: any) => l.id === listId);
+    const listIndex = lists.findIndex((l) => l.id === listId);
     lists[listIndex].cards = [...lists[listIndex].cards, card];
   }
 
@@ -80,8 +96,8 @@
 
   async function deleteCard(cardId: string, listId: string) {
     await api(`/cards/${cardId}`, { method: 'DELETE' });
-    const listIndex = lists.findIndex((l: any) => l.id === listId);
-    lists[listIndex].cards = lists[listIndex].cards.filter((c: any) => c.id !== cardId);
+    const listIndex = lists.findIndex((l) => l.id === listId);
+    lists[listIndex].cards = lists[listIndex].cards.filter((c) => c.id !== cardId);
   }
 
   // --- Drag and drop ---
@@ -91,17 +107,17 @@
     return generateKeyBetween(before, after);
   }
 
-  function handleListConsider(e: CustomEvent) {
+  function handleListConsider(e: CustomEvent<{ items: ListItem[] }>) {
     lists = e.detail.items;
   }
 
-  async function handleListFinalize(e: CustomEvent) {
+  async function handleListFinalize(e: CustomEvent<{ items: ListItem[]; info: { id: string } }>) {
     const newLists = e.detail.items;
     const info = e.detail.info;
 
     lists = newLists;
 
-    const movedIndex = newLists.findIndex((l: any) => l.id === info.id);
+    const movedIndex = newLists.findIndex((l) => l.id === info.id);
     if (movedIndex === -1) return;
 
     const newPosition = computePosition(newLists, movedIndex);
@@ -117,17 +133,17 @@
     }
   }
 
-  function handleCardConsider(listId: string, e: CustomEvent) {
-    const listIndex = lists.findIndex((l: any) => l.id === listId);
+  function handleCardConsider(listId: string, e: CustomEvent<{ items: CardItem[] }>) {
+    const listIndex = lists.findIndex((l) => l.id === listId);
     lists[listIndex].cards = e.detail.items;
   }
 
-  async function handleCardFinalize(listId: string, e: CustomEvent) {
+  async function handleCardFinalize(listId: string, e: CustomEvent<{ items: CardItem[]; info: { id: string } }>) {
     const { items, info } = e.detail;
-    const listIndex = lists.findIndex((l: any) => l.id === listId);
+    const listIndex = lists.findIndex((l) => l.id === listId);
     lists[listIndex].cards = items;
 
-    const movedIndex = items.findIndex((c: any) => c.id === info.id);
+    const movedIndex = items.findIndex((c) => c.id === info.id);
     if (movedIndex === -1) return;
 
     const newPosition = computePosition(items, movedIndex);
@@ -160,7 +176,7 @@
   async function saveListName() {
     if (editingListId && editingListName.trim()) {
       await renameList(editingListId, editingListName.trim());
-      const idx = lists.findIndex((l: any) => l.id === editingListId);
+      const idx = lists.findIndex((l) => l.id === editingListId);
       if (idx !== -1) lists[idx].name = editingListName.trim();
     }
     editingListId = null;
@@ -182,7 +198,7 @@
     if (editingCardId && editingCardTitle.trim()) {
       await updateCard(editingCardId, { title: editingCardTitle.trim() });
       for (const list of lists) {
-        const card = list.cards.find((c: any) => c.id === editingCardId);
+        const card = list.cards.find((c) => c.id === editingCardId);
         if (card) {
           card.title = editingCardTitle.trim();
           break;

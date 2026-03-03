@@ -1,7 +1,11 @@
 <script lang="ts">
   import { api, ApiError } from '$lib/api';
   import { onMount } from 'svelte';
-  import { browserSupportsWebAuthn, startRegistration } from '@simplewebauthn/browser';
+  import {
+    browserSupportsWebAuthn,
+    startRegistration,
+    type PublicKeyCredentialCreationOptionsJSON,
+  } from '@simplewebauthn/browser';
 
   let { data } = $props();
 
@@ -26,7 +30,7 @@
     registering = true;
 
     try {
-      const { options } = await api<{ options: any }>('/passkeys/register/options', {
+      const { options } = await api<{ options: PublicKeyCredentialCreationOptionsJSON }>('/passkeys/register/options', {
         method: 'POST',
       });
 

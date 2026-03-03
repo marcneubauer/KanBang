@@ -2,7 +2,11 @@
   import { api, ApiError } from '$lib/api';
   import { invalidateAll } from '$app/navigation';
   import { onMount } from 'svelte';
-  import { browserSupportsWebAuthn, startAuthentication } from '@simplewebauthn/browser';
+  import {
+    browserSupportsWebAuthn,
+    startAuthentication,
+    type PublicKeyCredentialRequestOptionsJSON,
+  } from '@simplewebauthn/browser';
 
   let email = $state('');
   let password = $state('');
@@ -43,7 +47,7 @@
     passkeyLoading = true;
 
     try {
-      const { options } = await api<{ options: any }>('/passkeys/login/options', {
+      const { options } = await api<{ options: PublicKeyCredentialRequestOptionsJSON }>('/passkeys/login/options', {
         method: 'POST',
       });
 

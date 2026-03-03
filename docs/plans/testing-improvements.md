@@ -6,20 +6,9 @@ KanBang has ~75 automated tests (47 API integration, 16 shared unit, 19 E2E) but
 
 ## Plan
 
-### 1. GitHub Actions CI Pipeline
+### 1. GitHub Actions CI Pipeline ✅
 
-**New file:** `.github/workflows/ci.yml`
-
-Trigger on push to `main` and all PRs. Single job on `ubuntu-latest` with Node 22 + pnpm:
-
-1. `pnpm install --frozen-lockfile`
-2. `pnpm typecheck`
-3. `pnpm lint`
-4. `pnpm format:check`
-5. `pnpm test:unit` (all Vitest tests)
-6. `pnpm build`
-
-Cache `~/.pnpm-store` for speed. E2E excluded from CI initially (requires running servers, slow).
+**Status: Completed** — `.github/workflows/ci.yml` created. Runs typecheck, lint, format:check, test:unit, and build on push to main and all PRs. Uses `pnpm/action-setup@v4` with `packageManager` field in `package.json`. CI badge added to README.
 
 ### 2. Zod Schema Validation Tests
 

@@ -1,5 +1,7 @@
 # KanBang
 
+[![CI](https://github.com/marcneubauer/KanBang/actions/workflows/ci.yml/badge.svg)](https://github.com/marcneubauer/KanBang/actions/workflows/ci.yml)
+
 A self-hosted personal Trello clone — kanban boards with drag-and-drop, built for single-user use.
 
 ## Features

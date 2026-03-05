@@ -27,7 +27,7 @@ kanbang/
 ├── e2e/           # Playwright E2E tests
 ├── docs/
 │   ├── specs/     # 8 specification documents (00–07)
-│   └── plans/     # Planning documents
+│   └── plans/     # Planning documents: X_ are completed, O_ are not started, I_ are incomplete
 └── playwright.config.ts
 ```
 

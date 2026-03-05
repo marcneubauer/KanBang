@@ -33,11 +33,11 @@ kanbang/
 
 ## Environment Setup
 
-- **Node.js 22** via NVM (`.nvmrc` present)
+- **Node.js 25** via NVM (`.nvmrc` present)
 - **pnpm** via corepack: `corepack enable pnpm`
-- On this machine, NVM lazy-loading causes issues. Always use direct paths:
+- NVM lazy-loading in zsh causes infinite recursion. Use `/bin/bash` to run commands:
   ```bash
-  /bin/bash -c 'export PATH="/Users/mneubauer/.nvm/versions/node/v22.14.0/bin:$PATH" && <command>'
+  /bin/bash -c 'export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" && nvm use 25 && <command>'
   ```
 
 ## Key Commands

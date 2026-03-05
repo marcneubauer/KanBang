@@ -8,6 +8,7 @@ export const createCardSchema = z.object({
 export const updateCardSchema = z.object({
   title: z.string().min(1).max(500).trim().optional(),
   description: z.string().max(5000).nullable().optional(),
+  completed: z.boolean().optional(),
 });
 
 export const moveCardSchema = z.object({

@@ -131,6 +131,63 @@ test.describe('Lists and Cards', () => {
     await expect(page.locator('.card-item')).toHaveCount(0);
   });
 
+  test('toggle card completed checkbox', async ({ page }) => {
+    // Create list + card
+    await page.getByText('+ Add another list').click();
+    await page.getByPlaceholder('Enter list name...').fill('Tasks');
+    await page.getByRole('button', { name: 'Add List' }).click();
+
+    await page.getByText('+ Add a card').click();
+    await page.getByPlaceholder('Enter a title for this card...').fill('Checkable Card');
+    await page.getByRole('button', { name: 'Add Card' }).click();
+
+    const cardItem = page.locator('.card-item', { hasText: 'Checkable Card' });
+    const checkbox = cardItem.locator('.card-checkbox');
+
+    // Checkbox hidden by default
+    await expect(checkbox).toHaveCSS('opacity', '0');
+
+    // Checkbox visible on hover
+    await cardItem.hover();
+    await expect(checkbox).toHaveCSS('opacity', '1');
+
+    // Click to mark complete
+    await checkbox.click();
+    await expect(checkbox).toHaveClass(/card-checkbox-checked/);
+    await expect(cardItem.locator('.card-title')).toHaveClass(/card-title-completed/);
+
+    // Checkbox stays visible when checked (even without hover)
+    await page.locator('body').click();
+    await expect(checkbox).toHaveCSS('opacity', '1');
+
+    // Click again to uncheck
+    await cardItem.hover();
+    await checkbox.click();
+    await expect(checkbox).not.toHaveClass(/card-checkbox-checked/);
+    await expect(cardItem.locator('.card-title')).not.toHaveClass(/card-title-completed/);
+  });
+
+  test('completed status persists after reload', async ({ page }) => {
+    // Create list + card
+    await page.getByText('+ Add another list').click();
+    await page.getByPlaceholder('Enter list name...').fill('Tasks');
+    await page.getByRole('button', { name: 'Add List' }).click();
+
+    await page.getByText('+ Add a card').click();
+    await page.getByPlaceholder('Enter a title for this card...').fill('Persist Check');
+    await page.getByRole('button', { name: 'Add Card' }).click();
+
+    // Mark as completed
+    const cardItem = page.locator('.card-item', { hasText: 'Persist Check' });
+    await cardItem.hover();
+    await cardItem.locator('.card-checkbox').click();
+
+    // Reload and verify
+    await page.reload();
+    const reloadedCheckbox = page.locator('.card-item', { hasText: 'Persist Check' }).locator('.card-checkbox');
+    await expect(reloadedCheckbox).toHaveClass(/card-checkbox-checked/);
+  });
+
   test('data persists after page reload', async ({ page }) => {
     // Create list + card
     await page.getByText('+ Add another list').click();

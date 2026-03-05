@@ -99,6 +99,61 @@ describe('Card routes', () => {
       expect(response.statusCode).toBe(200);
       expect(body.card.description).toBeNull();
     });
+
+    it('defaults completed to false on new cards', async () => {
+      const { body } = await createCard(app, cookie, listId, 'New Task');
+      expect(body.card.completed).toBe(false);
+    });
+
+    it('updates card completed status to true', async () => {
+      const { body: cardBody } = await createCard(app, cookie, listId, 'Task');
+      const response = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/cards/${cardBody.card.id}`,
+        headers: authHeader(cookie),
+        payload: { completed: true },
+      });
+      const body = JSON.parse(response.body);
+      expect(response.statusCode).toBe(200);
+      expect(body.card.completed).toBe(true);
+    });
+
+    it('toggles card completed status back to false', async () => {
+      const { body: cardBody } = await createCard(app, cookie, listId, 'Task');
+      await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/cards/${cardBody.card.id}`,
+        headers: authHeader(cookie),
+        payload: { completed: true },
+      });
+      const response = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/cards/${cardBody.card.id}`,
+        headers: authHeader(cookie),
+        payload: { completed: false },
+      });
+      const body = JSON.parse(response.body);
+      expect(response.statusCode).toBe(200);
+      expect(body.card.completed).toBe(false);
+    });
+
+    it('includes completed in board fetch response', async () => {
+      const { body: cardBody } = await createCard(app, cookie, listId, 'Task');
+      await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/cards/${cardBody.card.id}`,
+        headers: authHeader(cookie),
+        payload: { completed: true },
+      });
+      const boardRes = await app.inject({
+        method: 'GET',
+        url: `/api/v1/boards/${boardId}`,
+        headers: authHeader(cookie),
+      });
+      const boardBody = JSON.parse(boardRes.body);
+      const card = boardBody.board.lists[0].cards[0];
+      expect(card.completed).toBe(true);
+    });
   });
 
   describe('PATCH /api/v1/cards/:cardId/move', () => {

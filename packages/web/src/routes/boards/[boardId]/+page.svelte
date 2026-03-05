@@ -11,6 +11,7 @@
     description: string | null;
     listId: string;
     position: string;
+    completed: boolean;
   }
 
   interface ListItem {
@@ -92,6 +93,16 @@
       method: 'PATCH',
       body: JSON.stringify(updates),
     });
+  }
+
+  async function toggleCardCompleted(cardId: string, listId: string, completed: boolean) {
+    await api(`/cards/${cardId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ completed }),
+    });
+    const listIndex = lists.findIndex((l) => l.id === listId);
+    const card = lists[listIndex].cards.find((c) => c.id === cardId);
+    if (card) card.completed = completed;
   }
 
   async function deleteCard(cardId: string, listId: string) {
@@ -258,6 +269,23 @@
         >
           {#each list.cards as card (card.id)}
             <div class="card-item">
+              <button
+                class="card-checkbox"
+                class:card-checkbox-checked={card.completed}
+                onclick={(e) => { e.stopPropagation(); toggleCardCompleted(card.id, list.id, !card.completed); }}
+                aria-label={card.completed ? 'Mark incomplete' : 'Mark complete'}
+              >
+                {#if card.completed}
+                  <svg viewBox="0 0 16 16" width="16" height="16">
+                    <rect width="16" height="16" rx="2" fill="#22c55e"/>
+                    <path d="M4 8l3 3 5-5" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                {:else}
+                  <svg viewBox="0 0 16 16" width="16" height="16">
+                    <rect x="0.5" y="0.5" width="15" height="15" rx="1.5" fill="none" stroke="#b0b0b0" stroke-width="1"/>
+                  </svg>
+                {/if}
+              </button>
               {#if editingCardId === card.id}
                 <input
                   class="card-title-input"
@@ -267,7 +295,7 @@
                   autofocus
                 />
               {:else}
-                <span class="card-title" ondblclick={() => startEditCard(card.id, card.title)}>
+                <span class="card-title" class:card-title-completed={card.completed} ondblclick={() => startEditCard(card.id, card.title)}>
                   {card.title}
                 </span>
               {/if}
@@ -461,6 +489,31 @@
     padding: 2px 4px;
     flex: 1;
     width: 100%;
+  }
+
+  .card-checkbox {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    margin-right: 6px;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 150ms;
+    display: flex;
+    align-items: center;
+  }
+
+  .card-checkbox-checked {
+    opacity: 1;
+  }
+
+  .card-item:hover .card-checkbox {
+    opacity: 1;
+  }
+
+  .card-title-completed {
+    opacity: 0.6;
   }
 
   .card-delete {

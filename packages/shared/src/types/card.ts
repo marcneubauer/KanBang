@@ -4,6 +4,7 @@ export interface Card {
   description: string | null;
   listId: string;
   position: string;
+  completed: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

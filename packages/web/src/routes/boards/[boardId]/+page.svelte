@@ -278,11 +278,13 @@
                 {#if card.completed}
                   <svg viewBox="0 0 16 16" width="16" height="16">
                     <rect width="16" height="16" rx="2" fill="#22c55e"/>
-                    <path d="M4 8l3 3 5-5" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M4 8l3 3 5-5" stroke="white" stroke-width="2" 
+                    fill="none" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 {:else}
                   <svg viewBox="0 0 16 16" width="16" height="16">
-                    <rect x="0.5" y="0.5" width="15" height="15" rx="1.5" fill="none" stroke="#b0b0b0" stroke-width="1"/>
+                    <rect x="0.5" y="0.5" width="15" height="15" rx="1.5" 
+                    fill="none" stroke="#b0b0b0" stroke-width="1"/>
                   </svg>
                 {/if}
               </button>
@@ -295,7 +297,8 @@
                   autofocus
                 />
               {:else}
-                <span class="card-title" class:card-title-completed={card.completed} ondblclick={() => startEditCard(card.id, card.title)}>
+                <span class="card-title" class:card-title-completed={card.completed}
+                 ondblclick={() => startEditCard(card.id, card.title)}>
                   {card.title}
                 </span>
               {/if}

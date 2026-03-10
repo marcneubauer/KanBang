@@ -41,6 +41,7 @@
   {#if showCreate}
     <div class="create-form">
       <form onsubmit={createBoard}>
+        <!-- svelte-ignore a11y_autofocus -->
         <input
           type="text"
           bind:value={newBoardName}

@@ -223,6 +223,7 @@
 <div class="board-page">
   <header class="board-header">
     {#if editingBoardName}
+      <!-- svelte-ignore a11y_autofocus -->
       <input
         class="board-name-input"
         bind:value={boardName}
@@ -246,6 +247,7 @@
       <div class="list-column">
         <div class="list-header">
           {#if editingListId === list.id}
+            <!-- svelte-ignore a11y_autofocus -->
             <input
               class="list-name-input"
               bind:value={editingListName}
@@ -289,6 +291,7 @@
                 {/if}
               </button>
               {#if editingCardId === card.id}
+                <!-- svelte-ignore a11y_autofocus -->
                 <input
                   class="card-title-input"
                   bind:value={editingCardTitle}
@@ -313,6 +316,7 @@
 
         {#if addingCardToList === list.id}
           <form class="add-card-form" onsubmit={(e) => submitNewCard(e, list.id)}>
+            <!-- svelte-ignore a11y_autofocus -->
             <textarea
               bind:value={newCardTitle}
               placeholder="Enter a title for this card..."
@@ -336,6 +340,7 @@
     <div class="add-list">
       {#if addingList}
         <form onsubmit={addList}>
+          <!-- svelte-ignore a11y_autofocus -->
           <input
             type="text"
             bind:value={newListName}

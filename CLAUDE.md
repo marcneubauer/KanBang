@@ -35,10 +35,7 @@ kanbang/
 
 - **Node.js 25** via NVM (`.nvmrc` present)
 - **pnpm** via corepack: `corepack enable pnpm`
-- NVM lazy-loading in zsh causes infinite recursion. Use `/bin/bash` to run commands:
-  ```bash
-  /bin/bash -c 'export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" && nvm use 25 && <command>'
-  ```
+- Run `pnpm` commands directly (e.g. `pnpm test`, `pnpm typecheck`)
 
 ## Key Commands
 

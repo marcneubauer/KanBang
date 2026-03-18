@@ -1,7 +1,7 @@
-import { eq, desc } from 'drizzle-orm';
+import { eq, and, or, like, desc, asc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { Database } from '../db/index.js';
-import { cards } from '../db/schema.js';
+import { cards, lists } from '../db/schema.js';
 import { generateKeyBetween } from '@kanbang/shared/utils/fractional-index.js';
 import type { CreateCardInput, UpdateCardInput } from '@kanbang/shared/validation/card.js';
 
@@ -83,5 +83,37 @@ export class CardService {
   async getListId(cardId: string): Promise<string | null> {
     const card = await this.getById(cardId);
     return card?.listId ?? null;
+  }
+
+  async search(boardId: string, options: { q?: string; completed?: boolean }) {
+    const conditions = [eq(lists.boardId, boardId)];
+
+    if (options.q) {
+      const pattern = `%${options.q}%`;
+      conditions.push(or(like(cards.title, pattern), like(cards.description, pattern))!);
+    }
+
+    if (options.completed !== undefined) {
+      conditions.push(eq(cards.completed, options.completed));
+    }
+
+    const results = await this.db
+      .select({
+        id: cards.id,
+        title: cards.title,
+        description: cards.description,
+        listId: cards.listId,
+        listName: lists.name,
+        position: cards.position,
+        completed: cards.completed,
+        createdAt: cards.createdAt,
+        updatedAt: cards.updatedAt,
+      })
+      .from(cards)
+      .innerJoin(lists, eq(cards.listId, lists.id))
+      .where(and(...conditions))
+      .orderBy(asc(lists.position), asc(cards.position));
+
+    return results;
   }
 }

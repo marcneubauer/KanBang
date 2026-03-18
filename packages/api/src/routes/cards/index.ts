@@ -27,6 +27,18 @@ export default async function cardRoutes(fastify: FastifyInstance) {
     return verifyListOwnership(listId, userId);
   }
 
+  // GET /api/v1/cards/:cardId
+  fastify.get<{ Params: { cardId: string } }>('/cards/:cardId', async (request, reply) => {
+    const { cardId } = request.params;
+
+    if (!(await verifyCardOwnership(cardId, request.user!.id))) {
+      return reply.code(404).send({ error: 'Card not found', code: 'NOT_FOUND' });
+    }
+
+    const card = await cardService.getById(cardId);
+    return { card };
+  });
+
   // POST /api/v1/lists/:listId/cards
   fastify.post<{ Params: { listId: string } }>(
     '/lists/:listId/cards',

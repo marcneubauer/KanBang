@@ -13,6 +13,19 @@ export default async function listRoutes(fastify: FastifyInstance) {
 
   fastify.addHook('preHandler', fastify.requireAuth);
 
+  // GET /api/v1/lists/:listId
+  fastify.get<{ Params: { listId: string } }>('/lists/:listId', async (request, reply) => {
+    const { listId } = request.params;
+
+    const boardId = await listService.getBoardId(listId);
+    if (!boardId || !(await boardService.isOwner(boardId, request.user!.id))) {
+      return reply.code(404).send({ error: 'List not found', code: 'NOT_FOUND' });
+    }
+
+    const list = await listService.getByIdWithCards(listId);
+    return { list };
+  });
+
   // POST /api/v1/boards/:boardId/lists
   fastify.post<{ Params: { boardId: string } }>(
     '/boards/:boardId/lists',

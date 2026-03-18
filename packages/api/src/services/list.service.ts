@@ -1,7 +1,7 @@
-import { eq, desc } from 'drizzle-orm';
+import { eq, asc, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { Database } from '../db/index.js';
-import { lists } from '../db/schema.js';
+import { lists, cards } from '../db/schema.js';
 import { generateKeyBetween } from '@kanbang/shared/utils/fractional-index.js';
 import type { CreateListInput, UpdateListInput } from '@kanbang/shared/validation/list.js';
 
@@ -72,6 +72,19 @@ export class ListService {
       .limit(1);
 
     return list ?? null;
+  }
+
+  async getByIdWithCards(listId: string) {
+    const list = await this.getById(listId);
+    if (!list) return null;
+
+    const listCards = await this.db
+      .select()
+      .from(cards)
+      .where(eq(cards.listId, listId))
+      .orderBy(asc(cards.position));
+
+    return { ...list, cards: listCards };
   }
 
   async getBoardId(listId: string): Promise<string | null> {

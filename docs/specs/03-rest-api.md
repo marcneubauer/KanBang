@@ -31,6 +31,19 @@ Common error codes:
 
 ---
 
+## Health
+
+### GET /api/v1/health
+
+Returns server health status. No authentication required.
+
+**Response (200):**
+```json
+{ "status": "ok" }
+```
+
+---
+
 ## Auth Endpoints
 
 ### POST /api/v1/auth/register
@@ -101,13 +114,35 @@ Returns the currently authenticated user.
 }
 ```
 
-### POST /api/v1/auth/passkey/register/options
+---
+
+## Passkey Endpoints
+
+### GET /api/v1/passkeys
+
+List the authenticated user's passkeys.
+
+**Response (200):**
+```json
+{
+  "passkeys": [
+    {
+      "id": "cred123",
+      "deviceType": "multiDevice",
+      "backedUp": true,
+      "createdAt": "2025-01-15T10:30:00.000Z"
+    }
+  ]
+}
+```
+
+### POST /api/v1/passkeys/register/options
 
 Get WebAuthn registration options. Requires authentication.
 
 **Response (200):** SimpleWebAuthn `PublicKeyCredentialCreationOptionsJSON`
 
-### POST /api/v1/auth/passkey/register/verify
+### POST /api/v1/passkeys/register/verify
 
 Verify WebAuthn registration. Requires authentication.
 
@@ -118,7 +153,7 @@ Verify WebAuthn registration. Requires authentication.
 { "verified": true }
 ```
 
-### POST /api/v1/auth/passkey/login/options
+### POST /api/v1/passkeys/login/options
 
 Get WebAuthn authentication options. No auth required.
 
@@ -129,7 +164,7 @@ Get WebAuthn authentication options. No auth required.
 
 **Response (200):** SimpleWebAuthn `PublicKeyCredentialRequestOptionsJSON`
 
-### POST /api/v1/auth/passkey/login/verify
+### POST /api/v1/passkeys/login/verify
 
 Verify WebAuthn authentication. No auth required.
 
@@ -142,6 +177,15 @@ Verify WebAuthn authentication. No auth required.
 }
 ```
 Sets `kanbang_session` cookie.
+
+### DELETE /api/v1/passkeys/:credentialId
+
+Delete a passkey. Requires authentication. User can only delete their own passkeys.
+
+**Response (200):**
+```json
+{ "ok": true }
+```
 
 ---
 
@@ -212,7 +256,8 @@ Get a board with all its lists and cards, sorted by position.
             "id": "card1",
             "title": "First task",
             "description": null,
-            "position": "a0"
+            "position": "a0",
+            "completed": false
           }
         ]
       }
@@ -233,6 +278,38 @@ Update a board's name.
 ```
 
 **Response (200):** Updated board object (same shape as POST response)
+
+### GET /api/v1/boards/:boardId/cards/search
+
+Search cards across all lists in a board. Supports text search and completed status filtering.
+
+**Query parameters:**
+
+- `q` (optional): case-insensitive text search in title and description
+- `completed` (optional): `true` or `false` to filter by completed status
+
+**Response (200):**
+```json
+{
+  "cards": [
+    {
+      "id": "card1",
+      "title": "Deploy to prod",
+      "description": "Ship the new release",
+      "listId": "list2",
+      "listName": "In Progress",
+      "position": "a0",
+      "completed": false,
+      "createdAt": "2025-01-15T10:30:00.000Z",
+      "updatedAt": "2025-01-15T10:30:00.000Z"
+    }
+  ]
+}
+```
+
+Note: includes `listName` so consumers can contextualize which list each card belongs to without extra lookups. Returns an empty array if no cards match.
+
+**Errors:** `404 NOT_FOUND` (board doesn't exist), `403 FORBIDDEN`
 
 ### DELETE /api/v1/boards/:boardId
 
@@ -275,6 +352,37 @@ Create a new list at the end of the board.
 ```
 
 Position is automatically calculated as after the last existing list.
+
+### GET /api/v1/lists/:listId
+
+Get a single list with its cards, sorted by position.
+
+**Response (200):**
+```json
+{
+  "list": {
+    "id": "list1",
+    "name": "To Do",
+    "boardId": "board1",
+    "position": "a0",
+    "createdAt": "2025-01-15T10:30:00.000Z",
+    "updatedAt": "2025-01-15T10:30:00.000Z",
+    "cards": [
+      {
+        "id": "card1",
+        "title": "First task",
+        "description": null,
+        "position": "a0",
+        "completed": false,
+        "createdAt": "2025-01-15T10:30:00.000Z",
+        "updatedAt": "2025-01-15T10:30:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+**Errors:** `404 NOT_FOUND`
 
 ### PATCH /api/v1/lists/:listId
 
@@ -328,6 +436,7 @@ Create a new card at the end of the list.
 **Validation:**
 - `title`: 1-500 chars, trimmed
 - `description`: optional, max 5000 chars
+- `completed`: defaults to `false`
 
 **Response (201):**
 ```json
@@ -338,23 +447,55 @@ Create a new card at the end of the list.
     "description": "Optional description",
     "listId": "list1",
     "position": "a0",
+    "completed": false,
     "createdAt": "2025-01-15T10:30:00.000Z",
     "updatedAt": "2025-01-15T10:30:00.000Z"
   }
 }
 ```
 
+### GET /api/v1/cards/:cardId
+
+Get a single card by ID.
+
+**Response (200):**
+```json
+{
+  "card": {
+    "id": "card1",
+    "title": "My Task",
+    "description": "Task description",
+    "listId": "list1",
+    "position": "a0",
+    "completed": false,
+    "createdAt": "2025-01-15T10:30:00.000Z",
+    "updatedAt": "2025-01-15T10:30:00.000Z"
+  }
+}
+```
+
+**Errors:** `404 NOT_FOUND`
+
 ### PATCH /api/v1/cards/:cardId
 
-Update a card's title and/or description.
+Update a card's title, description, and/or completed status.
 
 **Request:**
 ```json
 {
   "title": "Updated Title",
-  "description": "Updated description"
+  "description": "Updated description",
+  "completed": true
 }
 ```
+
+All fields are optional. At least one must be provided.
+
+**Validation:**
+
+- `title`: 1-500 chars, trimmed (optional)
+- `description`: max 5000 chars, nullable (optional)
+- `completed`: boolean (optional)
 
 **Response (200):** Updated card object
 

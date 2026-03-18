@@ -156,6 +156,47 @@ describe('Card routes', () => {
     });
   });
 
+  describe('GET /api/v1/cards/:cardId', () => {
+    it('returns a single card', async () => {
+      const { body: cardBody } = await createCard(app, cookie, listId, 'My Task', 'Details');
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/v1/cards/${cardBody.card.id}`,
+        headers: authHeader(cookie),
+      });
+      const body = JSON.parse(response.body);
+      expect(response.statusCode).toBe(200);
+      expect(body.card.id).toBe(cardBody.card.id);
+      expect(body.card.title).toBe('My Task');
+      expect(body.card.description).toBe('Details');
+      expect(body.card.listId).toBe(listId);
+      expect(body.card.completed).toBe(false);
+    });
+
+    it('returns 404 for non-existent card', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/v1/cards/nonexistent',
+        headers: authHeader(cookie),
+      });
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('returns 404 for another user card', async () => {
+      const { body: cardBody } = await createCard(app, cookie, listId, 'Private');
+      const { sessionCookie: otherCookie } = await registerUser(app, {
+        email: 'other@example.com',
+        username: 'other',
+      });
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/v1/cards/${cardBody.card.id}`,
+        headers: authHeader(otherCookie!),
+      });
+      expect(response.statusCode).toBe(404);
+    });
+  });
+
   describe('PATCH /api/v1/cards/:cardId/move', () => {
     it('moves card within same list', async () => {
       const { body: c1 } = await createCard(app, cookie, listId, 'Card 1');
@@ -199,6 +240,116 @@ describe('Card routes', () => {
       const targetList = boardBody.board.lists.find((l: { id: string }) => l.id === list2Body.list.id);
       expect(sourceList.cards).toHaveLength(0);
       expect(targetList.cards).toHaveLength(1);
+    });
+  });
+
+  describe('GET /api/v1/boards/:boardId/cards/search', () => {
+    it('returns all cards when no filters', async () => {
+      await createCard(app, cookie, listId, 'Task A');
+      await createCard(app, cookie, listId, 'Task B');
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/v1/boards/${boardId}/cards/search`,
+        headers: authHeader(cookie),
+      });
+      const body = JSON.parse(response.body);
+      expect(response.statusCode).toBe(200);
+      expect(body.cards).toHaveLength(2);
+    });
+
+    it('searches by text in title', async () => {
+      await createCard(app, cookie, listId, 'Deploy to prod');
+      await createCard(app, cookie, listId, 'Write tests');
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/v1/boards/${boardId}/cards/search?q=deploy`,
+        headers: authHeader(cookie),
+      });
+      const body = JSON.parse(response.body);
+      expect(body.cards).toHaveLength(1);
+      expect(body.cards[0].title).toBe('Deploy to prod');
+    });
+
+    it('searches by text in description', async () => {
+      await createCard(app, cookie, listId, 'Task', 'Fix the login bug');
+      await createCard(app, cookie, listId, 'Other', 'Update readme');
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/v1/boards/${boardId}/cards/search?q=login`,
+        headers: authHeader(cookie),
+      });
+      const body = JSON.parse(response.body);
+      expect(body.cards).toHaveLength(1);
+      expect(body.cards[0].description).toBe('Fix the login bug');
+    });
+
+    it('filters by completed status', async () => {
+      const { body: c1 } = await createCard(app, cookie, listId, 'Done task');
+      await createCard(app, cookie, listId, 'Open task');
+      await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/cards/${c1.card.id}`,
+        headers: authHeader(cookie),
+        payload: { completed: true },
+      });
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/v1/boards/${boardId}/cards/search?completed=true`,
+        headers: authHeader(cookie),
+      });
+      const body = JSON.parse(response.body);
+      expect(body.cards).toHaveLength(1);
+      expect(body.cards[0].title).toBe('Done task');
+    });
+
+    it('combines text and completed filters', async () => {
+      const { body: c1 } = await createCard(app, cookie, listId, 'Deploy v1');
+      await createCard(app, cookie, listId, 'Deploy v2');
+      await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/cards/${c1.card.id}`,
+        headers: authHeader(cookie),
+        payload: { completed: true },
+      });
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/v1/boards/${boardId}/cards/search?q=deploy&completed=false`,
+        headers: authHeader(cookie),
+      });
+      const body = JSON.parse(response.body);
+      expect(body.cards).toHaveLength(1);
+      expect(body.cards[0].title).toBe('Deploy v2');
+    });
+
+    it('returns empty array when no matches', async () => {
+      await createCard(app, cookie, listId, 'Task');
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/v1/boards/${boardId}/cards/search?q=nonexistent`,
+        headers: authHeader(cookie),
+      });
+      const body = JSON.parse(response.body);
+      expect(body.cards).toHaveLength(0);
+    });
+
+    it('includes listName in results', async () => {
+      await createCard(app, cookie, listId, 'Task');
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/v1/boards/${boardId}/cards/search`,
+        headers: authHeader(cookie),
+      });
+      const body = JSON.parse(response.body);
+      expect(body.cards[0].listName).toBe('To Do');
+    });
+
+    it('returns 404 for non-existent board', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/v1/boards/nonexistent/cards/search',
+        headers: authHeader(cookie),
+      });
+      expect(response.statusCode).toBe(404);
     });
   });
 

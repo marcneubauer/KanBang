@@ -50,6 +50,62 @@ describe('List routes', () => {
     });
   });
 
+  describe('GET /api/v1/lists/:listId', () => {
+    it('returns list with cards sorted by position', async () => {
+      const { body: listBody } = await createList(app, cookie, boardId, 'To Do');
+      await createCard(app, cookie, listBody.list.id, 'Card 1');
+      await createCard(app, cookie, listBody.list.id, 'Card 2');
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/v1/lists/${listBody.list.id}`,
+        headers: authHeader(cookie),
+      });
+      const body = JSON.parse(response.body);
+      expect(response.statusCode).toBe(200);
+      expect(body.list.name).toBe('To Do');
+      expect(body.list.boardId).toBe(boardId);
+      expect(body.list.cards).toHaveLength(2);
+      expect(body.list.cards[0].title).toBe('Card 1');
+      expect(body.list.cards[1].title).toBe('Card 2');
+      expect(body.list.cards[0].position < body.list.cards[1].position).toBe(true);
+    });
+
+    it('returns list with empty cards array', async () => {
+      const { body: listBody } = await createList(app, cookie, boardId, 'Empty');
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/v1/lists/${listBody.list.id}`,
+        headers: authHeader(cookie),
+      });
+      const body = JSON.parse(response.body);
+      expect(response.statusCode).toBe(200);
+      expect(body.list.cards).toHaveLength(0);
+    });
+
+    it('returns 404 for non-existent list', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/v1/lists/nonexistent',
+        headers: authHeader(cookie),
+      });
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('returns 404 for another user list', async () => {
+      const { body: listBody } = await createList(app, cookie, boardId, 'Private');
+      const { sessionCookie: otherCookie } = await registerUser(app, {
+        email: 'other@example.com',
+        username: 'other',
+      });
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/v1/lists/${listBody.list.id}`,
+        headers: authHeader(otherCookie!),
+      });
+      expect(response.statusCode).toBe(404);
+    });
+  });
+
   describe('PATCH /api/v1/lists/:listId', () => {
     it('updates list name', async () => {
       const { body: listBody } = await createList(app, cookie, boardId, 'To Do');

@@ -1,11 +1,12 @@
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { registerSchema, loginSchema } from '@kanbang/shared/validation/auth.js';
 import { COOKIE_NAME, SESSION_MAX_AGE } from '../../plugins/auth.js';
+import { config } from '../../config.js';
 
 function setCookie(reply: FastifyReply, sessionId: string) {
   reply.setCookie(COOKIE_NAME, sessionId, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: config.cookieSecure,
     sameSite: 'lax',
     path: '/',
     maxAge: SESSION_MAX_AGE,
@@ -15,7 +16,7 @@ function setCookie(reply: FastifyReply, sessionId: string) {
 function clearCookie(reply: FastifyReply) {
   reply.clearCookie(COOKIE_NAME, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: config.cookieSecure,
     sameSite: 'lax',
     path: '/',
   });
@@ -38,7 +39,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
       setCookie(reply, result.session.id);
       return reply.code(201).send({ user: result.user });
     } catch (err: unknown) {
-      if (err instanceof Error && err.message?.includes('UNIQUE constraint failed')) {
+      if (err instanceof Error && (err as NodeJS.ErrnoException).code === 'SQLITE_CONSTRAINT_UNIQUE') {
         return reply.code(409).send({
           error: 'Email or username already taken',
           code: 'CONFLICT',

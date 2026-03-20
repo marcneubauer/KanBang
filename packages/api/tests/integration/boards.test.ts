@@ -143,12 +143,14 @@ describe('Board routes', () => {
   });
 
   describe('DELETE /api/v1/boards/:boardId', () => {
-    it('deletes board and cascades', async () => {
+    it('deletes board and cascades to lists and cards', async () => {
       const { body: boardBody } = await createBoard(app, cookie);
       const boardId = boardBody.board.id;
 
       const { body: listBody } = await createList(app, cookie, boardId);
-      await createCard(app, cookie, listBody.list.id, 'Card 1');
+      const listId = listBody.list.id;
+      const { body: cardBody } = await createCard(app, cookie, listId, 'Card 1');
+      const cardId = cardBody.card.id;
 
       const deleteRes = await app.inject({
         method: 'DELETE',
@@ -158,12 +160,28 @@ describe('Board routes', () => {
       expect(deleteRes.statusCode).toBe(200);
 
       // Verify board is gone
-      const getRes = await app.inject({
+      const boardRes = await app.inject({
         method: 'GET',
         url: `/api/v1/boards/${boardId}`,
         headers: authHeader(cookie),
       });
-      expect(getRes.statusCode).toBe(404);
+      expect(boardRes.statusCode).toBe(404);
+
+      // Verify list is gone
+      const listRes = await app.inject({
+        method: 'GET',
+        url: `/api/v1/lists/${listId}`,
+        headers: authHeader(cookie),
+      });
+      expect(listRes.statusCode).toBe(404);
+
+      // Verify card is gone
+      const cardRes = await app.inject({
+        method: 'GET',
+        url: `/api/v1/cards/${cardId}`,
+        headers: authHeader(cookie),
+      });
+      expect(cardRes.statusCode).toBe(404);
     });
   });
 });

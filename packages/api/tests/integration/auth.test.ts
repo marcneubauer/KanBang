@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
+import { eq } from 'drizzle-orm';
+import { sessions } from '../../src/db/schema.js';
 import { createTestApp, registerUser, loginUser, authHeader } from './helpers.js';
 
 describe('Auth routes', () => {
@@ -115,6 +117,30 @@ describe('Auth routes', () => {
         headers: authHeader('invalid-session-id'),
       });
       expect(response.statusCode).toBe(401);
+    });
+
+    it('returns 401 and deletes expired session', async () => {
+      const { sessionCookie } = await registerUser(app);
+
+      // Expire the session by backdating it
+      await app.db
+        .update(sessions)
+        .set({ expiresAt: new Date(Date.now() - 1000) })
+        .where(eq(sessions.id, sessionCookie!));
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/v1/auth/me',
+        headers: authHeader(sessionCookie!),
+      });
+      expect(response.statusCode).toBe(401);
+
+      // Expired session row should have been deleted
+      const rows = await app.db
+        .select()
+        .from(sessions)
+        .where(eq(sessions.id, sessionCookie!));
+      expect(rows).toHaveLength(0);
     });
   });
 

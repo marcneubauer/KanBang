@@ -319,10 +319,15 @@
             </h2>
           {/if}
           <button class="list-archive" onclick={() => archiveList(list.id)} aria-label="Archive list">
-            <svg viewBox="0 0 14 14" width="12" height="12" fill="currentColor">
-              <rect x="0" y="0" width="14" height="3.5" rx="1"/>
-              <rect x="1" y="4.5" width="12" height="9" rx="1" fill="none" stroke="currentColor" stroke-width="1.2"/>
-              <path d="M5 8.5h4M7 7v3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+            <svg viewBox="0 0 14 14" width="12" height="12"
+              fill="none" stroke="currentColor" stroke-width="1.2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 3.5V2.5a2 2 0 014 0v1"/>
+              <line x1="1" y1="3.5" x2="13" y2="3.5"/>
+              <path d="M2.5 3.5L3 12.5h8l.5-9"/>
+              <line x1="5.5" y1="3.5" x2="5.2" y2="12.5"/>
+              <line x1="7" y1="3.5" x2="7" y2="12.5"/>
+              <line x1="8.5" y1="3.5" x2="8.8" y2="12.5"/>
             </svg>
           </button>
         </div>
@@ -374,11 +379,15 @@
                 onclick={() => archiveCard(card.id, list.id)}
                 aria-label="Archive card"
               >
-                <svg viewBox="0 0 14 14" width="11" height="11" fill="currentColor">
-                  <rect x="0" y="0" width="14" height="3.5" rx="1"/>
-                  <rect x="1" y="4.5" width="12" height="9" rx="1"
-                    fill="none" stroke="currentColor" stroke-width="1.2"/>
-                  <path d="M5 8.5h4M7 7v3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                <svg viewBox="0 0 14 14" width="11" height="11"
+                  fill="none" stroke="currentColor" stroke-width="1.2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 3.5V2.5a2 2 0 014 0v1"/>
+                  <line x1="1" y1="3.5" x2="13" y2="3.5"/>
+                  <path d="M2.5 3.5L3 12.5h8l.5-9"/>
+                  <line x1="5.5" y1="3.5" x2="5.2" y2="12.5"/>
+                  <line x1="7" y1="3.5" x2="7" y2="12.5"/>
+                  <line x1="8.5" y1="3.5" x2="8.8" y2="12.5"/>
                 </svg>
               </button>
             </div>

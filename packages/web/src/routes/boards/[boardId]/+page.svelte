@@ -22,6 +22,28 @@
     cards: CardItem[];
   }
 
+  interface ArchivedListEntry {
+    id: string;
+    name: string;
+    archivedAt: string;
+    cards: CardItem[];
+  }
+
+  interface ArchivedCardEntry {
+    id: string;
+    title: string;
+    listId: string;
+    listName: string;
+    position: string;
+    completed: boolean;
+    archivedAt: string;
+  }
+
+  interface ArchivedItems {
+    archivedLists: ArchivedListEntry[];
+    archivedCards: ArchivedCardEntry[];
+  }
+
   let { data } = $props();
 
   let lists: ListItem[] = $state(data.board.lists.map((l: ListItem) => ({
@@ -44,9 +66,8 @@
     editingBoardName = false;
   }
 
-  async function deleteBoard() {
-    if (!confirm('Delete this board and all its lists and cards?')) return;
-    await api(`/boards/${data.board.id}`, { method: 'DELETE' });
+  async function archiveBoard() {
+    await api(`/boards/${data.board.id}/archive`, { method: 'PATCH' });
     goto('/boards');
   }
 
@@ -72,10 +93,10 @@
     });
   }
 
-  async function deleteList(listId: string) {
-    if (!confirm('Delete this list and all its cards?')) return;
-    await api(`/lists/${listId}`, { method: 'DELETE' });
+  async function archiveList(listId: string) {
+    await api(`/lists/${listId}/archive`, { method: 'PATCH' });
     lists = lists.filter((l) => l.id !== listId);
+    archivedItems = null;
   }
 
   // --- Card actions ---
@@ -105,10 +126,11 @@
     if (card) card.completed = completed;
   }
 
-  async function deleteCard(cardId: string, listId: string) {
-    await api(`/cards/${cardId}`, { method: 'DELETE' });
+  async function archiveCard(cardId: string, listId: string) {
+    await api(`/cards/${cardId}/archive`, { method: 'PATCH' });
     const listIndex = lists.findIndex((l) => l.id === listId);
     lists[listIndex].cards = lists[listIndex].cards.filter((c) => c.id !== cardId);
+    archivedItems = null;
   }
 
   // --- Drag and drop ---
@@ -218,6 +240,42 @@
     }
     editingCardId = null;
   }
+
+  // --- Archived items panel ---
+  let showArchived = $state(false);
+  let archivedItems = $state<ArchivedItems | null>(null);
+  let loadingArchived = $state(false);
+
+  async function toggleArchived() {
+    if (!showArchived && !archivedItems) {
+      loadingArchived = true;
+      try {
+        const result = await api<ArchivedItems>(`/boards/${data.board.id}/archived`);
+        archivedItems = result;
+      } finally {
+        loadingArchived = false;
+      }
+    }
+    showArchived = !showArchived;
+  }
+
+  async function unarchiveList(listId: string) {
+    await api(`/lists/${listId}/unarchive`, { method: 'PATCH' });
+    if (archivedItems) {
+      archivedItems.archivedLists = archivedItems.archivedLists.filter((l) => l.id !== listId);
+    }
+    const { board } = await api<{ board: { lists: ListItem[] } }>(`/boards/${data.board.id}`);
+    lists = board.lists.map((l) => ({ ...l, cards: l.cards.map((c) => ({ ...c })) }));
+  }
+
+  async function unarchiveCard(cardId: string) {
+    await api(`/cards/${cardId}/unarchive`, { method: 'PATCH' });
+    if (archivedItems) {
+      archivedItems.archivedCards = archivedItems.archivedCards.filter((c) => c.id !== cardId);
+    }
+    const { board } = await api<{ board: { lists: ListItem[] } }>(`/boards/${data.board.id}`);
+    lists = board.lists.map((l) => ({ ...l, cards: l.cards.map((c) => ({ ...c })) }));
+  }
 </script>
 
 <div class="board-page">
@@ -234,7 +292,7 @@
     {:else}
       <h1 class="board-name" ondblclick={() => { editingBoardName = true; }}>{boardName}</h1>
     {/if}
-    <button class="btn-danger" onclick={deleteBoard}>Delete Board</button>
+    <button class="btn-archive-board" onclick={archiveBoard}>Archive Board</button>
   </header>
 
   <div
@@ -260,7 +318,13 @@
               {list.name}
             </h2>
           {/if}
-          <button class="list-delete" onclick={() => deleteList(list.id)} aria-label="Delete list">&times;</button>
+          <button class="list-archive" onclick={() => archiveList(list.id)} aria-label="Archive list">
+            <svg viewBox="0 0 14 14" width="12" height="12" fill="currentColor">
+              <rect x="0" y="0" width="14" height="3.5" rx="1"/>
+              <rect x="1" y="4.5" width="12" height="9" rx="1" fill="none" stroke="currentColor" stroke-width="1.2"/>
+              <path d="M5 8.5h4M7 7v3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+            </svg>
+          </button>
         </div>
 
         <div
@@ -280,12 +344,12 @@
                 {#if card.completed}
                   <svg viewBox="0 0 16 16" width="16" height="16">
                     <rect width="16" height="16" rx="2" fill="#22c55e"/>
-                    <path d="M4 8l3 3 5-5" stroke="white" stroke-width="2" 
+                    <path d="M4 8l3 3 5-5" stroke="white" stroke-width="2"
                     fill="none" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 {:else}
                   <svg viewBox="0 0 16 16" width="16" height="16">
-                    <rect x="0.5" y="0.5" width="15" height="15" rx="1.5" 
+                    <rect x="0.5" y="0.5" width="15" height="15" rx="1.5"
                     fill="none" stroke="#b0b0b0" stroke-width="1"/>
                   </svg>
                 {/if}
@@ -306,10 +370,16 @@
                 </span>
               {/if}
               <button
-                class="card-delete"
-                onclick={() => deleteCard(card.id, list.id)}
-                aria-label="Delete card"
-              >&times;</button>
+                class="card-archive"
+                onclick={() => archiveCard(card.id, list.id)}
+                aria-label="Archive card"
+              >
+                <svg viewBox="0 0 14 14" width="11" height="11" fill="currentColor">
+                  <rect x="0" y="0" width="14" height="3.5" rx="1"/>
+                  <rect x="1" y="4.5" width="12" height="9" rx="1" fill="none" stroke="currentColor" stroke-width="1.2"/>
+                  <path d="M5 8.5h4M7 7v3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                </svg>
+              </button>
             </div>
           {/each}
         </div>
@@ -359,6 +429,49 @@
       {/if}
     </div>
   </div>
+
+  <!-- Archived items panel -->
+  <div class="archived-panel">
+    <button class="archived-toggle" onclick={toggleArchived}>
+      {showArchived ? '▾' : '▸'} Archived items
+    </button>
+
+    {#if showArchived}
+      <div class="archived-content">
+        {#if loadingArchived}
+          <p class="archived-msg">Loading…</p>
+        {:else if archivedItems && (archivedItems.archivedLists.length > 0 || archivedItems.archivedCards.length > 0)}
+          {#if archivedItems.archivedLists.length > 0}
+            <p class="archived-group-label">Archived lists</p>
+            <div class="archived-list">
+              {#each archivedItems.archivedLists as list (list.id)}
+                <div class="archived-entry">
+                  <span class="archived-entry-name">{list.name}</span>
+                  <span class="archived-entry-meta">{list.cards.length} card{list.cards.length !== 1 ? 's' : ''}</span>
+                  <button class="btn-unarchive" onclick={() => unarchiveList(list.id)}>Unarchive</button>
+                </div>
+              {/each}
+            </div>
+          {/if}
+
+          {#if archivedItems.archivedCards.length > 0}
+            <p class="archived-group-label">Archived cards</p>
+            <div class="archived-list">
+              {#each archivedItems.archivedCards as card (card.id)}
+                <div class="archived-entry">
+                  <span class="archived-entry-name">{card.title}</span>
+                  <span class="archived-entry-meta">in {card.listName}</span>
+                  <button class="btn-unarchive" onclick={() => unarchiveCard(card.id)}>Unarchive</button>
+                </div>
+              {/each}
+            </div>
+          {/if}
+        {:else}
+          <p class="archived-msg">Nothing archived yet.</p>
+        {/if}
+      </div>
+    {/if}
+  </div>
 </div>
 
 <style>
@@ -390,14 +503,19 @@
     padding: 2px 8px;
   }
 
-  .btn-danger {
+  .btn-archive-board {
     padding: 6px 12px;
-    background: var(--color-danger);
-    color: white;
-    border: none;
+    background: none;
+    color: var(--color-text-subtle);
+    border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     font-size: 13px;
     cursor: pointer;
+  }
+
+  .btn-archive-board:hover {
+    background: var(--color-surface, #f5f5f5);
+    color: var(--color-text);
   }
 
   .board-columns {
@@ -444,19 +562,24 @@
     width: 100%;
   }
 
-  .list-delete {
+  .list-archive {
     background: none;
     border: none;
     color: var(--color-text-subtle);
-    font-size: 18px;
     cursor: pointer;
-    padding: 0 4px;
+    padding: 2px 4px;
+    display: flex;
+    align-items: center;
     opacity: 0;
     transition: opacity 150ms;
   }
 
-  .list-header:hover .list-delete {
+  .list-header:hover .list-archive {
     opacity: 1;
+  }
+
+  .list-archive:hover {
+    color: var(--color-text);
   }
 
   .card-list {
@@ -524,20 +647,25 @@
     opacity: 0.6;
   }
 
-  .card-delete {
+  .card-archive {
     background: none;
     border: none;
     color: var(--color-text-subtle);
-    font-size: 16px;
     cursor: pointer;
-    padding: 0 2px;
+    padding: 1px 2px;
+    display: flex;
+    align-items: center;
     opacity: 0;
     transition: opacity 150ms;
     flex-shrink: 0;
   }
 
-  .card-item:hover .card-delete {
+  .card-item:hover .card-archive {
     opacity: 1;
+  }
+
+  .card-archive:hover {
+    color: var(--color-text);
   }
 
   .add-card-btn {
@@ -634,6 +762,98 @@
     border-radius: var(--radius-sm);
     font-size: 14px;
     margin-bottom: 4px;
+  }
+
+  /* Archived panel */
+  .archived-panel {
+    flex-shrink: 0;
+    border-top: 1px solid var(--color-border);
+    padding: 8px 16px;
+    background: var(--color-bg, white);
+  }
+
+  .archived-toggle {
+    background: none;
+    border: none;
+    font-size: 13px;
+    color: var(--color-text-subtle);
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .archived-toggle:hover {
+    color: var(--color-text);
+  }
+
+  .archived-content {
+    margin-top: 10px;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+
+  .archived-group-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-subtle);
+    margin: 8px 0 4px;
+  }
+
+  .archived-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+
+  .archived-entry {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    background: var(--color-surface, #f5f5f5);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+  }
+
+  .archived-entry-name {
+    font-size: 13px;
+    flex: 1;
+    color: var(--color-text-subtle);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .archived-entry-meta {
+    font-size: 12px;
+    color: var(--color-text-subtle);
+    opacity: 0.7;
+    white-space: nowrap;
+  }
+
+  .btn-unarchive {
+    padding: 3px 8px;
+    background: none;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--color-text-subtle);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .btn-unarchive:hover {
+    background: white;
+    color: var(--color-text);
+  }
+
+  .archived-msg {
+    font-size: 13px;
+    color: var(--color-text-subtle);
+    margin: 4px 0;
   }
 
   :global(.dragged) {

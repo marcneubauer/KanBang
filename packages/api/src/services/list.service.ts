@@ -1,4 +1,4 @@
-import { eq, asc, desc } from 'drizzle-orm';
+import { eq, asc, desc, and, isNull, isNotNull } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { Database } from '../db/index.js';
 import { lists, cards } from '../db/schema.js';
@@ -9,11 +9,11 @@ export class ListService {
   constructor(private db: Database) {}
 
   async create(boardId: string, input: CreateListInput) {
-    // Get the last list position to append after it
+    // Get the last active list position to append after it
     const [lastList] = await this.db
       .select({ position: lists.position })
       .from(lists)
-      .where(eq(lists.boardId, boardId))
+      .where(and(eq(lists.boardId, boardId), isNull(lists.archivedAt)))
       .orderBy(desc(lists.position))
       .limit(1);
 
@@ -55,9 +55,20 @@ export class ListService {
     return list ?? null;
   }
 
-  async delete(listId: string) {
+  async archive(listId: string) {
     const [list] = await this.db
-      .delete(lists)
+      .update(lists)
+      .set({ archivedAt: new Date() })
+      .where(eq(lists.id, listId))
+      .returning();
+
+    return !!list;
+  }
+
+  async unarchive(listId: string) {
+    const [list] = await this.db
+      .update(lists)
+      .set({ archivedAt: null })
       .where(eq(lists.id, listId))
       .returning();
 
@@ -81,7 +92,7 @@ export class ListService {
     const listCards = await this.db
       .select()
       .from(cards)
-      .where(eq(cards.listId, listId))
+      .where(and(eq(cards.listId, listId), isNull(cards.archivedAt)))
       .orderBy(asc(cards.position));
 
     return { ...list, cards: listCards };

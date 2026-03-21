@@ -14,6 +14,7 @@ export const cards = sqliteTable(
     completed: integer('completed', { mode: 'boolean' }).notNull().default(false),
     createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
     updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+    archivedAt: integer('archived_at', { mode: 'timestamp' }),
   },
   (table) => [index('cards_list_position_idx').on(table.listId, table.position)],
 );

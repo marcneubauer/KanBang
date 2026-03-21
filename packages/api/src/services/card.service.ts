@@ -1,4 +1,4 @@
-import { eq, and, or, like, desc, asc } from 'drizzle-orm';
+import { eq, and, or, like, desc, asc, isNull, isNotNull } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { Database } from '../db/index.js';
 import { cards, lists } from '../db/schema.js';
@@ -9,11 +9,11 @@ export class CardService {
   constructor(private db: Database) {}
 
   async create(listId: string, input: CreateCardInput) {
-    // Get the last card position to append after it
+    // Get the last active card position to append after it
     const [lastCard] = await this.db
       .select({ position: cards.position })
       .from(cards)
-      .where(eq(cards.listId, listId))
+      .where(and(eq(cards.listId, listId), isNull(cards.archivedAt)))
       .orderBy(desc(cards.position))
       .limit(1);
 
@@ -61,9 +61,20 @@ export class CardService {
     return card ?? null;
   }
 
-  async delete(cardId: string) {
+  async archive(cardId: string) {
     const [card] = await this.db
-      .delete(cards)
+      .update(cards)
+      .set({ archivedAt: new Date() })
+      .where(eq(cards.id, cardId))
+      .returning();
+
+    return !!card;
+  }
+
+  async unarchive(cardId: string) {
+    const [card] = await this.db
+      .update(cards)
+      .set({ archivedAt: null })
       .where(eq(cards.id, cardId))
       .returning();
 
@@ -86,7 +97,7 @@ export class CardService {
   }
 
   async search(boardId: string, options: { q?: string; completed?: boolean }) {
-    const conditions = [eq(lists.boardId, boardId)];
+    const conditions = [eq(lists.boardId, boardId), isNull(lists.archivedAt), isNull(cards.archivedAt)];
 
     if (options.q) {
       const pattern = `%${options.q}%`;

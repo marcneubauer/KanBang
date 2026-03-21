@@ -12,8 +12,9 @@ export default async function boardRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.requireAuth);
 
   // GET /api/v1/boards
-  fastify.get('/', async (request) => {
-    const boards = await boardService.getAll(request.user!.id);
+  fastify.get<{ Querystring: { archived?: string } }>('/', async (request) => {
+    const archived = request.query.archived === 'true';
+    const boards = await boardService.getAll(request.user!.id, archived);
     return { boards };
   });
 
@@ -45,6 +46,18 @@ export default async function boardRoutes(fastify: FastifyInstance) {
     }
 
     return { board };
+  });
+
+  // GET /api/v1/boards/:boardId/archived
+  fastify.get<{ Params: { boardId: string } }>('/:boardId/archived', async (request, reply) => {
+    const { boardId } = request.params;
+
+    if (!(await boardService.isOwner(boardId, request.user!.id))) {
+      return reply.code(404).send({ error: 'Board not found', code: 'NOT_FOUND' });
+    }
+
+    const result = await boardService.getArchivedItems(boardId);
+    return result;
   });
 
   // GET /api/v1/boards/:boardId/cards/search
@@ -92,15 +105,30 @@ export default async function boardRoutes(fastify: FastifyInstance) {
     return { board };
   });
 
-  // DELETE /api/v1/boards/:boardId
-  fastify.delete<{ Params: { boardId: string } }>('/:boardId', async (request, reply) => {
+  // PATCH /api/v1/boards/:boardId/archive
+  fastify.patch<{ Params: { boardId: string } }>('/:boardId/archive', async (request, reply) => {
     const { boardId } = request.params;
 
     if (!(await boardService.isOwner(boardId, request.user!.id))) {
       return reply.code(404).send({ error: 'Board not found', code: 'NOT_FOUND' });
     }
 
-    await boardService.delete(boardId);
+    await boardService.archive(boardId);
     return { ok: true };
   });
+
+  // PATCH /api/v1/boards/:boardId/unarchive
+  fastify.patch<{ Params: { boardId: string } }>(
+    '/:boardId/unarchive',
+    async (request, reply) => {
+      const { boardId } = request.params;
+
+      if (!(await boardService.isOwner(boardId, request.user!.id))) {
+        return reply.code(404).send({ error: 'Board not found', code: 'NOT_FOUND' });
+      }
+
+      await boardService.unarchive(boardId);
+      return { ok: true };
+    },
+  );
 }

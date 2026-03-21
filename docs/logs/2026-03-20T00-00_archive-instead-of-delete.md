@@ -21,7 +21,7 @@ Presented a design plan covering: archive model, DB changes, API changes, fronte
 ### "write this plan out in enough detail to a plan file, and update the appropriate specs to match"
 
 **Created:**
-- `docs/plans/O_archive-instead-of-delete.md` — full implementation plan
+- `docs/plans/X_archive-instead-of-delete.md` — full implementation plan
 
 **Updated:**
 

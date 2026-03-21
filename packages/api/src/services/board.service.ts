@@ -1,4 +1,4 @@
-import { eq, and, asc } from 'drizzle-orm';
+import { eq, and, asc, isNull, isNotNull } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { Database } from '../db/index.js';
 import { boards, lists, cards } from '../db/schema.js';
@@ -23,11 +23,16 @@ export class BoardService {
     return board;
   }
 
-  async getAll(userId: string) {
+  async getAll(userId: string, archived = false) {
     return this.db
       .select()
       .from(boards)
-      .where(eq(boards.userId, userId))
+      .where(
+        and(
+          eq(boards.userId, userId),
+          archived ? isNotNull(boards.archivedAt) : isNull(boards.archivedAt),
+        ),
+      )
       .orderBy(asc(boards.createdAt));
   }
 
@@ -43,7 +48,7 @@ export class BoardService {
     const boardLists = await this.db
       .select()
       .from(lists)
-      .where(eq(lists.boardId, boardId))
+      .where(and(eq(lists.boardId, boardId), isNull(lists.archivedAt)))
       .orderBy(asc(lists.position));
 
     const listsWithCards = await Promise.all(
@@ -51,7 +56,7 @@ export class BoardService {
         const listCards = await this.db
           .select()
           .from(cards)
-          .where(eq(cards.listId, list.id))
+          .where(and(eq(cards.listId, list.id), isNull(cards.archivedAt)))
           .orderBy(asc(cards.position));
 
         return { ...list, cards: listCards };
@@ -71,13 +76,61 @@ export class BoardService {
     return board ?? null;
   }
 
-  async delete(boardId: string) {
+  async archive(boardId: string) {
     const [board] = await this.db
-      .delete(boards)
+      .update(boards)
+      .set({ archivedAt: new Date() })
       .where(eq(boards.id, boardId))
       .returning();
 
     return !!board;
+  }
+
+  async unarchive(boardId: string) {
+    const [board] = await this.db
+      .update(boards)
+      .set({ archivedAt: null })
+      .where(eq(boards.id, boardId))
+      .returning();
+
+    return !!board;
+  }
+
+  async getArchivedItems(boardId: string) {
+    const archivedLists = await this.db
+      .select()
+      .from(lists)
+      .where(and(eq(lists.boardId, boardId), isNotNull(lists.archivedAt)))
+      .orderBy(asc(lists.position));
+
+    const archivedListsWithCards = await Promise.all(
+      archivedLists.map(async (list) => {
+        const listCards = await this.db
+          .select()
+          .from(cards)
+          .where(eq(cards.listId, list.id))
+          .orderBy(asc(cards.position));
+
+        return { ...list, cards: listCards };
+      }),
+    );
+
+    const archivedCards = await this.db
+      .select({
+        id: cards.id,
+        title: cards.title,
+        completed: cards.completed,
+        listId: cards.listId,
+        listName: lists.name,
+        position: cards.position,
+        archivedAt: cards.archivedAt,
+      })
+      .from(cards)
+      .innerJoin(lists, eq(cards.listId, lists.id))
+      .where(and(eq(lists.boardId, boardId), isNull(lists.archivedAt), isNotNull(cards.archivedAt)))
+      .orderBy(asc(lists.position), asc(cards.position));
+
+    return { archivedLists: archivedListsWithCards, archivedCards };
   }
 
   async isOwner(boardId: string, userId: string) {

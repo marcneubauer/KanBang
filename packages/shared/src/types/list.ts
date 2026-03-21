@@ -7,6 +7,7 @@ export interface List {
   position: string;
   createdAt: Date;
   updatedAt: Date;
+  archivedAt: Date | null;
 }
 
 export interface ListWithCards extends List {

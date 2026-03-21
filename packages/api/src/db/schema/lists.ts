@@ -12,6 +12,7 @@ export const lists = sqliteTable(
     position: text('position').notNull(),
     createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
     updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+    archivedAt: integer('archived_at', { mode: 'timestamp' }),
   },
   (table) => [index('lists_board_position_idx').on(table.boardId, table.position)],
 );

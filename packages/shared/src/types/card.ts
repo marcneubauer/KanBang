@@ -7,4 +7,5 @@ export interface Card {
   completed: boolean;
   createdAt: Date;
   updatedAt: Date;
+  archivedAt: Date | null;
 }

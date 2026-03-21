@@ -142,46 +142,76 @@ describe('Board routes', () => {
     });
   });
 
-  describe('DELETE /api/v1/boards/:boardId', () => {
-    it('deletes board and cascades to lists and cards', async () => {
+  describe('PATCH /api/v1/boards/:boardId/archive', () => {
+    it('archives board and removes it from active list', async () => {
       const { body: boardBody } = await createBoard(app, cookie);
       const boardId = boardBody.board.id;
 
+      const archiveRes = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/boards/${boardId}/archive`,
+        headers: authHeader(cookie),
+      });
+      expect(archiveRes.statusCode).toBe(200);
+      expect(JSON.parse(archiveRes.body)).toEqual({ ok: true });
+
+      // Board absent from active list
+      const activeRes = await app.inject({
+        method: 'GET',
+        url: '/api/v1/boards',
+        headers: authHeader(cookie),
+      });
+      const activeBody = JSON.parse(activeRes.body);
+      expect(activeBody.boards.map((b: { id: string }) => b.id)).not.toContain(boardId);
+
+      // Board appears in archived list
+      const archivedRes = await app.inject({
+        method: 'GET',
+        url: '/api/v1/boards?archived=true',
+        headers: authHeader(cookie),
+      });
+      const archivedBody = JSON.parse(archivedRes.body);
+      expect(archivedBody.boards.map((b: { id: string }) => b.id)).toContain(boardId);
+    });
+
+    it('unarchives board and restores it to active list', async () => {
+      const { body: boardBody } = await createBoard(app, cookie);
+      const boardId = boardBody.board.id;
+
+      await app.inject({ method: 'PATCH', url: `/api/v1/boards/${boardId}/archive`, headers: authHeader(cookie) });
+
+      const unarchiveRes = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/boards/${boardId}/unarchive`,
+        headers: authHeader(cookie),
+      });
+      expect(unarchiveRes.statusCode).toBe(200);
+
+      const activeRes = await app.inject({
+        method: 'GET',
+        url: '/api/v1/boards',
+        headers: authHeader(cookie),
+      });
+      const activeBody = JSON.parse(activeRes.body);
+      expect(activeBody.boards.map((b: { id: string }) => b.id)).toContain(boardId);
+    });
+
+    it('lists and cards are independent of board archive state', async () => {
+      const { body: boardBody } = await createBoard(app, cookie);
+      const boardId = boardBody.board.id;
       const { body: listBody } = await createList(app, cookie, boardId);
       const listId = listBody.list.id;
       const { body: cardBody } = await createCard(app, cookie, listId, 'Card 1');
       const cardId = cardBody.card.id;
 
-      const deleteRes = await app.inject({
-        method: 'DELETE',
-        url: `/api/v1/boards/${boardId}`,
-        headers: authHeader(cookie),
-      });
-      expect(deleteRes.statusCode).toBe(200);
+      await app.inject({ method: 'PATCH', url: `/api/v1/boards/${boardId}/archive`, headers: authHeader(cookie) });
 
-      // Verify board is gone
-      const boardRes = await app.inject({
-        method: 'GET',
-        url: `/api/v1/boards/${boardId}`,
-        headers: authHeader(cookie),
-      });
-      expect(boardRes.statusCode).toBe(404);
+      // List and card still accessible
+      const listRes = await app.inject({ method: 'GET', url: `/api/v1/lists/${listId}`, headers: authHeader(cookie) });
+      expect(listRes.statusCode).toBe(200);
 
-      // Verify list is gone
-      const listRes = await app.inject({
-        method: 'GET',
-        url: `/api/v1/lists/${listId}`,
-        headers: authHeader(cookie),
-      });
-      expect(listRes.statusCode).toBe(404);
-
-      // Verify card is gone
-      const cardRes = await app.inject({
-        method: 'GET',
-        url: `/api/v1/cards/${cardId}`,
-        headers: authHeader(cookie),
-      });
-      expect(cardRes.statusCode).toBe(404);
+      const cardRes = await app.inject({ method: 'GET', url: `/api/v1/cards/${cardId}`, headers: authHeader(cookie) });
+      expect(cardRes.statusCode).toBe(200);
     });
   });
 });

@@ -113,15 +113,33 @@ export default async function cardRoutes(fastify: FastifyInstance) {
     },
   );
 
-  // DELETE /api/v1/cards/:cardId
-  fastify.delete<{ Params: { cardId: string } }>('/cards/:cardId', async (request, reply) => {
-    const { cardId } = request.params;
+  // PATCH /api/v1/cards/:cardId/archive
+  fastify.patch<{ Params: { cardId: string } }>(
+    '/cards/:cardId/archive',
+    async (request, reply) => {
+      const { cardId } = request.params;
 
-    if (!(await verifyCardOwnership(cardId, request.user!.id))) {
-      return reply.code(404).send({ error: 'Card not found', code: 'NOT_FOUND' });
-    }
+      if (!(await verifyCardOwnership(cardId, request.user!.id))) {
+        return reply.code(404).send({ error: 'Card not found', code: 'NOT_FOUND' });
+      }
 
-    await cardService.delete(cardId);
-    return { ok: true };
-  });
+      await cardService.archive(cardId);
+      return { ok: true };
+    },
+  );
+
+  // PATCH /api/v1/cards/:cardId/unarchive
+  fastify.patch<{ Params: { cardId: string } }>(
+    '/cards/:cardId/unarchive',
+    async (request, reply) => {
+      const { cardId } = request.params;
+
+      if (!(await verifyCardOwnership(cardId, request.user!.id))) {
+        return reply.code(404).send({ error: 'Card not found', code: 'NOT_FOUND' });
+      }
+
+      await cardService.unarchive(cardId);
+      return { ok: true };
+    },
+  );
 }

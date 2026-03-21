@@ -353,17 +353,18 @@ describe('Card routes', () => {
     });
   });
 
-  describe('DELETE /api/v1/cards/:cardId', () => {
-    it('deletes a card', async () => {
-      const { body: cardBody } = await createCard(app, cookie, listId, 'To Delete');
+  describe('PATCH /api/v1/cards/:cardId/archive', () => {
+    it('archives a card and removes it from active list view', async () => {
+      const { body: cardBody } = await createCard(app, cookie, listId, 'To Archive');
       const response = await app.inject({
-        method: 'DELETE',
-        url: `/api/v1/cards/${cardBody.card.id}`,
+        method: 'PATCH',
+        url: `/api/v1/cards/${cardBody.card.id}/archive`,
         headers: authHeader(cookie),
       });
       expect(response.statusCode).toBe(200);
+      expect(JSON.parse(response.body)).toEqual({ ok: true });
 
-      // Verify card is gone from board
+      // Card no longer appears in board active view
       const boardRes = await app.inject({
         method: 'GET',
         url: `/api/v1/boards/${boardId}`,
@@ -373,10 +374,32 @@ describe('Card routes', () => {
       expect(boardBody.board.lists[0].cards).toHaveLength(0);
     });
 
+    it('unarchives a card and restores it to active list view', async () => {
+      const { body: cardBody } = await createCard(app, cookie, listId, 'To Restore');
+      const cardId = cardBody.card.id;
+
+      await app.inject({ method: 'PATCH', url: `/api/v1/cards/${cardId}/archive`, headers: authHeader(cookie) });
+
+      const unarchiveRes = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/cards/${cardId}/unarchive`,
+        headers: authHeader(cookie),
+      });
+      expect(unarchiveRes.statusCode).toBe(200);
+
+      const boardRes = await app.inject({
+        method: 'GET',
+        url: `/api/v1/boards/${boardId}`,
+        headers: authHeader(cookie),
+      });
+      const boardBody = JSON.parse(boardRes.body);
+      expect(boardBody.board.lists[0].cards).toHaveLength(1);
+    });
+
     it('returns 404 for non-existent card', async () => {
       const response = await app.inject({
-        method: 'DELETE',
-        url: '/api/v1/cards/nonexistent',
+        method: 'PATCH',
+        url: '/api/v1/cards/nonexistent/archive',
         headers: authHeader(cookie),
       });
       expect(response.statusCode).toBe(404);

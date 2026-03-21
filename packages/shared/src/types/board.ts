@@ -6,6 +6,7 @@ export interface Board {
   userId: string;
   createdAt: Date;
   updatedAt: Date;
+  archivedAt: Date | null;
 }
 
 export interface BoardWithLists extends Board {

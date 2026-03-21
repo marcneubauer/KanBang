@@ -136,19 +136,20 @@ describe('List routes', () => {
     });
   });
 
-  describe('DELETE /api/v1/lists/:listId', () => {
-    it('deletes list and cascades cards', async () => {
+  describe('PATCH /api/v1/lists/:listId/archive', () => {
+    it('archives list and removes it from board active view', async () => {
       const { body: listBody } = await createList(app, cookie, boardId, 'To Do');
       await createCard(app, cookie, listBody.list.id, 'Task 1');
 
-      const deleteRes = await app.inject({
-        method: 'DELETE',
-        url: `/api/v1/lists/${listBody.list.id}`,
+      const archiveRes = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/lists/${listBody.list.id}/archive`,
         headers: authHeader(cookie),
       });
-      expect(deleteRes.statusCode).toBe(200);
+      expect(archiveRes.statusCode).toBe(200);
+      expect(JSON.parse(archiveRes.body)).toEqual({ ok: true });
 
-      // Verify board has no lists
+      // Board detail shows no active lists
       const boardRes = await app.inject({
         method: 'GET',
         url: `/api/v1/boards/${boardId}`,
@@ -156,6 +157,28 @@ describe('List routes', () => {
       });
       const boardBody = JSON.parse(boardRes.body);
       expect(boardBody.board.lists).toHaveLength(0);
+    });
+
+    it('unarchives list and restores it to board active view', async () => {
+      const { body: listBody } = await createList(app, cookie, boardId, 'To Do');
+      const listId = listBody.list.id;
+
+      await app.inject({ method: 'PATCH', url: `/api/v1/lists/${listId}/archive`, headers: authHeader(cookie) });
+
+      const unarchiveRes = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/lists/${listId}/unarchive`,
+        headers: authHeader(cookie),
+      });
+      expect(unarchiveRes.statusCode).toBe(200);
+
+      const boardRes = await app.inject({
+        method: 'GET',
+        url: `/api/v1/boards/${boardId}`,
+        headers: authHeader(cookie),
+      });
+      const boardBody = JSON.parse(boardRes.body);
+      expect(boardBody.board.lists).toHaveLength(1);
     });
   });
 });

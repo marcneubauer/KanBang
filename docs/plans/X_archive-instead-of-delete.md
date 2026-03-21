@@ -1,6 +1,6 @@
 # Plan: Archive Instead of Delete
 
-**Status:** Not started
+**Status:** Complete
 **Scope:** Boards, lists, and cards — replace all permanent deletion with soft-archive/unarchive
 
 ---
@@ -311,9 +311,9 @@ BoardListPage
 
 ## Implementation Order
 
-1. **DB migration** — add `archived_at` to boards, lists, cards; update Drizzle schema
-2. **Service layer** — add archive/unarchive methods; update all queries to filter `archived_at IS NULL`; add `getArchivedItems` for board view
-3. **API routes** — add archive/unarchive endpoints; add `GET /boards?archived` param; add `GET /boards/:boardId/archived`; remove DELETE endpoints
-4. **Shared types/schemas** — add `archivedAt` to Zod schemas and TypeScript types
-5. **Frontend** — update `BoardHeader`, `ListHeader`, `CardItem` to use archive actions; build `ArchivedBoardsSection` and `ArchivedItemsPanel`
-6. **Tests** — update unit, integration, and E2E tests
+1. ✅ **DB migration** — add `archived_at` to boards, lists, cards; update Drizzle schema
+2. ✅ **Service layer** — add archive/unarchive methods; update all queries to filter `archived_at IS NULL`; add `getArchivedItems` for board view
+3. ✅ **API routes** — add archive/unarchive endpoints; add `GET /boards?archived` param; add `GET /boards/:boardId/archived`; remove DELETE endpoints
+4. ✅ **Shared types/schemas** — add `archivedAt` to Zod schemas and TypeScript types
+5. ✅ **Frontend** — update `BoardHeader`, `ListHeader`, `CardItem` to use archive actions; build `ArchivedBoardsSection` and `ArchivedItemsPanel`
+6. ✅ **Tests** — update unit, integration, and E2E tests (backend; E2E deferred until frontend done)

@@ -97,16 +97,35 @@ export default async function listRoutes(fastify: FastifyInstance) {
     },
   );
 
-  // DELETE /api/v1/lists/:listId
-  fastify.delete<{ Params: { listId: string } }>('/lists/:listId', async (request, reply) => {
-    const { listId } = request.params;
+  // PATCH /api/v1/lists/:listId/archive
+  fastify.patch<{ Params: { listId: string } }>(
+    '/lists/:listId/archive',
+    async (request, reply) => {
+      const { listId } = request.params;
 
-    const boardId = await listService.getBoardId(listId);
-    if (!boardId || !(await boardService.isOwner(boardId, request.user!.id))) {
-      return reply.code(404).send({ error: 'List not found', code: 'NOT_FOUND' });
-    }
+      const boardId = await listService.getBoardId(listId);
+      if (!boardId || !(await boardService.isOwner(boardId, request.user!.id))) {
+        return reply.code(404).send({ error: 'List not found', code: 'NOT_FOUND' });
+      }
 
-    await listService.delete(listId);
-    return { ok: true };
-  });
+      await listService.archive(listId);
+      return { ok: true };
+    },
+  );
+
+  // PATCH /api/v1/lists/:listId/unarchive
+  fastify.patch<{ Params: { listId: string } }>(
+    '/lists/:listId/unarchive',
+    async (request, reply) => {
+      const { listId } = request.params;
+
+      const boardId = await listService.getBoardId(listId);
+      if (!boardId || !(await boardService.isOwner(boardId, request.user!.id))) {
+        return reply.code(404).send({ error: 'List not found', code: 'NOT_FOUND' });
+      }
+
+      await listService.unarchive(listId);
+      return { ok: true };
+    },
+  );
 }

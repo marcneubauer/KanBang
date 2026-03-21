@@ -9,4 +9,5 @@ export const boards = sqliteTable('boards', {
     .references(() => users.id, { onDelete: 'cascade' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+  archivedAt: integer('archived_at', { mode: 'timestamp' }),
 });

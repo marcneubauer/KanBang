@@ -1,4 +1,4 @@
-import { eq, asc, desc, and, isNull, isNotNull } from 'drizzle-orm';
+import { eq, asc, desc, and, isNull } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { Database } from '../db/index.js';
 import { lists, cards } from '../db/schema.js';

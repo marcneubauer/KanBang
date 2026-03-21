@@ -376,7 +376,8 @@
               >
                 <svg viewBox="0 0 14 14" width="11" height="11" fill="currentColor">
                   <rect x="0" y="0" width="14" height="3.5" rx="1"/>
-                  <rect x="1" y="4.5" width="12" height="9" rx="1" fill="none" stroke="currentColor" stroke-width="1.2"/>
+                  <rect x="1" y="4.5" width="12" height="9" rx="1"
+                    fill="none" stroke="currentColor" stroke-width="1.2"/>
                   <path d="M5 8.5h4M7 7v3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
                 </svg>
               </button>

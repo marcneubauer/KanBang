@@ -195,7 +195,11 @@ All require authentication. Users can only access their own boards.
 
 ### GET /api/v1/boards
 
-List all boards for the authenticated user.
+List boards for the authenticated user.
+
+**Query parameters:**
+
+- `archived` (optional): `true` to return only archived boards. Omit or `false` for active boards only.
 
 **Response (200):**
 ```json
@@ -205,7 +209,8 @@ List all boards for the authenticated user.
       "id": "board1",
       "name": "My Board",
       "createdAt": "2025-01-15T10:30:00.000Z",
-      "updatedAt": "2025-01-15T10:30:00.000Z"
+      "updatedAt": "2025-01-15T10:30:00.000Z",
+      "archivedAt": null
     }
   ]
 }
@@ -229,7 +234,8 @@ Create a new board.
     "id": "board1",
     "name": "My Board",
     "createdAt": "2025-01-15T10:30:00.000Z",
-    "updatedAt": "2025-01-15T10:30:00.000Z"
+    "updatedAt": "2025-01-15T10:30:00.000Z",
+    "archivedAt": null
   }
 }
 ```
@@ -237,6 +243,8 @@ Create a new board.
 ### GET /api/v1/boards/:boardId
 
 Get a board with all its lists and cards, sorted by position.
+
+Only active lists (not archived) and active cards (not archived) are included.
 
 **Response (200):**
 ```json
@@ -246,18 +254,21 @@ Get a board with all its lists and cards, sorted by position.
     "name": "My Board",
     "createdAt": "2025-01-15T10:30:00.000Z",
     "updatedAt": "2025-01-15T10:30:00.000Z",
+    "archivedAt": null,
     "lists": [
       {
         "id": "list1",
         "name": "To Do",
         "position": "a0",
+        "archivedAt": null,
         "cards": [
           {
             "id": "card1",
             "title": "First task",
             "description": null,
             "position": "a0",
-            "completed": false
+            "completed": false,
+            "archivedAt": null
           }
         ]
       }
@@ -311,14 +322,69 @@ Note: includes `listName` so consumers can contextualize which list each card be
 
 **Errors:** `404 NOT_FOUND` (board doesn't exist), `403 FORBIDDEN`
 
-### DELETE /api/v1/boards/:boardId
+### PATCH /api/v1/boards/:boardId/archive
 
-Delete a board and all its lists and cards (cascade).
+Archive a board. The board will no longer appear in the active boards list. Its lists and cards are unaffected (their own `archivedAt` states are unchanged).
 
 **Response (200):**
 ```json
 { "ok": true }
 ```
+
+**Errors:** `404 NOT_FOUND`, `403 FORBIDDEN`
+
+### PATCH /api/v1/boards/:boardId/unarchive
+
+Restore an archived board to the active boards list.
+
+**Response (200):**
+```json
+{ "ok": true }
+```
+
+**Errors:** `404 NOT_FOUND`, `403 FORBIDDEN`
+
+### GET /api/v1/boards/:boardId/archived
+
+Get all archived items within a board: archived lists (with their cards) and archived cards from active lists.
+
+**Response (200):**
+```json
+{
+  "archivedLists": [
+    {
+      "id": "list1",
+      "name": "Old Column",
+      "position": "a0",
+      "archivedAt": "2025-03-01T12:00:00.000Z",
+      "cards": [
+        {
+          "id": "card1",
+          "title": "Some task",
+          "completed": false,
+          "archivedAt": null
+        }
+      ]
+    }
+  ],
+  "archivedCards": [
+    {
+      "id": "card2",
+      "title": "Archived task",
+      "listId": "list2",
+      "listName": "In Progress",
+      "position": "a0",
+      "completed": false,
+      "archivedAt": "2025-03-10T09:00:00.000Z"
+    }
+  ]
+}
+```
+
+- `archivedLists`: lists in this board where `archivedAt IS NOT NULL`, each including all their cards (regardless of those cards' `archivedAt`)
+- `archivedCards`: cards where `archivedAt IS NOT NULL` that belong to lists that are **not** archived
+
+**Errors:** `404 NOT_FOUND`, `403 FORBIDDEN`
 
 ---
 
@@ -346,16 +412,19 @@ Create a new list at the end of the board.
     "boardId": "board1",
     "position": "a0",
     "createdAt": "2025-01-15T10:30:00.000Z",
-    "updatedAt": "2025-01-15T10:30:00.000Z"
+    "updatedAt": "2025-01-15T10:30:00.000Z",
+    "archivedAt": null
   }
 }
 ```
 
-Position is automatically calculated as after the last existing list.
+Position is automatically calculated as after the last existing active list.
 
 ### GET /api/v1/lists/:listId
 
 Get a single list with its cards, sorted by position.
+
+Only active cards (not archived) are included.
 
 **Response (200):**
 ```json
@@ -367,6 +436,7 @@ Get a single list with its cards, sorted by position.
     "position": "a0",
     "createdAt": "2025-01-15T10:30:00.000Z",
     "updatedAt": "2025-01-15T10:30:00.000Z",
+    "archivedAt": null,
     "cards": [
       {
         "id": "card1",
@@ -374,6 +444,7 @@ Get a single list with its cards, sorted by position.
         "description": null,
         "position": "a0",
         "completed": false,
+        "archivedAt": null,
         "createdAt": "2025-01-15T10:30:00.000Z",
         "updatedAt": "2025-01-15T10:30:00.000Z"
       }
@@ -406,14 +477,27 @@ Update a list's position (used after drag-and-drop).
 
 **Response (200):** Updated list object
 
-### DELETE /api/v1/lists/:listId
+### PATCH /api/v1/lists/:listId/archive
 
-Delete a list and all its cards (cascade).
+Archive a list. The list will no longer appear in its board's active view. Its cards are unaffected.
 
 **Response (200):**
 ```json
 { "ok": true }
 ```
+
+**Errors:** `404 NOT_FOUND`, `403 FORBIDDEN`
+
+### PATCH /api/v1/lists/:listId/unarchive
+
+Restore an archived list to its board's active view.
+
+**Response (200):**
+```json
+{ "ok": true }
+```
+
+**Errors:** `404 NOT_FOUND`, `403 FORBIDDEN`
 
 ---
 
@@ -448,6 +532,7 @@ Create a new card at the end of the list.
     "listId": "list1",
     "position": "a0",
     "completed": false,
+    "archivedAt": null,
     "createdAt": "2025-01-15T10:30:00.000Z",
     "updatedAt": "2025-01-15T10:30:00.000Z"
   }
@@ -468,6 +553,7 @@ Get a single card by ID.
     "listId": "list1",
     "position": "a0",
     "completed": false,
+    "archivedAt": null,
     "createdAt": "2025-01-15T10:30:00.000Z",
     "updatedAt": "2025-01-15T10:30:00.000Z"
   }
@@ -516,11 +602,24 @@ Move or reorder a card. Handles both within-list reordering and cross-list moves
 
 **Response (200):** Updated card object
 
-### DELETE /api/v1/cards/:cardId
+### PATCH /api/v1/cards/:cardId/archive
 
-Delete a card.
+Archive a card. The card will no longer appear in its list's active view.
 
 **Response (200):**
 ```json
 { "ok": true }
 ```
+
+**Errors:** `404 NOT_FOUND`, `403 FORBIDDEN`
+
+### PATCH /api/v1/cards/:cardId/unarchive
+
+Restore an archived card to its list's active view.
+
+**Response (200):**
+```json
+{ "ok": true }
+```
+
+**Errors:** `404 NOT_FOUND`, `403 FORBIDDEN`

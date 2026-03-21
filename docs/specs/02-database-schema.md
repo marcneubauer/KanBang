@@ -64,6 +64,7 @@ All relationships use `ON DELETE CASCADE`.
 | user_id | TEXT | NOT NULL, FK → users.id, CASCADE |
 | created_at | INTEGER | NOT NULL (Unix timestamp) |
 | updated_at | INTEGER | NOT NULL (Unix timestamp) |
+| archived_at | INTEGER | NULLABLE (Unix timestamp; NULL = active, non-NULL = archived) |
 
 ### lists
 
@@ -75,6 +76,7 @@ All relationships use `ON DELETE CASCADE`.
 | position | TEXT | NOT NULL (fractional index string) |
 | created_at | INTEGER | NOT NULL (Unix timestamp) |
 | updated_at | INTEGER | NOT NULL (Unix timestamp) |
+| archived_at | INTEGER | NULLABLE (Unix timestamp; NULL = active, non-NULL = archived) |
 
 **Indexes**: `(board_id, position)` for efficient sorted retrieval.
 
@@ -89,6 +91,7 @@ All relationships use `ON DELETE CASCADE`.
 | position | TEXT | NOT NULL (fractional index string) |
 | created_at | INTEGER | NOT NULL (Unix timestamp) |
 | updated_at | INTEGER | NOT NULL (Unix timestamp) |
+| archived_at | INTEGER | NULLABLE (Unix timestamp; NULL = active, non-NULL = archived) |
 
 **Indexes**: `(list_id, position)` for efficient sorted retrieval.
 
@@ -121,6 +124,17 @@ The `generateKeyBetween(a, b)` function computes a new string that sorts between
 ### Implementation
 
 We use the `fractional-indexing` npm package algorithm, implemented in `@kanbang/shared` at `src/utils/fractional-index.ts` for use by both API and frontend.
+
+## Archiving Strategy
+
+Boards, lists, and cards are never permanently deleted. Instead, each table has an `archived_at` column:
+
+- **Active items:** `archived_at IS NULL` — included in all normal queries
+- **Archived items:** `archived_at IS NOT NULL` — excluded from normal queries; accessible only through dedicated archive-view endpoints
+
+Archive state is **independent per item**. Archiving a board does not archive its lists or cards; archiving a list does not archive its cards. Display logic hides children transitively (e.g., an archived list's cards are not shown even if those cards are active). This means unarchiving is always a single-item operation — just clear that item's `archived_at`.
+
+Items are never permanently deleted through the application. The only content that can be permanently deleted is passkeys (credentials), which are not subject to this policy.
 
 ## Migration Strategy
 

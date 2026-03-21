@@ -71,23 +71,28 @@ export function createTestDb() {
 
 **board.service.test.ts:**
 - `createBoard()` returns board with correct fields
-- `getBoards()` returns only boards for the given user
-- `getBoardById()` returns board with nested lists and cards sorted by position
+- `getBoards()` returns only active boards for the given user (excludes archived)
+- `getBoards()` with archived flag returns only archived boards
+- `getBoardById()` returns board with nested active lists and cards sorted by position
 - `getBoardById()` returns null for non-existent board
 - `updateBoard()` updates name and updatedAt
-- `deleteBoard()` cascades to lists and cards
+- `archiveBoard()` sets archived_at; does not touch lists or cards
+- `unarchiveBoard()` clears archived_at
+- `getArchivedBoardItems()` returns archived lists and archived cards in active lists
 
 **list.service.test.ts:**
-- `createList()` auto-assigns position after last list
+- `createList()` auto-assigns position after last active list
 - `createList()` in empty board assigns initial position
 - `reorderList()` updates position correctly
-- `deleteList()` cascades to cards
+- `archiveList()` sets archived_at on list only; cards are unaffected
+- `unarchiveList()` clears archived_at
 
 **card.service.test.ts:**
-- `createCard()` auto-assigns position after last card
+- `createCard()` auto-assigns position after last active card
 - `moveCard()` within same list updates position only
 - `moveCard()` across lists updates listId and position
-- `deleteCard()` removes only the target card
+- `archiveCard()` sets archived_at on the card
+- `unarchiveCard()` clears archived_at
 
 ---
 
@@ -129,25 +134,32 @@ export function getSessionCookie(response) { ... }
 
 **boards.test.ts:**
 - Create board → 201
-- List boards → returns only user's boards
-- Get board detail → includes lists and cards sorted by position
+- List boards → returns only active boards for the user (archived excluded)
+- List boards?archived=true → returns only archived boards
+- Get board detail → includes active lists and cards sorted by position
+- Get board detail → archived lists and cards excluded from response
 - Get other user's board → 403
 - Get non-existent board → 404
 - Update board name → 200
-- Delete board → cascades
+- Archive board → 200; board no longer in active list
+- Unarchive board → 200; board reappears in active list
+- Get board archived items → returns archived lists and archived cards in active lists
 
 **lists.test.ts:**
 - Create list → 201, position auto-assigned
 - Create multiple lists → positions are ordered
 - Reorder list → position updated
-- Delete list → cards cascade deleted
+- Archive list → 200; list excluded from board detail
+- Unarchive list → 200; list reappears in board detail
+- Archive list → cards remain unaffected (not archived)
 
 **cards.test.ts:**
 - Create card → 201, position auto-assigned
 - Update card title/description → 200
 - Move card within list → position updated, listId unchanged
 - Move card across lists → both listId and position updated
-- Delete card → 200
+- Archive card → 200; card excluded from list
+- Unarchive card → 200; card reappears in list
 
 ---
 
@@ -205,7 +217,7 @@ Svelte components rendered in isolation.
 
 **CardItem.test.ts:**
 - Renders card title
-- Shows edit/delete actions on hover or focus
+- Shows edit/archive actions on hover or focus
 - Renders description preview if present
 
 ---
@@ -254,18 +266,24 @@ Each test file creates a unique user via the registration endpoint, ensuring tes
 - Create a new board
 - See board in board list
 - Rename a board
-- Delete a board
+- Archive a board → board disappears from active list
+- Show archived boards → archived board appears
+- Unarchive a board → board reappears in active list
 
 **lists.spec.ts:**
 - Add a list to a board
 - Rename a list
-- Delete a list (confirm dialog)
+- Archive a list → list disappears from board
+- Open archived items panel → archived list is visible
+- Unarchive a list → list reappears on board
 
 **cards.spec.ts:**
 - Add a card to a list
 - Edit card title
 - Edit card description
-- Delete a card
+- Archive a card → card disappears from list
+- Open archived items panel → archived card is visible
+- Unarchive a card → card reappears in its list
 
 **drag-and-drop.spec.ts:**
 - Drag a card to a different position within the same list

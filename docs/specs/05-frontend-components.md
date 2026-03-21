@@ -38,9 +38,13 @@ BoardListPage
 │   └── BoardCard (repeated)
 │       ├── Board name
 │       └── Created date
-└── CreateBoardModal (shown on button click)
-    ├── Name input
-    └── Create / Cancel buttons
+├── CreateBoardModal (shown on button click)
+│   ├── Name input
+│   └── Create / Cancel buttons
+└── ArchivedBoardsSection (collapsed by default)
+    └── ArchivedBoardCard (repeated)
+        ├── Board name
+        └── Unarchive button
 ```
 
 ### Board Detail Page (`/boards/[boardId]`)
@@ -49,19 +53,30 @@ BoardListPage
 BoardDetailPage
 ├── BoardHeader
 │   ├── Board name (editable inline)
-│   └── Delete board button
-└── DragDropBoard
-    ├── ListColumn (repeated, horizontally draggable)
-    │   ├── ListHeader
-    │   │   ├── List name (editable inline)
-    │   │   └── Delete list button (dropdown menu)
-    │   ├── CardItem (repeated, vertically draggable)
-    │   │   ├── Card title
-    │   │   └── Edit/Delete actions (on hover/focus)
-    │   └── CreateCardForm (inline at bottom)
-    │       └── Title input + Add button
-    └── CreateListForm (at end of horizontal row)
-        └── Name input + Add button
+│   └── Board actions menu (... button)
+│       └── Archive board
+├── DragDropBoard
+│   ├── ListColumn (repeated, horizontally draggable)
+│   │   ├── ListHeader
+│   │   │   ├── List name (editable inline)
+│   │   │   └── Dropdown menu
+│   │   │       └── Archive list
+│   │   ├── CardItem (repeated, vertically draggable)
+│   │   │   ├── Card title
+│   │   │   └── Edit/Archive actions (on hover/focus)
+│   │   └── CreateCardForm (inline at bottom)
+│   │       └── Title input + Add button
+│   └── CreateListForm (at end of horizontal row)
+│       └── Name input + Add button
+└── ArchivedItemsPanel (collapsible, collapsed by default)
+    ├── Archived Lists section
+    │   └── ArchivedListEntry (repeated)
+    │       ├── List name + card count
+    │       └── Unarchive button
+    └── Archived Cards section
+        └── ArchivedCardEntry (repeated)
+            ├── Card title + list name
+            └── Unarchive button
 ```
 
 ---
@@ -78,6 +93,18 @@ BoardDetailPage
 - **Props**: `board: Board`
 - **Behavior**: Clickable card that navigates to `/boards/{board.id}`. Shows board name and relative creation date.
 - **Style**: Rounded rectangle with subtle shadow, hover effect.
+
+### ArchivedBoardsSection
+
+- **Props**: none
+- **Behavior**: Collapsed by default; shows a "Show archived boards" toggle link. On expand, fetches `GET /api/v1/boards?archived=true` and renders a row of `ArchivedBoardCard` components. Collapsing does not re-fetch.
+- **Style**: Muted/subtle appearance; visually separated from the active board grid.
+
+### ArchivedBoardCard
+
+- **Props**: `board: Board`
+- **Behavior**: Displays board name (grayed out, not clickable). "Unarchive" button calls `PATCH /api/v1/boards/:boardId/unarchive`, then removes the card from the archived list and triggers a reload of the active boards grid.
+- **Style**: Grayed-out variant of `BoardCard`.
 
 ### CreateBoardModal
 
@@ -100,13 +127,22 @@ BoardDetailPage
 ### ListHeader
 
 - **Props**: `name: string`, `listId: string`
-- **Behavior**: Displays list name. Click to edit inline. Dropdown menu with "Delete list" option. Delete confirms before calling API.
+- **Behavior**: Displays list name. Click to edit inline. Dropdown menu with "Archive list" option. No confirmation required (archiving is reversible). Calls `PATCH /api/v1/lists/:listId/archive` and removes the list from local state.
 
 ### CardItem
 
 - **Props**: `card: Card`
-- **Behavior**: Displays card title. Click to open edit view (inline or modal). Hover/focus reveals edit and delete icons.
+- **Behavior**: Displays card title. Click to open edit view (inline or modal). Hover/focus reveals edit and archive icons. Archive icon calls `PATCH /api/v1/cards/:cardId/archive` and removes the card from local state.
 - **Style**: White card with subtle border, small shadow on hover. Draggable.
+
+### ArchivedItemsPanel
+
+- **Props**: `boardId: string`
+- **Behavior**: Collapsible section below the drag-and-drop board, collapsed by default. Header reads "Archived items". On expand, fetches `GET /api/v1/boards/:boardId/archived`. Renders two sub-sections:
+  - **Archived lists**: each entry shows list name and card count, with an "Unarchive" button. Unarchive calls `PATCH /api/v1/lists/:listId/unarchive`, removes the entry from the panel, and triggers a board reload so the list reappears.
+  - **Archived cards**: each entry shows card title and the name of the list it belongs to, with an "Unarchive" button. Unarchive calls `PATCH /api/v1/cards/:cardId/unarchive`, removes the entry from the panel, and triggers a board reload so the card reappears in its list.
+- If there are no archived items, the panel shows a "Nothing archived yet" empty state.
+- **Style**: Muted/grayed appearance to visually distinguish from the active board. Does not participate in drag-and-drop.
 
 ### CreateCardForm
 

@@ -6,9 +6,9 @@ KanBang is a personal, self-hosted Trello clone for managing tasks using a kanba
 
 ## Scope (v1)
 
-- **Boards**: Create, rename, and delete boards
-- **Lists**: Create, rename, delete, and reorder lists within a board via drag-and-drop
-- **Cards**: Create, edit (title + description), delete, reorder within a list, and move across lists via drag-and-drop
+- **Boards**: Create, rename, archive, and unarchive boards
+- **Lists**: Create, rename, archive, unarchive, and reorder lists within a board via drag-and-drop
+- **Cards**: Create, edit (title + description), archive, unarchive, reorder within a list, and move across lists via drag-and-drop
 - **Authentication**: Password-based registration/login with passkey (WebAuthn) support
 
 ## Non-Goals (v1)

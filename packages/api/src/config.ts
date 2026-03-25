@@ -11,7 +11,7 @@ const EnvSchema = z.object({
   COOKIE_SECURE: z.coerce.boolean().default(false),
   RP_ID: z.string().default('localhost'),
   RP_NAME: z.string().default('KanBang'),
-  RP_ORIGIN: z.string().url().default('http://localhost:3000'),
+  RP_ORIGIN: z.string().url().default('http://localhost:5173'),
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
 });
 

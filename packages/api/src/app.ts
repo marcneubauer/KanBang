@@ -1,6 +1,7 @@
 import Fastify, { type FastifyError } from 'fastify';
 import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
+import rateLimit from '@fastify/rate-limit';
 import dbPlugin from './plugins/db.js';
 import authPlugin from './plugins/auth.js';
 import authRoutes from './routes/auth/index.js';
@@ -29,6 +30,7 @@ export async function buildApp(opts: BuildAppOptions = {}) {
   });
 
   await app.register(cookie);
+  await app.register(rateLimit, { global: false });
   await app.register(dbPlugin, { databaseUrl: opts.databaseUrl });
   await app.register(authPlugin);
 

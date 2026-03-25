@@ -97,11 +97,11 @@
     </p>
 
     {#if error}
-      <div class="error">{error}</div>
+      <div class="error" role="alert">{error}</div>
     {/if}
 
     {#if success}
-      <div class="success">{success}</div>
+      <div class="success" role="status" aria-live="polite">{success}</div>
     {/if}
 
     {#if passkeys.length > 0}

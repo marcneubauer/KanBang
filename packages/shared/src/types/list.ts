@@ -1,5 +1,3 @@
-import type { Card } from './card.js';
-
 export interface List {
   id: string;
   name: string;
@@ -8,8 +6,4 @@ export interface List {
   createdAt: Date;
   updatedAt: Date;
   archivedAt: Date | null;
-}
-
-export interface ListWithCards extends List {
-  cards: Card[];
 }

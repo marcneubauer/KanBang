@@ -16,7 +16,7 @@
     <div class="nav-right">
       <span class="nav-user">{data.user.username}</span>
       <a href="/settings" class="nav-link">Settings</a>
-      <button class="nav-logout" onclick={logout}>Log out</button>
+      <button class="nav-logout" onclick={logout} aria-label="Log out">Log out</button>
     </div>
   </nav>
 {/if}

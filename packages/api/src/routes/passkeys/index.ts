@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyReply } from 'fastify';
+import type { AuthenticatedRequest } from '../../plugins/auth.js';
 import type { RegistrationResponseJSON, AuthenticationResponseJSON } from '@simplewebauthn/server';
 import { COOKIE_NAME, SESSION_MAX_AGE } from '../../plugins/auth.js';
 
@@ -37,7 +38,8 @@ function setSessionCookie(reply: FastifyReply, sessionId: string) {
 export default async function passkeyRoutes(fastify: FastifyInstance) {
   // GET /api/v1/passkeys — list user's passkeys
   fastify.get('/', { preHandler: [fastify.requireAuth] }, async (request) => {
-    const creds = await fastify.passkeyService.getCredentialsByUserId(request.user!.id);
+    const { user } = request as AuthenticatedRequest;
+    const creds = await fastify.passkeyService.getCredentialsByUserId(user.id);
     return {
       passkeys: creds.map((c) => ({
         id: c.id,
@@ -53,11 +55,9 @@ export default async function passkeyRoutes(fastify: FastifyInstance) {
     '/:credentialId',
     { preHandler: [fastify.requireAuth] },
     async (request, reply) => {
+      const { user } = request as AuthenticatedRequest;
       const { credentialId } = request.params as { credentialId: string };
-      const deleted = await fastify.passkeyService.deleteCredential(
-        credentialId,
-        request.user!.id,
-      );
+      const deleted = await fastify.passkeyService.deleteCredential(credentialId, user.id);
       if (!deleted) {
         return reply.code(404).send({ error: 'Passkey not found', code: 'NOT_FOUND' });
       }
@@ -70,7 +70,8 @@ export default async function passkeyRoutes(fastify: FastifyInstance) {
     '/register/options',
     { preHandler: [fastify.requireAuth] },
     async (request, reply) => {
-      const options = await fastify.passkeyService.generateRegOptions(request.user!);
+      const { user } = request as AuthenticatedRequest;
+      const options = await fastify.passkeyService.generateRegOptions(user);
       setChallengeCookie(reply, options.challenge);
       return { options };
     },
@@ -81,6 +82,7 @@ export default async function passkeyRoutes(fastify: FastifyInstance) {
     '/register/verify',
     { preHandler: [fastify.requireAuth] },
     async (request, reply) => {
+      const { user } = request as AuthenticatedRequest;
       const challenge = request.cookies[CHALLENGE_COOKIE];
       if (!challenge) {
         return reply.code(400).send({
@@ -91,7 +93,7 @@ export default async function passkeyRoutes(fastify: FastifyInstance) {
 
       try {
         const verified = await fastify.passkeyService.verifyAndSaveRegistration(
-          request.user!.id,
+          user.id,
           challenge,
           request.body as RegistrationResponseJSON,
         );

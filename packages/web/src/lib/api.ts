@@ -33,7 +33,7 @@ export async function api<T>(
   });
 
   if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
+    const body = await response.json().catch(() => ({ code: 'PARSE_ERROR', error: 'Could not parse error response' }));
     throw new ApiError(
       response.status,
       body.code ?? 'UNKNOWN',

@@ -1,5 +1,3 @@
-import type { List } from './list.js';
-
 export interface Board {
   id: string;
   name: string;
@@ -7,8 +5,4 @@ export interface Board {
   createdAt: Date;
   updatedAt: Date;
   archivedAt: Date | null;
-}
-
-export interface BoardWithLists extends Board {
-  lists: List[];
 }

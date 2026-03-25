@@ -9,6 +9,9 @@ interface AuthUser {
   username: string;
 }
 
+/** Request type after requireAuth preHandler has run — user is guaranteed non-null */
+export type AuthenticatedRequest = FastifyRequest & { user: AuthUser };
+
 declare module 'fastify' {
   interface FastifyRequest {
     user: AuthUser | null;
@@ -48,7 +51,7 @@ export default fp(async (fastify) => {
   // Helper to require auth on specific routes
   fastify.decorate('requireAuth', async (request: FastifyRequest, reply: FastifyReply) => {
     if (!request.user) {
-      reply.code(401).send({ error: 'Unauthorized', code: 'UNAUTHORIZED' });
+      return reply.code(401).send({ error: 'Unauthorized', code: 'UNAUTHORIZED' });
     }
   });
 });

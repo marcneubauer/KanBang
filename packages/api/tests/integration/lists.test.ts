@@ -102,7 +102,7 @@ describe('List routes', () => {
         url: `/api/v1/lists/${listBody.list.id}`,
         headers: authHeader(otherCookie!),
       });
-      expect(response.statusCode).toBe(404);
+      expect(response.statusCode).toBe(403);
     });
   });
 

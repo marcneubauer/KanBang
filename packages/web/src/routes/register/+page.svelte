@@ -35,7 +35,7 @@
     <h1>Create your account</h1>
 
     {#if error}
-      <div class="error">{error}</div>
+      <div class="error" role="alert">{error}</div>
     {/if}
 
     <form onsubmit={handleSubmit}>
@@ -51,7 +51,7 @@
 
       <label>
         Password
-        <input type="password" bind:value={password} required autocomplete="new-password" minlength="8" />
+        <input type="password" bind:value={password} required autocomplete="new-password" minlength="12" />
       </label>
 
       <button type="submit" disabled={loading}>

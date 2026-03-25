@@ -77,13 +77,13 @@ describe('api()', () => {
     });
   });
 
-  it('falls back to empty object when response body is not valid JSON', async () => {
+  it('falls back to PARSE_ERROR when response body is not valid JSON', async () => {
     const fetchFn = mockFetchBadJson(500);
 
     await expect(api('/boards', {}, fetchFn)).rejects.toBeInstanceOf(ApiError);
     await expect(api('/boards', {}, fetchFn)).rejects.toMatchObject({
-      code: 'UNKNOWN',
-      message: 'Request failed',
+      code: 'PARSE_ERROR',
+      message: 'Could not parse error response',
     });
   });
 

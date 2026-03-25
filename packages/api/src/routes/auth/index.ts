@@ -23,8 +23,17 @@ function clearCookie(reply: FastifyReply) {
 }
 
 export default async function authRoutes(fastify: FastifyInstance) {
+  const authRateLimit = {
+    config: {
+      rateLimit: {
+        max: 10,
+        timeWindow: '1 minute',
+      },
+    },
+  };
+
   // POST /api/v1/auth/register
-  fastify.post('/register', async (request, reply) => {
+  fastify.post('/register', authRateLimit, async (request, reply) => {
     const parsed = registerSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.code(400).send({
@@ -39,7 +48,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
       setCookie(reply, result.session.id);
       return reply.code(201).send({ user: result.user });
     } catch (err: unknown) {
-      if (err instanceof Error && (err as NodeJS.ErrnoException).code === 'SQLITE_CONSTRAINT_UNIQUE') {
+      if (err instanceof Error && 'code' in err && err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
         return reply.code(409).send({
           error: 'Email or username already taken',
           code: 'CONFLICT',
@@ -50,7 +59,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
   });
 
   // POST /api/v1/auth/login
-  fastify.post('/login', async (request, reply) => {
+  fastify.post('/login', authRateLimit, async (request, reply) => {
     const parsed = loginSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.code(400).send({

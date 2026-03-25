@@ -26,7 +26,7 @@ export async function registerUser(
     payload: {
       email: data?.email ?? 'test@example.com',
       username: data?.username ?? 'testuser',
-      password: data?.password ?? 'password123',
+      password: data?.password ?? 'password12345',
     },
   });
   return {
@@ -45,7 +45,7 @@ export async function loginUser(
     url: '/api/v1/auth/login',
     payload: {
       email: data?.email ?? 'test@example.com',
-      password: data?.password ?? 'password123',
+      password: data?.password ?? 'password12345',
     },
   });
   return {

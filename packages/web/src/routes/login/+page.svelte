@@ -79,7 +79,7 @@
     <h1>Sign in to KanBang</h1>
 
     {#if error}
-      <div class="error">{error}</div>
+      <div class="error" role="alert">{error}</div>
     {/if}
 
     <form onsubmit={handleSubmit}>

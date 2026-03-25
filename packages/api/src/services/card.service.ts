@@ -37,7 +37,7 @@ export class CardService {
   }
 
   async update(cardId: string, input: UpdateCardInput) {
-    const updates: Record<string, unknown> = { updatedAt: new Date() };
+    const updates: Partial<typeof cards.$inferInsert> = { updatedAt: new Date() };
     if (input.title !== undefined) updates.title = input.title;
     if (input.description !== undefined) updates.description = input.description;
     if (input.completed !== undefined) updates.completed = input.completed;

@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import type { AuthenticatedRequest } from '../../plugins/auth.js';
 import { ListService } from '../../services/list.service.js';
 import { BoardService } from '../../services/board.service.js';
 import {
@@ -6,6 +7,8 @@ import {
   updateListSchema,
   reorderListSchema,
 } from '@kanbang/shared/validation/list.js';
+import { validateBody } from '../../utils/validate.js';
+import { verifyBoardOwnership, verifyListOwnership } from '../../utils/ownership.js';
 
 export default async function listRoutes(fastify: FastifyInstance) {
   const listService = new ListService(fastify.db);
@@ -15,12 +18,10 @@ export default async function listRoutes(fastify: FastifyInstance) {
 
   // GET /api/v1/lists/:listId
   fastify.get<{ Params: { listId: string } }>('/lists/:listId', async (request, reply) => {
+    const { user } = request as AuthenticatedRequest;
     const { listId } = request.params;
 
-    const boardId = await listService.getBoardId(listId);
-    if (!boardId || !(await boardService.isOwner(boardId, request.user!.id))) {
-      return reply.code(404).send({ error: 'List not found', code: 'NOT_FOUND' });
-    }
+    if (!(await verifyListOwnership(listId, user.id, listService, boardService, reply))) return;
 
     const list = await listService.getByIdWithCards(listId);
     return { list };
@@ -30,45 +31,30 @@ export default async function listRoutes(fastify: FastifyInstance) {
   fastify.post<{ Params: { boardId: string } }>(
     '/boards/:boardId/lists',
     async (request, reply) => {
+      const { user } = request as AuthenticatedRequest;
       const { boardId } = request.params;
 
-      if (!(await boardService.isOwner(boardId, request.user!.id))) {
-        return reply.code(404).send({ error: 'Board not found', code: 'NOT_FOUND' });
-      }
+      if (!(await verifyBoardOwnership(boardId, user.id, boardService, reply))) return;
 
-      const parsed = createListSchema.safeParse(request.body);
-      if (!parsed.success) {
-        return reply.code(400).send({
-          error: 'Validation failed',
-          code: 'VALIDATION_ERROR',
-          details: parsed.error.flatten().fieldErrors,
-        });
-      }
+      const data = await validateBody(createListSchema, request.body, reply);
+      if (!data) return;
 
-      const list = await listService.create(boardId, parsed.data);
+      const list = await listService.create(boardId, data);
       return reply.code(201).send({ list });
     },
   );
 
   // PATCH /api/v1/lists/:listId
   fastify.patch<{ Params: { listId: string } }>('/lists/:listId', async (request, reply) => {
+    const { user } = request as AuthenticatedRequest;
     const { listId } = request.params;
 
-    const boardId = await listService.getBoardId(listId);
-    if (!boardId || !(await boardService.isOwner(boardId, request.user!.id))) {
-      return reply.code(404).send({ error: 'List not found', code: 'NOT_FOUND' });
-    }
+    if (!(await verifyListOwnership(listId, user.id, listService, boardService, reply))) return;
 
-    const parsed = updateListSchema.safeParse(request.body);
-    if (!parsed.success) {
-      return reply.code(400).send({
-        error: 'Validation failed',
-        code: 'VALIDATION_ERROR',
-        details: parsed.error.flatten().fieldErrors,
-      });
-    }
+    const data = await validateBody(updateListSchema, request.body, reply);
+    if (!data) return;
 
-    const list = await listService.update(listId, parsed.data);
+    const list = await listService.update(listId, data);
     return { list };
   });
 
@@ -76,23 +62,15 @@ export default async function listRoutes(fastify: FastifyInstance) {
   fastify.patch<{ Params: { listId: string } }>(
     '/lists/:listId/reorder',
     async (request, reply) => {
+      const { user } = request as AuthenticatedRequest;
       const { listId } = request.params;
 
-      const boardId = await listService.getBoardId(listId);
-      if (!boardId || !(await boardService.isOwner(boardId, request.user!.id))) {
-        return reply.code(404).send({ error: 'List not found', code: 'NOT_FOUND' });
-      }
+      if (!(await verifyListOwnership(listId, user.id, listService, boardService, reply))) return;
 
-      const parsed = reorderListSchema.safeParse(request.body);
-      if (!parsed.success) {
-        return reply.code(400).send({
-          error: 'Validation failed',
-          code: 'VALIDATION_ERROR',
-          details: parsed.error.flatten().fieldErrors,
-        });
-      }
+      const data = await validateBody(reorderListSchema, request.body, reply);
+      if (!data) return;
 
-      const list = await listService.reorder(listId, parsed.data.position);
+      const list = await listService.reorder(listId, data.position);
       return { list };
     },
   );
@@ -101,12 +79,10 @@ export default async function listRoutes(fastify: FastifyInstance) {
   fastify.patch<{ Params: { listId: string } }>(
     '/lists/:listId/archive',
     async (request, reply) => {
+      const { user } = request as AuthenticatedRequest;
       const { listId } = request.params;
 
-      const boardId = await listService.getBoardId(listId);
-      if (!boardId || !(await boardService.isOwner(boardId, request.user!.id))) {
-        return reply.code(404).send({ error: 'List not found', code: 'NOT_FOUND' });
-      }
+      if (!(await verifyListOwnership(listId, user.id, listService, boardService, reply))) return;
 
       await listService.archive(listId);
       return { ok: true };
@@ -117,12 +93,10 @@ export default async function listRoutes(fastify: FastifyInstance) {
   fastify.patch<{ Params: { listId: string } }>(
     '/lists/:listId/unarchive',
     async (request, reply) => {
+      const { user } = request as AuthenticatedRequest;
       const { listId } = request.params;
 
-      const boardId = await listService.getBoardId(listId);
-      if (!boardId || !(await boardService.isOwner(boardId, request.user!.id))) {
-        return reply.code(404).send({ error: 'List not found', code: 'NOT_FOUND' });
-      }
+      if (!(await verifyListOwnership(listId, user.id, listService, boardService, reply))) return;
 
       await listService.unarchive(listId);
       return { ok: true };

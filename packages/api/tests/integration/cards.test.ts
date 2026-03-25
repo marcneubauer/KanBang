@@ -193,7 +193,7 @@ describe('Card routes', () => {
         url: `/api/v1/cards/${cardBody.card.id}`,
         headers: authHeader(otherCookie!),
       });
-      expect(response.statusCode).toBe(404);
+      expect(response.statusCode).toBe(403);
     });
   });
 

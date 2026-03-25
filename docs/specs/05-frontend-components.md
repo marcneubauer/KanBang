@@ -52,7 +52,7 @@ BoardListPage
 BoardDetailPage
 ├── BoardHeader
 │   ├── Board name (editable inline, double-click to edit)
-│   └── Archive icon (wastebasket, visible only during name edit)
+│   └── Archive icon (wastebasket, visible on hover over board header)
 ├── DragDropBoard
 │   ├── ListColumn (repeated, horizontally draggable)
 │   │   ├── ListHeader
@@ -92,7 +92,7 @@ BoardDetailPage
 - **Behavior**: Clickable card that navigates to `/boards/{board.id}`. Shows board name.
 - **Style**: Rounded rectangle with subtle shadow, hover effect.
 
-### ArchivedBoardsSection
+### ArchivedBoardsDrawer
 
 - **Props**: none
 - **Behavior**: Toggled via the eye icon button in the page header. Closed-eye icon (default) means archived boards are hidden; open-eye icon means they are visible. On first toggle, fetches `GET /api/v1/boards?archived=true` and renders archived board cards below the active board grid. Subsequent toggles show/hide without re-fetching.

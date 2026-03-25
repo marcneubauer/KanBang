@@ -8,7 +8,7 @@ export const registerSchema = z.object({
     .max(30)
     .trim()
     .regex(/^[a-zA-Z0-9_-]+$/, 'Username can only contain letters, numbers, hyphens, and underscores'),
-  password: z.string().min(8).max(128),
+  password: z.string().min(12).max(128),
 });
 
 export const loginSchema = z.object({

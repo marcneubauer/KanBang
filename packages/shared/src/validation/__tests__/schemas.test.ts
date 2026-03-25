@@ -16,7 +16,7 @@ describe('registerSchema', () => {
   const valid = {
     email: 'user@example.com',
     username: 'testuser',
-    password: 'password123',
+    password: 'password12345',
   };
 
   it('accepts valid input', () => {
@@ -89,7 +89,7 @@ describe('registerSchema', () => {
   });
 
   it('rejects short password', () => {
-    const result = registerSchema.safeParse({ ...valid, password: 'short' });
+    const result = registerSchema.safeParse({ ...valid, password: 'only11chars' });
     expect(result.success).toBe(false);
   });
 
@@ -103,7 +103,7 @@ describe('registerSchema', () => {
 });
 
 describe('loginSchema', () => {
-  const valid = { email: 'user@example.com', password: 'password123' };
+  const valid = { email: 'user@example.com', password: 'password12345' };
 
   it('accepts valid input', () => {
     const result = loginSchema.safeParse(valid);

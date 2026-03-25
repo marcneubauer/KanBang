@@ -53,6 +53,9 @@
 
   const flipDurationMs = 200;
 
+  // --- Board-level error message ---
+  let boardError = $state('');
+
   // --- Board actions ---
   let editingBoardName = $state(false);
   let boardName = $state(data.board.name);
@@ -134,6 +137,10 @@
   }
 
   // --- Drag and drop ---
+  // Known accessibility gap: svelte-dnd-action does not support keyboard-based
+  // reordering of lists or cards. Users who cannot use a mouse/pointer will not
+  // be able to reorder items via drag-and-drop. A future enhancement could add
+  // explicit "move up / move down" buttons as a keyboard-accessible alternative.
   function computePosition(items: { position: string }[], index: number): string {
     const before = index > 0 ? items[index - 1].position : null;
     const after = index < items.length - 1 ? items[index + 1].position : null;
@@ -162,6 +169,7 @@
       });
       lists[movedIndex].position = newPosition;
     } catch {
+      boardError = 'Failed to reorder list. Refreshing board...';
       invalidateAll();
     }
   }
@@ -189,6 +197,7 @@
       lists[listIndex].cards[movedIndex].position = newPosition;
       lists[listIndex].cards[movedIndex].listId = listId;
     } catch {
+      boardError = 'Failed to move card. Refreshing board...';
       invalidateAll();
     }
   }
@@ -279,6 +288,12 @@
 </script>
 
 <div class="board-page">
+  {#if boardError}
+    <div class="board-error" role="alert">
+      {boardError}
+      <button class="board-error-dismiss" onclick={() => { boardError = ''; }}>&times;</button>
+    </div>
+  {/if}
   <header class="board-header">
     {#if editingBoardName}
       <!-- svelte-ignore a11y_autofocus -->
@@ -290,7 +305,13 @@
         autofocus
       />
     {:else}
-      <h1 class="board-name" ondblclick={() => { editingBoardName = true; }}>{boardName}</h1>
+      <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+      <h1
+        class="board-name"
+        ondblclick={() => { editingBoardName = true; }}
+        onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); editingBoardName = true; } }}
+        tabindex="0"
+      >{boardName}</h1>
     {/if}
     <button class="board-archive-icon" onclick={archiveBoard} aria-label="Archive board">
       <svg viewBox="0 0 14 14" width="14" height="14"
@@ -325,7 +346,13 @@
               autofocus
             />
           {:else}
-            <h2 class="list-name" ondblclick={() => startEditList(list.id, list.name)}>
+            <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+            <h2
+              class="list-name"
+              ondblclick={() => startEditList(list.id, list.name)}
+              onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); startEditList(list.id, list.name); } }}
+              tabindex="0"
+            >
               {list.name}
             </h2>
           {/if}
@@ -380,8 +407,14 @@
                   autofocus
                 />
               {:else}
-                <span class="card-title" class:card-title-completed={card.completed}
-                 ondblclick={() => startEditCard(card.id, card.title)}>
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <span
+                  class="card-title"
+                  class:card-title-completed={card.completed}
+                  ondblclick={() => startEditCard(card.id, card.title)}
+                  onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); startEditCard(card.id, card.title); } }}
+                  tabindex="0"
+                >
                   {card.title}
                 </span>
               {/if}
@@ -458,7 +491,7 @@
     </button>
 
     {#if showArchived}
-      <div class="archived-content">
+      <div class="archived-content" aria-live="polite">
         {#if loadingArchived}
           <p class="archived-msg">Loading…</p>
         {:else if archivedItems && (archivedItems.archivedLists.length > 0 || archivedItems.archivedCards.length > 0)}
@@ -501,6 +534,26 @@
     flex-direction: column;
     height: 100%;
     overflow: hidden;
+  }
+
+  .board-error {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    background: #fdf2f2;
+    color: var(--color-danger);
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+
+  .board-error-dismiss {
+    background: none;
+    border: none;
+    color: var(--color-danger);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 0 4px;
   }
 
   .board-header {

@@ -28,7 +28,7 @@ KanBang is a personal, self-hosted Trello clone for managing tasks using a kanba
 
 | Layer | Technology | Version |
 |-------|-----------|---------|
-| Runtime | Node.js | 22 LTS |
+| Runtime | Node.js | 25 |
 | Backend framework | Fastify | 5.x |
 | Frontend framework | SvelteKit | 2.x (Svelte 5) |
 | Database | SQLite | via better-sqlite3 |

@@ -33,15 +33,14 @@ The nav bar is shown on all authenticated pages. Login and register pages have n
 
 ```
 BoardListPage
-├── PageHeader ("Your Boards" + Create Board button)
+├── PageHeader ("Your Boards" + Create Board button + eye icon toggle)
 ├── BoardGrid
 │   └── BoardCard (repeated)
-│       ├── Board name
-│       └── Created date
+│       └── Board name
 ├── CreateBoardModal (shown on button click)
 │   ├── Name input
 │   └── Create / Cancel buttons
-└── ArchivedBoardsSection (collapsed by default)
+└── ArchivedBoardsDrawer (shown when eye icon is open)
     └── ArchivedBoardCard (repeated)
         ├── Board name
         └── Unarchive button
@@ -52,9 +51,8 @@ BoardListPage
 ```
 BoardDetailPage
 ├── BoardHeader
-│   ├── Board name (editable inline)
-│   └── Board actions menu (... button)
-│       └── Archive board
+│   ├── Board name (editable inline, double-click to edit)
+│   └── Archive icon (wastebasket, visible only during name edit)
 ├── DragDropBoard
 │   ├── ListColumn (repeated, horizontally draggable)
 │   │   ├── ListHeader
@@ -91,13 +89,13 @@ BoardDetailPage
 ### BoardCard
 
 - **Props**: `board: Board`
-- **Behavior**: Clickable card that navigates to `/boards/{board.id}`. Shows board name and relative creation date.
+- **Behavior**: Clickable card that navigates to `/boards/{board.id}`. Shows board name.
 - **Style**: Rounded rectangle with subtle shadow, hover effect.
 
 ### ArchivedBoardsSection
 
 - **Props**: none
-- **Behavior**: Collapsed by default; shows a "Show archived boards" toggle link. On expand, fetches `GET /api/v1/boards?archived=true` and renders a row of `ArchivedBoardCard` components. Collapsing does not re-fetch.
+- **Behavior**: Toggled via the eye icon button in the page header. Closed-eye icon (default) means archived boards are hidden; open-eye icon means they are visible. On first toggle, fetches `GET /api/v1/boards?archived=true` and renders archived board cards below the active board grid. Subsequent toggles show/hide without re-fetching.
 - **Style**: Muted/subtle appearance; visually separated from the active board grid.
 
 ### ArchivedBoardCard

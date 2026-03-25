@@ -34,11 +34,6 @@
     }
   }
 
-  async function archiveBoard(id: string) {
-    await api(`/boards/${id}/archive`, { method: 'PATCH' });
-    invalidateAll();
-  }
-
   async function toggleArchivedBoards() {
     if (!showArchivedBoards) {
       loadingArchivedBoards = true;
@@ -62,7 +57,27 @@
 <div class="page">
   <header class="page-header">
     <h1>Your Boards</h1>
-    <button class="btn-primary" onclick={() => (showCreate = true)}>+ Create Board</button>
+    <div class="header-actions">
+      <button class="btn-icon" onclick={toggleArchivedBoards} aria-label="Toggle archived boards">
+        {#if showArchivedBoards}
+          <svg viewBox="0 0 16 16" width="16" height="16"
+            fill="none" stroke="currentColor" stroke-width="1.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z"/>
+            <circle cx="8" cy="8" r="2"/>
+          </svg>
+        {:else}
+          <svg viewBox="0 0 16 16" width="16" height="16"
+            fill="none" stroke="currentColor" stroke-width="1.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z"/>
+            <circle cx="8" cy="8" r="2"/>
+            <line x1="2" y1="14" x2="14" y2="2"/>
+          </svg>
+        {/if}
+      </button>
+      <button class="btn-primary" onclick={() => (showCreate = true)}>+ Create Board</button>
+    </div>
   </header>
 
   {#if showCreate}
@@ -86,22 +101,6 @@
     {#each data.boards as board (board.id)}
       <a href="/boards/{board.id}" class="board-card">
         <span class="board-name">{board.name}</span>
-        <button
-          class="board-archive"
-          onclick={(e) => { e.stopPropagation(); e.preventDefault(); archiveBoard(board.id); }}
-          aria-label="Archive board"
-        >
-          <svg viewBox="0 0 14 14" width="13" height="13"
-            fill="none" stroke="currentColor" stroke-width="1.2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <path d="M5 3.5V2.5a2 2 0 014 0v1"/>
-            <line x1="1" y1="3.5" x2="13" y2="3.5"/>
-            <path d="M2.5 3.5L3 12.5h8l.5-9"/>
-            <line x1="5.5" y1="3.5" x2="5.2" y2="12.5"/>
-            <line x1="7" y1="3.5" x2="7" y2="12.5"/>
-            <line x1="8.5" y1="3.5" x2="8.8" y2="12.5"/>
-          </svg>
-        </button>
       </a>
     {/each}
 
@@ -110,12 +109,8 @@
     {/if}
   </div>
 
-  <div class="archived-section">
-    <button class="archived-toggle" onclick={toggleArchivedBoards}>
-      {showArchivedBoards ? '▾' : '▸'} Show archived boards
-    </button>
-
-    {#if showArchivedBoards}
+  {#if showArchivedBoards}
+    <div class="archived-drawer">
       {#if loadingArchivedBoards}
         <p class="archived-loading">Loading…</p>
       {:else if archivedBoards.length === 0}
@@ -130,8 +125,8 @@
           {/each}
         </div>
       {/if}
-    {/if}
-  </div>
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -150,6 +145,28 @@
 
   h1 {
     font-size: 20px;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-icon {
+    background: none;
+    border: none;
+    color: var(--color-text-subtle);
+    cursor: pointer;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    border-radius: var(--radius-sm);
+    transition: color 150ms;
+  }
+
+  .btn-icon:hover {
+    color: var(--color-text);
   }
 
   .btn-primary {
@@ -223,30 +240,6 @@
     font-weight: 700;
   }
 
-  .board-archive {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    background: none;
-    border: none;
-    color: rgba(255, 255, 255, 0.6);
-    cursor: pointer;
-    padding: 2px;
-    line-height: 1;
-    display: flex;
-    align-items: center;
-    opacity: 0;
-    transition: opacity 150ms;
-  }
-
-  .board-card:hover .board-archive {
-    opacity: 1;
-  }
-
-  .board-archive:hover {
-    color: white;
-  }
-
   .empty {
     grid-column: 1 / -1;
     text-align: center;
@@ -254,23 +247,10 @@
     padding: 40px;
   }
 
-  .archived-section {
+  .archived-drawer {
     margin-top: 32px;
     border-top: 1px solid var(--color-border);
     padding-top: 16px;
-  }
-
-  .archived-toggle {
-    background: none;
-    border: none;
-    color: var(--color-text-subtle);
-    font-size: 13px;
-    cursor: pointer;
-    padding: 0;
-  }
-
-  .archived-toggle:hover {
-    color: var(--color-text);
   }
 
   .archived-loading,

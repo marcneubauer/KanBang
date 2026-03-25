@@ -292,7 +292,18 @@
     {:else}
       <h1 class="board-name" ondblclick={() => { editingBoardName = true; }}>{boardName}</h1>
     {/if}
-    <button class="btn-archive-board" onclick={archiveBoard}>Archive Board</button>
+    <button class="board-archive-icon" onclick={archiveBoard} aria-label="Archive board">
+      <svg viewBox="0 0 14 14" width="14" height="14"
+        fill="none" stroke="currentColor" stroke-width="1.2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 3.5V2.5a2 2 0 014 0v1"/>
+        <line x1="1" y1="3.5" x2="13" y2="3.5"/>
+        <path d="M2.5 3.5L3 12.5h8l.5-9"/>
+        <line x1="5.5" y1="3.5" x2="5.2" y2="12.5"/>
+        <line x1="7" y1="3.5" x2="7" y2="12.5"/>
+        <line x1="8.5" y1="3.5" x2="8.8" y2="12.5"/>
+      </svg>
+    </button>
   </header>
 
   <div
@@ -513,19 +524,26 @@
     padding: 2px 8px;
   }
 
-  .btn-archive-board {
-    padding: 6px 12px;
+  .board-archive-icon {
     background: none;
+    border: none;
     color: var(--color-text-subtle);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    font-size: 13px;
     cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    border-radius: var(--radius-sm);
+    transition: color 150ms, background 150ms, opacity 150ms;
+    opacity: 0;
   }
 
-  .btn-archive-board:hover {
-    background: var(--color-surface, #f5f5f5);
+  .board-header:hover .board-archive-icon {
+    opacity: 1;
+  }
+
+  .board-archive-icon:hover {
     color: var(--color-text);
+    background: rgba(0, 0, 0, 0.08);
   }
 
   .board-columns {

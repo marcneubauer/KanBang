@@ -222,6 +222,7 @@ async function handleCardFinalize(listId: string, event: CustomEvent) {
 3. **Rapid drags**: Debounce is not needed — each finalize generates a correct position regardless of previous state.
 4. **API failure**: UI rolls back to pre-drag state. A toast notification informs the user.
 5. **Position collision**: Extremely unlikely with fractional indexing, but if positions become identical (corrupted data), a full re-index can be triggered server-side.
+6. **Auto-move vs. user drag**: When a card is marked complete and a Done list exists, the backend auto-moves the card. The frontend must handle the response showing a changed `listId` by removing the card from its source list and appending it to the Done list in local state. This is a programmatic move, not a drag event — no drag-and-drop events fire. Users can still manually drag cards out of the Done list.
 
 ---
 

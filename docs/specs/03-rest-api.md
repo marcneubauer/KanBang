@@ -260,6 +260,7 @@ Only active lists (not archived) and active cards (not archived) are included.
         "id": "list1",
         "name": "To Do",
         "position": "a0",
+        "isDone": false,
         "archivedAt": null,
         "cards": [
           {
@@ -268,6 +269,9 @@ Only active lists (not archived) and active cards (not archived) are included.
             "description": null,
             "position": "a0",
             "completed": false,
+            "completedAt": null,
+            "dueDate": null,
+            "checklistProgress": null,
             "archivedAt": null
           }
         ]
@@ -411,6 +415,7 @@ Create a new list at the end of the board.
     "name": "To Do",
     "boardId": "board1",
     "position": "a0",
+    "isDone": false,
     "createdAt": "2025-01-15T10:30:00.000Z",
     "updatedAt": "2025-01-15T10:30:00.000Z",
     "archivedAt": null
@@ -434,6 +439,7 @@ Only active cards (not archived) are included.
     "name": "To Do",
     "boardId": "board1",
     "position": "a0",
+    "isDone": false,
     "createdAt": "2025-01-15T10:30:00.000Z",
     "updatedAt": "2025-01-15T10:30:00.000Z",
     "archivedAt": null,
@@ -444,6 +450,8 @@ Only active cards (not archived) are included.
         "description": null,
         "position": "a0",
         "completed": false,
+        "completedAt": null,
+        "dueDate": null,
         "archivedAt": null,
         "createdAt": "2025-01-15T10:30:00.000Z",
         "updatedAt": "2025-01-15T10:30:00.000Z"
@@ -476,6 +484,21 @@ Update a list's position (used after drag-and-drop).
 ```
 
 **Response (200):** Updated list object
+
+### PATCH /api/v1/lists/:listId/done
+
+Designate or un-designate a list as the board's Done list. At most one list per board can be the Done list. Setting `isDone: true` on a list clears `isDone` on any other list in the same board.
+
+**Request:**
+```json
+{ "isDone": true }
+```
+
+**Validation:** `isDone`: boolean (required)
+
+**Response (200):** Updated list object
+
+**Errors:** `404 NOT_FOUND`, `403 FORBIDDEN`
 
 ### PATCH /api/v1/lists/:listId/archive
 
@@ -513,13 +536,15 @@ Create a new card at the end of the list.
 ```json
 {
   "title": "My Task",
-  "description": "Optional description"
+  "description": "Optional description",
+  "dueDate": "2025-06-01T00:00:00.000Z"
 }
 ```
 
 **Validation:**
 - `title`: 1-500 chars, trimmed
 - `description`: optional, max 5000 chars
+- `dueDate`: optional, ISO 8601 date string or null
 - `completed`: defaults to `false`
 
 **Response (201):**
@@ -532,6 +557,8 @@ Create a new card at the end of the list.
     "listId": "list1",
     "position": "a0",
     "completed": false,
+    "completedAt": null,
+    "dueDate": "2025-06-01T00:00:00.000Z",
     "archivedAt": null,
     "createdAt": "2025-01-15T10:30:00.000Z",
     "updatedAt": "2025-01-15T10:30:00.000Z"
@@ -553,6 +580,8 @@ Get a single card by ID.
     "listId": "list1",
     "position": "a0",
     "completed": false,
+    "completedAt": null,
+    "dueDate": null,
     "archivedAt": null,
     "createdAt": "2025-01-15T10:30:00.000Z",
     "updatedAt": "2025-01-15T10:30:00.000Z"
@@ -564,14 +593,17 @@ Get a single card by ID.
 
 ### PATCH /api/v1/cards/:cardId
 
-Update a card's title, description, and/or completed status.
+Update a card's title, description, completed status, and/or due date.
+
+When `completed` is set to `true`, the server sets `completedAt` to the current time. If a Done list exists for the card's board, the card is automatically moved to it (the response will reflect the new `listId` and `position`). When `completed` is set to `false`, `completedAt` is cleared; the card is **not** auto-moved back.
 
 **Request:**
 ```json
 {
   "title": "Updated Title",
   "description": "Updated description",
-  "completed": true
+  "completed": true,
+  "dueDate": "2025-06-01T00:00:00.000Z"
 }
 ```
 
@@ -582,6 +614,7 @@ All fields are optional. At least one must be provided.
 - `title`: 1-500 chars, trimmed (optional)
 - `description`: max 5000 chars, nullable (optional)
 - `completed`: boolean (optional)
+- `dueDate`: ISO 8601 date string, nullable (optional; send `null` to clear)
 
 **Response (200):** Updated card object
 
@@ -620,6 +653,177 @@ Restore an archived card to its list's active view.
 **Response (200):**
 ```json
 { "ok": true }
+```
+
+**Errors:** `404 NOT_FOUND`, `403 FORBIDDEN`
+
+---
+
+## Checklist Endpoints
+
+All require authentication. Authorization checked via checklist → card → list → board ownership.
+
+### GET /api/v1/cards/:cardId/checklists
+
+Get all checklists for a card, with nested items. Ordered by position.
+
+**Response (200):**
+
+```json
+{
+  "checklists": [
+    {
+      "id": "cl1",
+      "name": "Pre-launch",
+      "cardId": "card1",
+      "position": "a0",
+      "createdAt": "2025-01-15T10:30:00.000Z",
+      "updatedAt": "2025-01-15T10:30:00.000Z",
+      "items": [
+        {
+          "id": "cli1",
+          "title": "Write tests",
+          "checklistId": "cl1",
+          "position": "a0",
+          "completed": true,
+          "createdAt": "2025-01-15T10:30:00.000Z",
+          "updatedAt": "2025-01-15T10:30:00.000Z"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### POST /api/v1/cards/:cardId/checklists
+
+Create a new checklist on a card.
+
+**Request:**
+
+```json
+{ "name": "Pre-launch" }
+```
+
+**Validation:** `name`: 1-100 chars, trimmed
+
+**Response (201):** Checklist object (with empty `items` array)
+
+### PATCH /api/v1/checklists/:checklistId
+
+Update a checklist's name.
+
+**Request:**
+
+```json
+{ "name": "Updated name" }
+```
+
+**Response (200):** Updated checklist object
+
+### PATCH /api/v1/checklists/:checklistId/reorder
+
+Update a checklist's position within its card.
+
+**Request:**
+
+```json
+{ "position": "aN" }
+```
+
+**Response (200):** Updated checklist object
+
+### DELETE /api/v1/checklists/:checklistId
+
+Permanently delete a checklist and all its items.
+
+**Response (200):**
+
+```json
+{ "ok": true }
+```
+
+**Errors:** `404 NOT_FOUND`, `403 FORBIDDEN`
+
+---
+
+## Checklist Item Endpoints
+
+All require authentication. Authorization checked via item → checklist → card → list → board ownership.
+
+### POST /api/v1/checklists/:checklistId/items
+
+Create a new item at the end of a checklist.
+
+**Request:**
+
+```json
+{ "title": "Write tests" }
+```
+
+**Validation:** `title`: 1-500 chars, trimmed
+
+**Response (201):** Checklist item object
+
+### PATCH /api/v1/checklist-items/:itemId
+
+Update an item's title and/or completed status.
+
+**Request:**
+
+```json
+{
+  "title": "Updated title",
+  "completed": true
+}
+```
+
+All fields optional.
+
+**Response (200):** Updated checklist item object
+
+### PATCH /api/v1/checklist-items/:itemId/reorder
+
+Update an item's position within its checklist.
+
+**Request:**
+
+```json
+{ "position": "aN" }
+```
+
+**Response (200):** Updated checklist item object
+
+### DELETE /api/v1/checklist-items/:itemId
+
+Permanently delete a checklist item.
+
+**Response (200):**
+
+```json
+{ "ok": true }
+```
+
+**Errors:** `404 NOT_FOUND`, `403 FORBIDDEN`
+
+### POST /api/v1/checklist-items/:itemId/convert-to-card
+
+Convert a checklist item into a new card. Creates a card in the specified list using the item's title, then deletes the item.
+
+**Request:**
+
+```json
+{ "listId": "list1" }
+```
+
+**Validation:** `listId`: non-empty string (must belong to the same board)
+
+**Response (201):**
+
+```json
+{
+  "card": { "..." : "..." }
+}
 ```
 
 **Errors:** `404 NOT_FOUND`, `403 FORBIDDEN`

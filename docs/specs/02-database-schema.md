@@ -16,6 +16,10 @@
               └──── lists
                       │
                       └──── cards
+                               │
+                               └──── checklists
+                                        │
+                                        └──── checklist_items
 ```
 
 All relationships use `ON DELETE CASCADE`.
@@ -74,6 +78,7 @@ All relationships use `ON DELETE CASCADE`.
 | name | TEXT | NOT NULL |
 | board_id | TEXT | NOT NULL, FK → boards.id, CASCADE |
 | position | TEXT | NOT NULL (fractional index string) |
+| is_done | INTEGER | NOT NULL, DEFAULT 0 (boolean; at most one per board) |
 | created_at | INTEGER | NOT NULL (Unix timestamp) |
 | updated_at | INTEGER | NOT NULL (Unix timestamp) |
 | archived_at | INTEGER | NULLABLE (Unix timestamp; NULL = active, non-NULL = archived) |
@@ -89,11 +94,41 @@ All relationships use `ON DELETE CASCADE`.
 | description | TEXT | NULLABLE |
 | list_id | TEXT | NOT NULL, FK → lists.id, CASCADE |
 | position | TEXT | NOT NULL (fractional index string) |
+| completed | INTEGER | NOT NULL, DEFAULT 0 (boolean) |
+| completed_at | INTEGER | NULLABLE (Unix timestamp; set when completed becomes true) |
+| due_date | INTEGER | NULLABLE (Unix timestamp) |
 | created_at | INTEGER | NOT NULL (Unix timestamp) |
 | updated_at | INTEGER | NOT NULL (Unix timestamp) |
 | archived_at | INTEGER | NULLABLE (Unix timestamp; NULL = active, non-NULL = archived) |
 
 **Indexes**: `(list_id, position)` for efficient sorted retrieval.
+
+### checklists
+
+| Column | Type | Constraints |
+|--------|------|-------------|
+| id | TEXT | PRIMARY KEY (nanoid, 21 chars) |
+| name | TEXT | NOT NULL |
+| card_id | TEXT | NOT NULL, FK → cards.id, CASCADE |
+| position | TEXT | NOT NULL (fractional index string) |
+| created_at | INTEGER | NOT NULL (Unix timestamp) |
+| updated_at | INTEGER | NOT NULL (Unix timestamp) |
+
+**Indexes**: `(card_id, position)` for efficient sorted retrieval.
+
+### checklist_items
+
+| Column | Type | Constraints |
+|--------|------|-------------|
+| id | TEXT | PRIMARY KEY (nanoid, 21 chars) |
+| title | TEXT | NOT NULL |
+| checklist_id | TEXT | NOT NULL, FK → checklists.id, CASCADE |
+| position | TEXT | NOT NULL (fractional index string) |
+| completed | INTEGER | NOT NULL, DEFAULT 0 (boolean) |
+| created_at | INTEGER | NOT NULL (Unix timestamp) |
+| updated_at | INTEGER | NOT NULL (Unix timestamp) |
+
+**Indexes**: `(checklist_id, position)` for efficient sorted retrieval.
 
 ## Fractional Indexing Strategy
 
@@ -134,7 +169,11 @@ Boards, lists, and cards are never permanently deleted. Instead, each table has 
 
 Archive state is **independent per item**. Archiving a board does not archive its lists or cards; archiving a list does not archive its cards. Display logic hides children transitively (e.g., an archived list's cards are not shown even if those cards are active). This means unarchiving is always a single-item operation — just clear that item's `archived_at`.
 
-Items are never permanently deleted through the application. The only content that can be permanently deleted is passkeys (credentials), which are not subject to this policy.
+Items are never permanently deleted through the application. The only content that can be permanently deleted is passkeys (credentials), checklists, and checklist items — these are lightweight and do not warrant archival.
+
+## Done Column Auto-Archive
+
+Cards in a Done list (`is_done = true`) that have been completed for 3+ days (`completed_at` is older than 3 days) are automatically archived by a background job that runs hourly. This only applies to cards in Done lists — completed cards in regular lists are not auto-archived.
 
 ## Migration Strategy
 

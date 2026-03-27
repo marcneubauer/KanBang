@@ -57,15 +57,33 @@ BoardDetailPage
 │   ├── ListColumn (repeated, horizontally draggable)
 │   │   ├── ListHeader
 │   │   │   ├── List name (editable inline)
+│   │   │   ├── Done list indicator (✓ icon, shown when isDone)
 │   │   │   └── Dropdown menu
+│   │   │       ├── Set as Done list / Remove Done status
 │   │   │       └── Archive list
 │   │   ├── CardItem (repeated, vertically draggable)
+│   │   │   ├── Completed checkbox
 │   │   │   ├── Card title
-│   │   │   └── Edit/Archive actions (on hover/focus)
+│   │   │   ├── Due date badge (color-coded status)
+│   │   │   ├── Checklist progress indicator ("3/7")
+│   │   │   └── Edit/Archive/DatePicker actions (on hover/focus)
 │   │   └── CreateCardForm (inline at bottom)
 │   │       └── Title input + Add button
 │   └── CreateListForm (at end of horizontal row)
 │       └── Name input + Add button
+├── CardDetailModal (opens on card click)
+│   ├── Card title (editable inline)
+│   ├── Due date picker
+│   ├── Card description (editable textarea)
+│   └── Checklists section
+│       ├── ChecklistGroup (repeated)
+│       │   ├── Checklist name (editable) + delete button
+│       │   ├── Progress bar
+│       │   ├── ChecklistItem (repeated, reorderable)
+│       │   │   ├── Checkbox + title (editable inline)
+│       │   │   └── Delete / Convert to card actions
+│       │   └── Add item input
+│       └── Add checklist button
 └── ArchivedItemsPanel (collapsible, collapsed by default)
     ├── Archived Lists section
     │   └── ArchivedListEntry (repeated)
@@ -124,14 +142,36 @@ BoardDetailPage
 
 ### ListHeader
 
-- **Props**: `name: string`, `listId: string`
-- **Behavior**: Displays list name. Click to edit inline. Dropdown menu with "Archive list" option. No confirmation required (archiving is reversible). Calls `PATCH /api/v1/lists/:listId/archive` and removes the list from local state.
+- **Props**: `name: string`, `listId: string`, `isDone: boolean`
+- **Behavior**: Displays list name. Click to edit inline. Shows a checkmark icon next to the name when `isDone` is true. Dropdown menu with:
+  - "Set as Done list" / "Remove Done status" — calls `PATCH /api/v1/lists/:listId/done`
+  - "Archive list" — calls `PATCH /api/v1/lists/:listId/archive` and removes list from local state
 
 ### CardItem
 
 - **Props**: `card: Card`
-- **Behavior**: Displays card title. Click to open edit view (inline or modal). Hover/focus reveals edit and archive icons. Archive icon calls `PATCH /api/v1/cards/:cardId/archive` and removes the card from local state.
+- **Behavior**: Displays card title. **Single click** opens the CardDetailModal. **Double-click** enters inline title edit. Hover/focus reveals archive icon and date picker icon. Archive icon calls `PATCH /api/v1/cards/:cardId/archive` and removes card from local state.
+- **Due date badge**: Below the title, shows a color-coded badge when `dueDate` is set. Colors: neutral (gray, far out), soon (yellow, within 48hrs), overdue (red), complete (green with checkmark).
+- **Checklist progress**: Below the title, shows "3/7" with checkbox icon when card has checklists.
+- **Done list cards**: Cards in a Done list are rendered with reduced opacity.
 - **Style**: White card with subtle border, small shadow on hover. Draggable.
+
+### CardDetailModal (new)
+
+- **Props**: `card: Card`, `boardLists: List[]`
+- **Events**: `onclose()`, `onupdate(card: Card)`
+- **Behavior**: Modal overlay showing full card details. Sections:
+  - **Title**: Editable inline (click to edit, blur/Enter to save). Calls `PATCH /api/v1/cards/:cardId`.
+  - **Due date**: Date picker input. Calls `PATCH /api/v1/cards/:cardId` with `{ dueDate }`. "Remove" button clears it.
+  - **Description**: Textarea, editable. Calls `PATCH /api/v1/cards/:cardId` with `{ description }`.
+  - **Checklists**: Fetched via `GET /api/v1/cards/:cardId/checklists` on modal open. Each checklist shows its items as a checkbox list. Items are reorderable within a checklist. Supports: add/rename/delete checklist, add/edit/toggle/delete items, convert item to card.
+- **Style**: Centered modal with backdrop. Max width ~600px. Scrollable content area.
+
+### DatePicker (new)
+
+- **Props**: `value: Date | null`
+- **Events**: `onchange(date: Date | null)`
+- **Behavior**: Native `<input type="date">` wrapped in a styled popover. "Remove due date" button sends `null`. Closes on blur/Escape.
 
 ### ArchivedItemsPanel
 

@@ -43,7 +43,7 @@ Tests are organized into three Vitest projects via `vitest.workspace.ts`:
 
 ### Target
 
-Service functions: `auth.service.ts`, `board.service.ts`, `list.service.ts`, `card.service.ts`
+Service functions: `auth.service.ts`, `board.service.ts`, `list.service.ts`, `card.service.ts`, `checklist.service.ts`, `checklist-item.service.ts`
 
 ### Approach
 
@@ -89,10 +89,33 @@ export function createTestDb() {
 
 **card.service.test.ts:**
 - `createCard()` auto-assigns position after last active card
+- `createCard()` with dueDate stores the due date
+- `updateCard()` sets/clears dueDate
+- `updateCard()` with `completed: true` sets completedAt and auto-moves to Done list if one exists
+- `updateCard()` with `completed: false` clears completedAt, does not auto-move back
 - `moveCard()` within same list updates position only
 - `moveCard()` across lists updates listId and position
 - `archiveCard()` sets archived_at on the card
 - `unarchiveCard()` clears archived_at
+
+**list.service.test.ts (additions):**
+- `setDone()` marks a list as Done; clears isDone on other lists in the same board
+- `setDone(false)` removes Done status
+- `getDoneList()` returns the Done list for a board, or null
+
+**checklist.service.test.ts:**
+- `create()` auto-assigns position after last checklist on the card
+- `getByCardId()` returns checklists with nested items, ordered by position
+- `update()` renames a checklist
+- `reorder()` updates position
+- `delete()` removes checklist and cascades to items
+
+**checklist-item.service.test.ts:**
+- `create()` auto-assigns position after last item in the checklist
+- `update()` toggles completed, updates title
+- `reorder()` updates position
+- `delete()` removes item
+- `convertToCard()` creates a new card and deletes the item
 
 ---
 
@@ -155,11 +178,35 @@ export function getSessionCookie(response) { ... }
 
 **cards.test.ts:**
 - Create card → 201, position auto-assigned
+- Create card with dueDate → 201, dueDate in response
 - Update card title/description → 200
+- Update card dueDate → 200; clear with null → 200
+- Update card completed → 200; completedAt set; auto-moves to Done list if present
+- Update card completed to false → completedAt cleared; card stays in current list
 - Move card within list → position updated, listId unchanged
 - Move card across lists → both listId and position updated
 - Archive card → 200; card excluded from list
 - Unarchive card → 200; card reappears in list
+
+**done-column.test.ts:**
+- Designate Done list → isDone: true in response
+- Only one Done list per board (setting another clears the first)
+- Remove Done status → isDone: false
+- Auto-archive: cards completed 3+ days in Done list get archived by cleanup job
+
+**checklists.test.ts:**
+- Create checklist on card → 201
+- List checklists for card → ordered by position, includes items
+- Rename checklist → 200
+- Reorder checklist → 200
+- Delete checklist → 200; cascades to items
+- Create item → 201
+- Toggle item completed → 200
+- Reorder item → 200
+- Delete item → 200
+- Convert item to card → 201; item deleted, new card created
+- Checklist progress in board detail response
+- Ownership: 403 for another user's checklists
 
 ---
 
@@ -219,6 +266,20 @@ Svelte components rendered in isolation.
 - Renders card title
 - Shows edit/archive actions on hover or focus
 - Renders description preview if present
+- Renders due date badge with correct color state
+- Renders checklist progress when present
+- Shows reduced opacity for cards in Done list
+
+**CardDetailModal.test.ts:**
+- Opens with card data populated
+- Edits title inline
+- Sets/clears due date
+- Edits description
+- Renders checklists with items
+- Toggles checklist item completion
+- Adds/deletes checklist items
+- Adds/deletes checklists
+- Converts item to card
 
 ---
 
@@ -281,9 +342,34 @@ Each test file creates a unique user via the registration endpoint, ensuring tes
 - Add a card to a list
 - Edit card title
 - Edit card description
+- Set due date → badge appears on card
+- Clear due date → badge disappears
 - Archive a card → card disappears from list
 - Open archived items panel → archived card is visible
 - Unarchive a card → card reappears in its list
+
+**checklists.spec.ts:**
+- Click card → modal opens
+- Add checklist → appears in modal
+- Add items → appear with checkboxes
+- Toggle item → progress updates on card face
+- Complete all items → progress shows complete
+- Delete item / delete checklist
+- Convert item to card → new card appears in list
+- Close modal → card face shows updated progress
+
+**done-column.spec.ts:**
+- Set a list as Done list via menu → checkmark icon appears
+- Complete a card → card moves to Done list
+- Uncomplete a card in Done list → card stays, checkbox unchecked
+- Remove Done status from list → no more auto-moves
+
+**due-dates.spec.ts:**
+- Hover card → calendar icon appears
+- Set due date → badge appears on card face
+- Due date badge shows correct color (overdue = red, soon = yellow)
+- Mark card with due date complete → green badge
+- Remove due date → badge disappears
 
 **drag-and-drop.spec.ts:**
 - Drag a card to a different position within the same list

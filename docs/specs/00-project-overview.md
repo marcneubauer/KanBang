@@ -11,16 +11,20 @@ KanBang is a personal, self-hosted Trello clone for managing tasks using a kanba
 - **Cards**: Create, edit (title + description), archive, unarchive, reorder within a list, and move across lists via drag-and-drop
 - **Authentication**: Password-based registration/login with passkey (WebAuthn) support
 
-## Non-Goals (v1)
+## Scope (v2)
+
+- **Due dates**: Per-card due date with visual status indicators (neutral, soon, overdue, complete)
+- **Checklists**: Multiple checklists per card with ordered checkable items. Card face shows progress summary. Card detail modal for editing.
+- **Done column**: Per-board "Done" list that completed cards auto-move into, with auto-archive after 3 days
+
+## Non-Goals (current)
 
 - Real-time collaboration / multi-user editing
 - File attachments or image uploads
 - Labels, tags, or color coding
-- Due dates or calendar integration
-- Checklists within cards
+- Calendar view or calendar integration
 - Comments or activity log
 - Board backgrounds or themes
-- Search functionality
 - Email notifications
 - Mobile app (responsive web only)
 
@@ -48,6 +52,8 @@ KanBang is a personal, self-hosted Trello clone for managing tasks using a kanba
 |------|-----------|
 | **Board** | A named collection of lists. Each user can have multiple boards. |
 | **List** | A named, ordered column within a board. Contains cards. |
-| **Card** | A task item within a list. Has a title and optional description. |
+| **Card** | A task item within a list. Has a title, optional description, optional due date, and optional checklists. |
+| **Checklist** | A named, ordered list of checkable items within a card. |
+| **Done List** | A special list per board that receives completed cards automatically. |
 | **Position** | A string-based fractional index that determines sort order. |
 | **Passkey** | A WebAuthn/FIDO2 credential for passwordless authentication. |

@@ -22,6 +22,13 @@
       "when": 1774057759155,
       "tag": "0002_grey_absorbing_man",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1774635194247,
+      "tag": "0003_numerous_wrecking_crew",
+      "breakpoints": true
     }
   ]
 }

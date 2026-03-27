@@ -4,6 +4,8 @@
   import { goto } from '$app/navigation';
   import { dndzone } from 'svelte-dnd-action';
   import { generateKeyBetween } from '@kanbang/shared';
+  import { getDueDateStatus, formatDueDate } from '$lib/utils/due-date';
+  import DatePicker from '$lib/components/DatePicker.svelte';
 
   interface CardItem {
     id: string;
@@ -12,6 +14,7 @@
     listId: string;
     position: string;
     completed: boolean;
+    dueDate: string | null;
   }
 
   interface ListItem {
@@ -119,6 +122,16 @@
     });
   }
 
+  async function setCardDueDate(cardId: string, listId: string, dueDate: string | null) {
+    await api(`/cards/${cardId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ dueDate }),
+    });
+    const listIndex = lists.findIndex((l) => l.id === listId);
+    const card = lists[listIndex].cards.find((c) => c.id === cardId);
+    if (card) card.dueDate = dueDate;
+  }
+
   async function toggleCardCompleted(cardId: string, listId: string, completed: boolean) {
     await api(`/cards/${cardId}`, {
       method: 'PATCH',
@@ -209,6 +222,7 @@
   let newCardTitle = $state('');
   let editingCardId = $state<string | null>(null);
   let editingCardTitle = $state('');
+  let datePickerCardId = $state<string | null>(null);
 
   function startEditList(listId: string, name: string) {
     editingListId = listId;
@@ -419,6 +433,23 @@
                 </span>
               {/if}
               <button
+                class="card-due-date-btn"
+                onclick={(e) => {
+                  e.stopPropagation();
+                  datePickerCardId = datePickerCardId === card.id ? null : card.id;
+                }}
+                aria-label="Set due date"
+              >
+                <svg viewBox="0 0 14 14" width="11" height="11"
+                  fill="none" stroke="currentColor" stroke-width="1.2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="1" y="2" width="12" height="11" rx="1"/>
+                  <line x1="1" y1="5.5" x2="13" y2="5.5"/>
+                  <line x1="4" y1="1" x2="4" y2="3"/>
+                  <line x1="10" y1="1" x2="10" y2="3"/>
+                </svg>
+              </button>
+              <button
                 class="card-archive"
                 onclick={() => archiveCard(card.id, list.id)}
                 aria-label="Archive card"
@@ -434,6 +465,18 @@
                   <line x1="8.5" y1="3.5" x2="8.8" y2="12.5"/>
                 </svg>
               </button>
+              {#if card.dueDate}
+                <span class="due-date-badge due-date-{getDueDateStatus(card.dueDate, card.completed)}">
+                  {formatDueDate(card.dueDate)}
+                </span>
+              {/if}
+              {#if datePickerCardId === card.id}
+                <DatePicker
+                  value={card.dueDate}
+                  onchange={(date) => setCardDueDate(card.id, list.id, date)}
+                  onclose={() => { datePickerCardId = null; }}
+                />
+              {/if}
             </div>
           {/each}
         </div>
@@ -676,6 +719,8 @@
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
+    flex-wrap: wrap;
+    position: relative;
     padding: 8px 8px;
     background: white;
     border-radius: var(--radius-sm);
@@ -935,6 +980,55 @@
     font-size: 13px;
     color: var(--color-text-subtle);
     margin: 4px 0;
+  }
+
+  .card-due-date-btn {
+    background: none;
+    border: none;
+    color: var(--color-text-subtle);
+    cursor: pointer;
+    padding: 1px 2px;
+    display: flex;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 150ms;
+    flex-shrink: 0;
+  }
+
+  .card-item:hover .card-due-date-btn {
+    opacity: 1;
+  }
+
+  .card-due-date-btn:hover {
+    color: var(--color-text);
+  }
+
+  .due-date-badge {
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    width: 100%;
+    margin-top: 4px;
+  }
+
+  .due-date-neutral {
+    background: #f0f0f0;
+    color: #555;
+  }
+
+  .due-date-soon {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .due-date-overdue {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  .due-date-complete {
+    background: #dcfce7;
+    color: #166534;
   }
 
   :global(.dragged) {

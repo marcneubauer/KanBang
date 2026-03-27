@@ -3,12 +3,14 @@ import { z } from 'zod';
 export const createCardSchema = z.object({
   title: z.string().min(1).max(500).trim(),
   description: z.string().max(5000).optional(),
+  dueDate: z.coerce.date().nullable().optional(),
 });
 
 export const updateCardSchema = z.object({
   title: z.string().min(1).max(500).trim().optional(),
   description: z.string().max(5000).nullable().optional(),
   completed: z.boolean().optional(),
+  dueDate: z.coerce.date().nullable().optional(),
 });
 
 export const moveCardSchema = z.object({

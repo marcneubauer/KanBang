@@ -353,6 +353,98 @@ describe('Card routes', () => {
     });
   });
 
+  describe('due dates', () => {
+    it('creates card without due date defaults to null', async () => {
+      const { body } = await createCard(app, cookie, listId, 'No Due');
+      expect(body.card.dueDate).toBeNull();
+    });
+
+    it('creates card with due date', async () => {
+      const dueDate = '2026-04-15T12:00:00.000Z';
+      const response = await app.inject({
+        method: 'POST',
+        url: `/api/v1/lists/${listId}/cards`,
+        headers: authHeader(cookie),
+        payload: { title: 'With Due', dueDate },
+      });
+      const body = JSON.parse(response.body);
+      expect(response.statusCode).toBe(201);
+      expect(body.card.dueDate).toBe(dueDate);
+    });
+
+    it('updates card to set due date', async () => {
+      const { body: cardBody } = await createCard(app, cookie, listId, 'Task');
+      const dueDate = '2026-05-01T09:00:00.000Z';
+      const response = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/cards/${cardBody.card.id}`,
+        headers: authHeader(cookie),
+        payload: { dueDate },
+      });
+      const body = JSON.parse(response.body);
+      expect(response.statusCode).toBe(200);
+      expect(body.card.dueDate).toBe(dueDate);
+    });
+
+    it('updates card to clear due date', async () => {
+      const dueDate = '2026-05-01T09:00:00.000Z';
+      const createRes = await app.inject({
+        method: 'POST',
+        url: `/api/v1/lists/${listId}/cards`,
+        headers: authHeader(cookie),
+        payload: { title: 'Has Due', dueDate },
+      });
+      const cardId = JSON.parse(createRes.body).card.id;
+
+      const response = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/cards/${cardId}`,
+        headers: authHeader(cookie),
+        payload: { dueDate: null },
+      });
+      const body = JSON.parse(response.body);
+      expect(response.statusCode).toBe(200);
+      expect(body.card.dueDate).toBeNull();
+    });
+
+    it('includes dueDate in board detail response', async () => {
+      const dueDate = '2026-06-01T00:00:00.000Z';
+      await app.inject({
+        method: 'POST',
+        url: `/api/v1/lists/${listId}/cards`,
+        headers: authHeader(cookie),
+        payload: { title: 'Due Card', dueDate },
+      });
+      const boardRes = await app.inject({
+        method: 'GET',
+        url: `/api/v1/boards/${boardId}`,
+        headers: authHeader(cookie),
+      });
+      const boardBody = JSON.parse(boardRes.body);
+      const card = boardBody.board.lists[0].cards[0];
+      expect(card.dueDate).toBe(dueDate);
+    });
+
+    it('includes dueDate in single card response', async () => {
+      const dueDate = '2026-07-04T18:00:00.000Z';
+      const createRes = await app.inject({
+        method: 'POST',
+        url: `/api/v1/lists/${listId}/cards`,
+        headers: authHeader(cookie),
+        payload: { title: 'Independence', dueDate },
+      });
+      const cardId = JSON.parse(createRes.body).card.id;
+
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/v1/cards/${cardId}`,
+        headers: authHeader(cookie),
+      });
+      const body = JSON.parse(response.body);
+      expect(body.card.dueDate).toBe(dueDate);
+    });
+  });
+
   describe('PATCH /api/v1/cards/:cardId/archive', () => {
     it('archives a card and removes it from active list view', async () => {
       const { body: cardBody } = await createCard(app, cookie, listId, 'To Archive');

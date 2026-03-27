@@ -28,6 +28,7 @@ export class CardService {
         description: input.description ?? null,
         listId,
         position,
+        dueDate: input.dueDate ?? null,
         createdAt: now,
         updatedAt: now,
       })
@@ -41,6 +42,7 @@ export class CardService {
     if (input.title !== undefined) updates.title = input.title;
     if (input.description !== undefined) updates.description = input.description;
     if (input.completed !== undefined) updates.completed = input.completed;
+    if (input.dueDate !== undefined) updates.dueDate = input.dueDate;
 
     const [card] = await this.db
       .update(cards)
@@ -117,6 +119,7 @@ export class CardService {
         listName: lists.name,
         position: cards.position,
         completed: cards.completed,
+        dueDate: cards.dueDate,
         createdAt: cards.createdAt,
         updatedAt: cards.updatedAt,
       })

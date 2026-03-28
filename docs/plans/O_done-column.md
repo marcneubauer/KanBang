@@ -4,7 +4,7 @@
 
 Add a "Done" column feature: a special list per board that completed cards auto-move into. Cards in the Done column are automatically archived 3 days after being marked complete.
 
-**Prerequisite:** Due dates plan should be implemented first — the auto-archive scheduling mechanism introduced there (Fastify plugin with `setInterval`) is reused here for the 3-day auto-archive.
+**Prerequisite:** Board settings modal should be implemented first — the Done list is designated via board settings, not a per-list menu action.
 
 ---
 
@@ -12,7 +12,7 @@ Add a "Done" column feature: a special list per board that completed cards auto-
 
 ### One Done list per board, opt-in
 
-Each board can have at most one Done list, indicated by a `isDone` boolean column on the lists table. The user designates an existing list as the Done list (or creates one) via a list header menu option. This avoids auto-creating lists the user didn't ask for.
+Each board can have at most one Done list, indicated by a `isDone` boolean column on the lists table. The user designates which list is the Done list via the board settings modal (selecting from a dropdown of existing lists). This avoids auto-creating lists the user didn't ask for.
 
 ### Auto-move on completion toggle
 
@@ -24,18 +24,20 @@ This logic lives in the card service `update()` method, not in the frontend. Thi
 
 Cards in the Done list that have been completed for 3+ days are automatically archived. The "completed at" time is tracked via a new `completedAt` timestamp on cards.
 
-A background job (Fastify plugin with `setInterval`, same pattern as due-date cleanup) runs every hour and archives qualifying cards.
+Archive happens at page-load time: when the board detail endpoint is called, it first archives any qualifying cards (completed 3+ days ago in the Done list) before returning the board data. No background job needed — for a personal tool, cleanup on view is sufficient.
 
 ### Done list visual treatment
 
 The Done list looks like a normal list but with:
 - A checkmark icon next to the list name
-- Cannot be reordered to middle of board (always last, enforced in UI only — not a hard constraint)
+- Cannot be reordered (drag-reorder disabled in UI) — always last and justified to the right
 - Muted card styling (reduced opacity) since cards here are "done"
+- Done list is collapsed by default; collapsed view is on the right instead of the left like other lists
+- User's expand/collapse choice is persisted (e.g. localStorage) after the initial default
 
 ### Done list protection
 
-- Cannot archive the Done list while it's designated as Done (must un-designate first)
+- Cannot archive the Done list while it's designated as Done — API returns an error ("Remove Done status before archiving")
 - Deleting/archiving the board still cascades normally
 
 ---
@@ -131,52 +133,45 @@ Include `isDone` in list objects. Include `completedAt` in card objects.
 
 ---
 
-## Background Job: Auto-Archive
+## Page-Load Auto-Archive
 
-### `packages/api/src/plugins/done-cleanup.ts` (new)
+### Board detail endpoint (`GET /api/v1/boards/:boardId`)
 
-Fastify plugin that starts an hourly interval after the app is ready:
+Before returning the board data, run an archive pass:
 
 ```typescript
-export default fp(async (fastify) => {
-  const INTERVAL_MS = 60 * 60 * 1000; // 1 hour
-  const ARCHIVE_AFTER_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
+// Archive cards completed 3+ days ago in the Done list
+const ARCHIVE_AFTER_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
+const cutoff = new Date(Date.now() - ARCHIVE_AFTER_MS);
 
-  const timer = setInterval(async () => {
-    const cutoff = new Date(Date.now() - ARCHIVE_AFTER_MS);
-    await fastify.db
-      .update(cards)
-      .set({ archivedAt: new Date() })
-      .where(
-        and(
-          eq(cards.completed, true),
-          isNotNull(cards.completedAt),
-          lte(cards.completedAt, cutoff),
-          isNull(cards.archivedAt),
-          // Only cards in Done lists
-          inArray(
-            cards.listId,
-            fastify.db.select({ id: lists.id }).from(lists).where(eq(lists.isDone, true))
-          )
+await db
+  .update(cards)
+  .set({ archivedAt: new Date() })
+  .where(
+    and(
+      eq(cards.completed, true),
+      isNotNull(cards.completedAt),
+      lte(cards.completedAt, cutoff),
+      isNull(cards.archivedAt),
+      inArray(
+        cards.listId,
+        db.select({ id: lists.id }).from(lists).where(
+          and(eq(lists.boardId, boardId), eq(lists.isDone, true))
         )
-      );
-  }, INTERVAL_MS);
-
-  fastify.addHook('onClose', () => clearInterval(timer));
-});
+      )
+    )
+  );
 ```
 
-Register in `app.ts` after the DB plugin.
+This runs before the board query, so archived cards are excluded from the response naturally. No background job or plugin needed.
 
 ---
 
 ## Frontend Changes
 
-### List header menu: "Set as Done list" / "Remove Done status"
+### Board settings modal: Done list selection
 
-**File:** `packages/web/src/routes/boards/[boardId]/+page.svelte`
-
-Add a toggle option in the list dropdown menu. Calls `PATCH /api/v1/lists/:listId/done` with `{ isDone: true/false }`.
+Done list designation is managed in the board settings modal (see `O_board-settings.md`). The modal includes a dropdown of existing lists to designate as the Done list, or "None" to disable. Calls `PATCH /api/v1/lists/:listId/done`.
 
 ### Done list visual indicators
 
@@ -307,7 +302,7 @@ if (input.completed !== undefined) {
 
 **File:** `e2e/done-column.spec.ts` (new)
 
-- Set a list as Done list via menu
+- Set a list as Done list via board settings modal
 - Complete a card → card moves to Done list
 - Uncomplete a card in Done list → card stays, checkbox unchecked
 - Remove Done status from list → no more auto-moves
@@ -317,12 +312,14 @@ if (input.completed !== undefined) {
 
 ## Implementation Order
 
+**Prerequisite:** Board settings modal (`O_board-settings.md`)
+
 1. DB migration — add `isDone` to lists, `completedAt` to cards
 2. Shared types + validation
 3. List service — `setDone()`, `getDoneList()`
 4. Card service — modify `update()` for auto-move logic
 5. API routes — new `PATCH /lists/:listId/done` endpoint
-6. Background job plugin — auto-archive cleanup
+6. Board detail endpoint — add page-load auto-archive pass
 7. Integration tests
-8. Frontend — list menu, auto-move handling, visual indicators
+8. Frontend — board settings Done list selector, auto-move handling, visual indicators
 9. E2E tests

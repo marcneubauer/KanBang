@@ -8,6 +8,7 @@ import authRoutes from './routes/auth/index.js';
 import boardRoutes from './routes/boards/index.js';
 import listRoutes from './routes/lists/index.js';
 import cardRoutes from './routes/cards/index.js';
+import checklistRoutes from './routes/checklists/index.js';
 import passkeyRoutes from './routes/passkeys/index.js';
 import { config } from './config.js';
 
@@ -54,6 +55,7 @@ export async function buildApp(opts: BuildAppOptions = {}) {
   await app.register(boardRoutes, { prefix: '/api/v1/boards' });
   await app.register(listRoutes, { prefix: '/api/v1' });
   await app.register(cardRoutes, { prefix: '/api/v1' });
+  await app.register(checklistRoutes, { prefix: '/api/v1' });
   await app.register(passkeyRoutes, { prefix: '/api/v1/passkeys' });
 
   return app;

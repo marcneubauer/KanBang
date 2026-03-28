@@ -6,6 +6,7 @@
   import { generateKeyBetween } from '@kanbang/shared';
   import { getDueDateStatus, formatDueDate } from '$lib/utils/due-date';
   import DatePicker from '$lib/components/DatePicker.svelte';
+  import CardDetailModal from '$lib/components/CardDetailModal.svelte';
 
   interface CardItem {
     id: string;
@@ -15,6 +16,7 @@
     position: string;
     completed: boolean;
     dueDate: string | null;
+    checklistProgress: { total: number; completed: number };
   }
 
   interface ListItem {
@@ -224,6 +226,37 @@
   let editingCardTitle = $state('');
   let datePickerCardId = $state<string | null>(null);
 
+  // --- Card detail modal ---
+  let modalCard = $state<{ id: string; title: string; description: string | null; listId: string } | null>(null);
+  let clickTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function handleCardClick(card: CardItem, listId: string) {
+    if (clickTimer) {
+      clearTimeout(clickTimer);
+      clickTimer = null;
+      startEditCard(card.id, card.title);
+    } else {
+      clickTimer = setTimeout(() => {
+        clickTimer = null;
+        modalCard = { id: card.id, title: card.title, description: card.description, listId };
+      }, 250);
+    }
+  }
+
+  async function handleModalUpdated() {
+    const { board } = await api<{ board: { lists: ListItem[] } }>(`/boards/${data.board.id}`);
+    lists = board.lists.map((l) => ({ ...l, cards: l.cards.map((c) => ({ ...c })) }));
+    if (modalCard) {
+      for (const list of lists) {
+        const card = list.cards.find((c) => c.id === modalCard!.id);
+        if (card) {
+          modalCard = { id: card.id, title: card.title, description: card.description, listId: list.id };
+          break;
+        }
+      }
+    }
+  }
+
   function startEditList(listId: string, name: string) {
     editingListId = listId;
     editingListName = name;
@@ -425,8 +458,8 @@
                 <span
                   class="card-title"
                   class:card-title-completed={card.completed}
-                  ondblclick={() => startEditCard(card.id, card.title)}
-                  onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); startEditCard(card.id, card.title); } }}
+                  onclick={(e) => { e.stopPropagation(); handleCardClick(card, list.id); }}
+                  onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleCardClick(card, list.id); } }}
                   tabindex="0"
                 >
                   {card.title}
@@ -476,6 +509,20 @@
                   onchange={(date) => setCardDueDate(card.id, list.id, date)}
                   onclose={() => { datePickerCardId = null; }}
                 />
+              {/if}
+              {#if card.checklistProgress && card.checklistProgress.total > 0}
+                <span
+                  class="checklist-badge"
+                  class:checklist-badge-complete={card.checklistProgress.completed === card.checklistProgress.total}
+                >
+                  <svg viewBox="0 0 16 16" width="12" height="12">
+                    <rect x="0.5" y="0.5" width="15" height="15" rx="1.5"
+                    fill="none" stroke="currentColor" stroke-width="1"/>
+                    <path d="M4 8l3 3 5-5" stroke="currentColor" stroke-width="1.5"
+                    fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  {card.checklistProgress.completed}/{card.checklistProgress.total}
+                </span>
               {/if}
             </div>
           {/each}
@@ -569,6 +616,17 @@
       </div>
     {/if}
   </div>
+
+  {#if modalCard}
+    <CardDetailModal
+      cardId={modalCard.id}
+      cardTitle={modalCard.title}
+      cardDescription={modalCard.description}
+      listId={modalCard.listId}
+      onclose={() => { modalCard = null; }}
+      onupdated={handleModalUpdated}
+    />
+  {/if}
 </div>
 
 <style>
@@ -1027,6 +1085,24 @@
   }
 
   .due-date-complete {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .checklist-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: #f0f0f0;
+    color: #555;
+    width: auto;
+    margin-top: 4px;
+  }
+
+  .checklist-badge-complete {
     background: #dcfce7;
     color: #166534;
   }

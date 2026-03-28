@@ -1,7 +1,7 @@
-import { eq, and, asc, isNull, isNotNull } from 'drizzle-orm';
+import { eq, and, asc, isNull, isNotNull, count, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { Database } from '../db/index.js';
-import { boards, lists, cards } from '../db/schema.js';
+import { boards, lists, cards, checklists, checklistItems } from '../db/schema.js';
 import type { CreateBoardInput, UpdateBoardInput } from '@kanbang/shared/validation/board.js';
 
 export class BoardService {
@@ -59,7 +59,28 @@ export class BoardService {
           .where(and(eq(cards.listId, list.id), isNull(cards.archivedAt)))
           .orderBy(asc(cards.position));
 
-        return { ...list, cards: listCards };
+        const cardsWithProgress = await Promise.all(
+          listCards.map(async (card) => {
+            const [progress] = await this.db
+              .select({
+                total: count(),
+                completed: count(sql`CASE WHEN ${checklistItems.completed} = 1 THEN 1 END`),
+              })
+              .from(checklistItems)
+              .innerJoin(checklists, eq(checklistItems.checklistId, checklists.id))
+              .where(eq(checklists.cardId, card.id));
+
+            return {
+              ...card,
+              checklistProgress: {
+                total: progress?.total ?? 0,
+                completed: progress?.completed ?? 0,
+              },
+            };
+          }),
+        );
+
+        return { ...list, cards: cardsWithProgress };
       }),
     );
 

@@ -4,7 +4,7 @@ Items within each section are ordered by usefulness.
 
 ## Core Card Enhancements
 
-- [ ] **Checklists** — multiple checklists per card, each with ordered checkable items. Card face shows progress summary (e.g. "3/7"). Support "convert to card" to promote a checklist item into its own card.
+- [X] **Checklists** — multiple checklists per card, each with ordered checkable items. Card face shows progress summary (e.g. "3/7"). Support "convert to card" to promote a checklist item into its own card.
 - [ ] **Labels/tags** — board-scoped label sets, multiple labels per card. Card face shows colored chips. Filtering by label dims non-matching cards (non-destructive, preserves spatial context).
 - [ ] **Due dates** — visual indicator on card face with states: neutral (far out), yellow (within 24hrs), red (overdue), green+checkmark (marked complete).
 - [ ] **Attachments** — file uploads or URL links

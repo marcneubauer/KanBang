@@ -4,3 +4,5 @@ export { sessions } from './schema/sessions.js';
 export { boards } from './schema/boards.js';
 export { lists } from './schema/lists.js';
 export { cards } from './schema/cards.js';
+export { checklists } from './schema/checklists.js';
+export { checklistItems } from './schema/checklist-items.js';

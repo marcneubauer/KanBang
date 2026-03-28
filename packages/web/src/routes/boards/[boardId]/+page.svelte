@@ -58,6 +58,32 @@
 
   const flipDurationMs = 200;
 
+  // --- List collapse ---
+  function loadCollapsedLists(boardId: string): Set<string> {
+    try {
+      const raw = localStorage.getItem(`kanbang:collapsed-lists:${boardId}`);
+      return raw ? new Set(JSON.parse(raw)) : new Set();
+    } catch {
+      return new Set();
+    }
+  }
+
+  function saveCollapsedLists(boardId: string, ids: Set<string>) {
+    localStorage.setItem(`kanbang:collapsed-lists:${boardId}`, JSON.stringify([...ids]));
+  }
+
+  let collapsedListIds = $state<Set<string>>(loadCollapsedLists(data.board.id));
+
+  function toggleCollapse(listId: string) {
+    if (collapsedListIds.has(listId)) {
+      collapsedListIds.delete(listId);
+    } else {
+      collapsedListIds.add(listId);
+    }
+    collapsedListIds = new Set(collapsedListIds);
+    saveCollapsedLists(data.board.id, collapsedListIds);
+  }
+
   // --- Board-level error message ---
   let boardError = $state('');
 
@@ -381,173 +407,197 @@
     onfinalize={handleListFinalize}
   >
     {#each lists as list (list.id)}
-      <div class="list-column">
-        <div class="list-header">
-          {#if editingListId === list.id}
-            <!-- svelte-ignore a11y_autofocus -->
-            <input
-              class="list-name-input"
-              bind:value={editingListName}
-              onblur={saveListName}
-              onkeydown={(e) => e.key === 'Enter' && saveListName()}
-              autofocus
-            />
-          {:else}
-            <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-            <h2
-              class="list-name"
-              ondblclick={() => startEditList(list.id, list.name)}
-              onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); startEditList(list.id, list.name); } }}
-              tabindex="0"
-            >
-              {list.name}
-            </h2>
-          {/if}
-          <button class="list-archive" onclick={() => archiveList(list.id)} aria-label="Archive list">
-            <svg viewBox="0 0 14 14" width="12" height="12"
-              fill="none" stroke="currentColor" stroke-width="1.2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <path d="M5 3.5V2.5a2 2 0 014 0v1"/>
-              <line x1="1" y1="3.5" x2="13" y2="3.5"/>
-              <path d="M2.5 3.5L3 12.5h8l.5-9"/>
-              <line x1="5.5" y1="3.5" x2="5.2" y2="12.5"/>
-              <line x1="7" y1="3.5" x2="7" y2="12.5"/>
-              <line x1="8.5" y1="3.5" x2="8.8" y2="12.5"/>
-            </svg>
-          </button>
-        </div>
-
+      {#if collapsedListIds.has(list.id)}
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div
-          class="card-list"
-          use:dndzone={{ items: list.cards, type: 'card', flipDurationMs, dropTargetStyle: {} }}
-          onconsider={(e) => handleCardConsider(list.id, e)}
-          onfinalize={(e) => handleCardFinalize(list.id, e)}
+          class="list-collapsed"
+          onclick={() => toggleCollapse(list.id)}
+          onkeydown={(e) => { if (e.key === 'Enter') toggleCollapse(list.id); }}
+          tabindex="0"
+          role="button"
+          aria-label="Expand list {list.name}"
         >
-          {#each list.cards as card (card.id)}
-            <div class="card-item">
-              <button
-                class="card-checkbox"
-                class:card-checkbox-checked={card.completed}
-                onclick={(e) => { e.stopPropagation(); toggleCardCompleted(card.id, list.id, !card.completed); }}
-                aria-label={card.completed ? 'Mark incomplete' : 'Mark complete'}
-              >
-                {#if card.completed}
-                  <svg viewBox="0 0 16 16" width="16" height="16">
-                    <rect width="16" height="16" rx="2" fill="#22c55e"/>
-                    <path d="M4 8l3 3 5-5" stroke="white" stroke-width="2"
-                    fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                {:else}
-                  <svg viewBox="0 0 16 16" width="16" height="16">
-                    <rect x="0.5" y="0.5" width="15" height="15" rx="1.5"
-                    fill="none" stroke="#b0b0b0" stroke-width="1"/>
-                  </svg>
-                {/if}
-              </button>
-              {#if editingCardId === card.id}
-                <!-- svelte-ignore a11y_autofocus -->
-                <input
-                  class="card-title-input"
-                  bind:value={editingCardTitle}
-                  onblur={saveCardTitle}
-                  onkeydown={(e) => e.key === 'Enter' && saveCardTitle()}
-                  autofocus
-                />
-              {:else}
-                <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <span
-                  class="card-title"
-                  class:card-title-completed={card.completed}
-                  onclick={(e) => { e.stopPropagation(); handleCardClick(card, list.id); }}
-                  onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleCardClick(card, list.id); } }}
-                  tabindex="0"
-                >
-                  {card.title}
-                </span>
-              {/if}
-              <button
-                class="card-due-date-btn"
-                onclick={(e) => {
-                  e.stopPropagation();
-                  datePickerCardId = datePickerCardId === card.id ? null : card.id;
-                }}
-                aria-label="Set due date"
-              >
-                <svg viewBox="0 0 14 14" width="11" height="11"
-                  fill="none" stroke="currentColor" stroke-width="1.2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="1" y="2" width="12" height="11" rx="1"/>
-                  <line x1="1" y1="5.5" x2="13" y2="5.5"/>
-                  <line x1="4" y1="1" x2="4" y2="3"/>
-                  <line x1="10" y1="1" x2="10" y2="3"/>
-                </svg>
-              </button>
-              <button
-                class="card-archive"
-                onclick={() => archiveCard(card.id, list.id)}
-                aria-label="Archive card"
-              >
-                <svg viewBox="0 0 14 14" width="11" height="11"
-                  fill="none" stroke="currentColor" stroke-width="1.2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M5 3.5V2.5a2 2 0 014 0v1"/>
-                  <line x1="1" y1="3.5" x2="13" y2="3.5"/>
-                  <path d="M2.5 3.5L3 12.5h8l.5-9"/>
-                  <line x1="5.5" y1="3.5" x2="5.2" y2="12.5"/>
-                  <line x1="7" y1="3.5" x2="7" y2="12.5"/>
-                  <line x1="8.5" y1="3.5" x2="8.8" y2="12.5"/>
-                </svg>
-              </button>
-              {#if card.dueDate}
-                <span class="due-date-badge due-date-{getDueDateStatus(card.dueDate, card.completed)}">
-                  {formatDueDate(card.dueDate)}
-                </span>
-              {/if}
-              {#if datePickerCardId === card.id}
-                <DatePicker
-                  value={card.dueDate}
-                  onchange={(date) => setCardDueDate(card.id, list.id, date)}
-                  onclose={() => { datePickerCardId = null; }}
-                />
-              {/if}
-              {#if card.checklistProgress && card.checklistProgress.total > 0}
-                <span
-                  class="checklist-badge"
-                  class:checklist-badge-complete={card.checklistProgress.completed === card.checklistProgress.total}
-                >
-                  <svg viewBox="0 0 16 16" width="12" height="12">
-                    <rect x="0.5" y="0.5" width="15" height="15" rx="1.5"
-                    fill="none" stroke="currentColor" stroke-width="1"/>
-                    <path d="M4 8l3 3 5-5" stroke="currentColor" stroke-width="1.5"
-                    fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                  {card.checklistProgress.completed}/{card.checklistProgress.total}
-                </span>
-              {/if}
-            </div>
-          {/each}
+          <span class="list-collapsed-name">{list.name}</span>
+          {#if list.cards.length > 0}
+            <span class="list-collapsed-count">{list.cards.length}</span>
+          {/if}
         </div>
+      {:else}
+        <div class="list-column">
+          <div class="list-header">
+            {#if editingListId === list.id}
+              <!-- svelte-ignore a11y_autofocus -->
+              <input
+                class="list-name-input"
+                bind:value={editingListName}
+                onblur={saveListName}
+                onkeydown={(e) => e.key === 'Enter' && saveListName()}
+                autofocus
+              />
+            {:else}
+              <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+              <h2
+                class="list-name"
+                ondblclick={() => startEditList(list.id, list.name)}
+                onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); startEditList(list.id, list.name); } }}
+                tabindex="0"
+              >
+                {list.name}
+              </h2>
+            {/if}
+            <button class="list-collapse-btn" onclick={() => toggleCollapse(list.id)} aria-label="Collapse list">
+              <svg viewBox="0 0 14 14" width="12" height="12"
+                fill="none" stroke="currentColor" stroke-width="1.5"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 3L5 7l4 4"/>
+              </svg>
+            </button>
+            <button class="list-archive" onclick={() => archiveList(list.id)} aria-label="Archive list">
+              <svg viewBox="0 0 14 14" width="12" height="12"
+                fill="none" stroke="currentColor" stroke-width="1.2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 3.5V2.5a2 2 0 014 0v1"/>
+                <line x1="1" y1="3.5" x2="13" y2="3.5"/>
+                <path d="M2.5 3.5L3 12.5h8l.5-9"/>
+                <line x1="5.5" y1="3.5" x2="5.2" y2="12.5"/>
+                <line x1="7" y1="3.5" x2="7" y2="12.5"/>
+                <line x1="8.5" y1="3.5" x2="8.8" y2="12.5"/>
+              </svg>
+            </button>
+          </div>
 
-        {#if addingCardToList === list.id}
-          <form class="add-card-form" onsubmit={(e) => submitNewCard(e, list.id)}>
-            <!-- svelte-ignore a11y_autofocus -->
-            <textarea
-              bind:value={newCardTitle}
-              placeholder="Enter a title for this card..."
-              rows="2"
-              autofocus
-            ></textarea>
-            <div class="add-card-actions">
-              <button type="submit" class="btn-primary-sm">Add Card</button>
-              <button type="button" class="btn-close" onclick={() => { addingCardToList = null; newCardTitle = ''; }}>&times;</button>
-            </div>
-          </form>
-        {:else}
-          <button class="add-card-btn" onclick={() => { addingCardToList = list.id; }}>
-            + Add a card
-          </button>
-        {/if}
-      </div>
+          <div
+            class="card-list"
+            use:dndzone={{ items: list.cards, type: 'card', flipDurationMs, dropTargetStyle: {} }}
+            onconsider={(e) => handleCardConsider(list.id, e)}
+            onfinalize={(e) => handleCardFinalize(list.id, e)}
+          >
+            {#each list.cards as card (card.id)}
+              <div class="card-item">
+                <button
+                  class="card-checkbox"
+                  class:card-checkbox-checked={card.completed}
+                  onclick={(e) => { e.stopPropagation(); toggleCardCompleted(card.id, list.id, !card.completed); }}
+                  aria-label={card.completed ? 'Mark incomplete' : 'Mark complete'}
+                >
+                  {#if card.completed}
+                    <svg viewBox="0 0 16 16" width="16" height="16">
+                      <rect width="16" height="16" rx="2" fill="#22c55e"/>
+                      <path d="M4 8l3 3 5-5" stroke="white" stroke-width="2"
+                      fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  {:else}
+                    <svg viewBox="0 0 16 16" width="16" height="16">
+                      <rect x="0.5" y="0.5" width="15" height="15" rx="1.5"
+                      fill="none" stroke="#b0b0b0" stroke-width="1"/>
+                    </svg>
+                  {/if}
+                </button>
+                {#if editingCardId === card.id}
+                  <!-- svelte-ignore a11y_autofocus -->
+                  <input
+                    class="card-title-input"
+                    bind:value={editingCardTitle}
+                    onblur={saveCardTitle}
+                    onkeydown={(e) => e.key === 'Enter' && saveCardTitle()}
+                    autofocus
+                  />
+                {:else}
+                  <!-- svelte-ignore a11y_no_static_element_interactions -->
+                  <span
+                    class="card-title"
+                    class:card-title-completed={card.completed}
+                    onclick={(e) => { e.stopPropagation(); handleCardClick(card, list.id); }}
+                    onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleCardClick(card, list.id); } }}
+                    tabindex="0"
+                  >
+                    {card.title}
+                  </span>
+                {/if}
+                <button
+                  class="card-due-date-btn"
+                  onclick={(e) => {
+                    e.stopPropagation();
+                    datePickerCardId = datePickerCardId === card.id ? null : card.id;
+                  }}
+                  aria-label="Set due date"
+                >
+                  <svg viewBox="0 0 14 14" width="11" height="11"
+                    fill="none" stroke="currentColor" stroke-width="1.2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="1" y="2" width="12" height="11" rx="1"/>
+                    <line x1="1" y1="5.5" x2="13" y2="5.5"/>
+                    <line x1="4" y1="1" x2="4" y2="3"/>
+                    <line x1="10" y1="1" x2="10" y2="3"/>
+                  </svg>
+                </button>
+                <button
+                  class="card-archive"
+                  onclick={() => archiveCard(card.id, list.id)}
+                  aria-label="Archive card"
+                >
+                  <svg viewBox="0 0 14 14" width="11" height="11"
+                    fill="none" stroke="currentColor" stroke-width="1.2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 3.5V2.5a2 2 0 014 0v1"/>
+                    <line x1="1" y1="3.5" x2="13" y2="3.5"/>
+                    <path d="M2.5 3.5L3 12.5h8l.5-9"/>
+                    <line x1="5.5" y1="3.5" x2="5.2" y2="12.5"/>
+                    <line x1="7" y1="3.5" x2="7" y2="12.5"/>
+                    <line x1="8.5" y1="3.5" x2="8.8" y2="12.5"/>
+                  </svg>
+                </button>
+                {#if card.dueDate}
+                  <span class="due-date-badge due-date-{getDueDateStatus(card.dueDate, card.completed)}">
+                    {formatDueDate(card.dueDate)}
+                  </span>
+                {/if}
+                {#if datePickerCardId === card.id}
+                  <DatePicker
+                    value={card.dueDate}
+                    onchange={(date) => setCardDueDate(card.id, list.id, date)}
+                    onclose={() => { datePickerCardId = null; }}
+                  />
+                {/if}
+                {#if card.checklistProgress && card.checklistProgress.total > 0}
+                  <span
+                    class="checklist-badge"
+                    class:checklist-badge-complete={card.checklistProgress.completed === card.checklistProgress.total}
+                  >
+                    <svg viewBox="0 0 16 16" width="12" height="12">
+                      <rect x="0.5" y="0.5" width="15" height="15" rx="1.5"
+                      fill="none" stroke="currentColor" stroke-width="1"/>
+                      <path d="M4 8l3 3 5-5" stroke="currentColor" stroke-width="1.5"
+                      fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    {card.checklistProgress.completed}/{card.checklistProgress.total}
+                  </span>
+                {/if}
+              </div>
+            {/each}
+          </div>
+
+          {#if addingCardToList === list.id}
+            <form class="add-card-form" onsubmit={(e) => submitNewCard(e, list.id)}>
+              <!-- svelte-ignore a11y_autofocus -->
+              <textarea
+                bind:value={newCardTitle}
+                placeholder="Enter a title for this card..."
+                rows="2"
+                autofocus
+              ></textarea>
+              <div class="add-card-actions">
+                <button type="submit" class="btn-primary-sm">Add Card</button>
+                <button type="button" class="btn-close" onclick={() => { addingCardToList = null; newCardTitle = ''; }}>&times;</button>
+              </div>
+            </form>
+          {:else}
+            <button class="add-card-btn" onclick={() => { addingCardToList = list.id; }}>
+              + Add a card
+            </button>
+          {/if}
+        </div>
+      {/if}
     {/each}
 
     <!-- Add list form -->
@@ -720,6 +770,47 @@
     padding: 8px;
   }
 
+  .list-collapsed {
+    flex-shrink: 0;
+    width: 40px;
+    max-height: 100%;
+    background: #ebecf0;
+    border-radius: var(--radius);
+    padding: 8px 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: background 150ms;
+  }
+
+  .list-collapsed:hover {
+    background: #dfe1e6;
+  }
+
+  .list-collapsed-name {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-height: calc(100% - 30px);
+  }
+
+  .list-collapsed-count {
+    margin-top: 8px;
+    font-size: 11px;
+    background: rgba(0, 0, 0, 0.1);
+    color: var(--color-text-subtle);
+    border-radius: 10px;
+    padding: 2px 6px;
+    min-width: 20px;
+    text-align: center;
+  }
+
   .list-header {
     display: flex;
     align-items: center;
@@ -744,6 +835,7 @@
     width: 100%;
   }
 
+  .list-collapse-btn,
   .list-archive {
     background: none;
     border: none;
@@ -756,10 +848,12 @@
     transition: opacity 150ms;
   }
 
+  .list-header:hover .list-collapse-btn,
   .list-header:hover .list-archive {
     opacity: 1;
   }
 
+  .list-collapse-btn:hover,
   .list-archive:hover {
     color: var(--color-text);
   }

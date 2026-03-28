@@ -17,7 +17,7 @@ Items within each section are ordered by usefulness.
 - [ ] **Card filtering** — filter bar at top of board accepting labels, assignees, due date ranges. Non-destructive: dims non-matching cards rather than hiding them to preserve spatial context.
 - [ ] **Board search** — highlights matching cards in place (dims non-matching), does not navigate away from the board
 - [ ] **Card quick-edit** — hover shows pencil icon, clicking opens inline popover to edit labels, due date, members, and title without opening the full card modal
-- [ ] **List collapse** — collapsed list shows only its title in a narrow vertical strip
+- [X] **List collapse** — collapsed list shows only its title in a narrow vertical strip
 - [ ] **Copy/move card** — copy or move cards between lists or boards. Copy dialog with checkboxes to keep checklists/attachments/comments.
 - [ ] **Sort list** — sort cards within a list by due date, name, or date created
 - [ ] **List move/copy** — reorganize lists between boards

@@ -6,6 +6,7 @@ import {
   createListSchema,
   updateListSchema,
   reorderListSchema,
+  setDoneListSchema,
 } from '@kanbang/shared/validation/list.js';
 import { validateBody } from '../../utils/validate.js';
 import { verifyBoardOwnership, verifyListOwnership } from '../../utils/ownership.js';
@@ -75,6 +76,26 @@ export default async function listRoutes(fastify: FastifyInstance) {
     },
   );
 
+  // PATCH /api/v1/lists/:listId/done
+  fastify.patch<{ Params: { listId: string } }>(
+    '/lists/:listId/done',
+    async (request, reply) => {
+      const { user } = request as AuthenticatedRequest;
+      const { listId } = request.params;
+
+      if (!(await verifyListOwnership(listId, user.id, listService, boardService, reply))) return;
+
+      const data = await validateBody(setDoneListSchema, request.body, reply);
+      if (!data) return;
+
+      const list = await listService.setDone(listId, data.isDone);
+      if (!list) {
+        return reply.code(404).send({ error: 'List not found', code: 'NOT_FOUND' });
+      }
+      return { list };
+    },
+  );
+
   // PATCH /api/v1/lists/:listId/archive
   fastify.patch<{ Params: { listId: string } }>(
     '/lists/:listId/archive',
@@ -84,7 +105,10 @@ export default async function listRoutes(fastify: FastifyInstance) {
 
       if (!(await verifyListOwnership(listId, user.id, listService, boardService, reply))) return;
 
-      await listService.archive(listId);
+      const result = await listService.archive(listId);
+      if (!result.ok) {
+        return reply.code(400).send({ error: result.error, code: 'DONE_LIST_ARCHIVE' });
+      }
       return { ok: true };
     },
   );

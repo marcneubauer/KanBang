@@ -1,4 +1,4 @@
-import { eq, asc, desc, and, isNull } from 'drizzle-orm';
+import { eq, asc, desc, and, ne, isNull } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { Database } from '../db/index.js';
 import { lists, cards } from '../db/schema.js';
@@ -55,14 +55,20 @@ export class ListService {
     return list ?? null;
   }
 
-  async archive(listId: string) {
+  async archive(listId: string): Promise<{ ok: boolean; error?: string }> {
+    // Prevent archiving a list that is designated as Done
+    const existing = await this.getById(listId);
+    if (existing?.isDone) {
+      return { ok: false, error: 'Remove Done status before archiving' };
+    }
+
     const [list] = await this.db
       .update(lists)
       .set({ archivedAt: new Date() })
       .where(eq(lists.id, listId))
       .returning();
 
-    return !!list;
+    return { ok: !!list };
   }
 
   async unarchive(listId: string) {
@@ -101,5 +107,37 @@ export class ListService {
   async getBoardId(listId: string): Promise<string | null> {
     const list = await this.getById(listId);
     return list?.boardId ?? null;
+  }
+
+  async setDone(listId: string, isDone: boolean) {
+    if (isDone) {
+      // Get the board for this list
+      const [list] = await this.db.select().from(lists).where(eq(lists.id, listId));
+      if (!list) return null;
+
+      // Clear isDone on all other lists in the same board
+      await this.db
+        .update(lists)
+        .set({ isDone: false, updatedAt: new Date() })
+        .where(and(eq(lists.boardId, list.boardId), ne(lists.id, listId)));
+    }
+
+    const [updated] = await this.db
+      .update(lists)
+      .set({ isDone, updatedAt: new Date() })
+      .where(eq(lists.id, listId))
+      .returning();
+
+    return updated ?? null;
+  }
+
+  async getDoneList(boardId: string) {
+    const [list] = await this.db
+      .select()
+      .from(lists)
+      .where(and(eq(lists.boardId, boardId), eq(lists.isDone, true), isNull(lists.archivedAt)))
+      .limit(1);
+
+    return list ?? null;
   }
 }

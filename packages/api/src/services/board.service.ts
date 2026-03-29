@@ -1,4 +1,4 @@
-import { eq, and, asc, isNull, isNotNull, count, sql } from 'drizzle-orm';
+import { eq, and, asc, isNull, isNotNull, lte, count, sql, inArray } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { Database } from '../db/index.js';
 import { boards, lists, cards, checklists, checklistItems } from '../db/schema.js';
@@ -44,6 +44,28 @@ export class BoardService {
       .limit(1);
 
     if (!board) return null;
+
+    // Auto-archive cards completed 3+ days ago in the Done list
+    const ARCHIVE_AFTER_MS = 3 * 24 * 60 * 60 * 1000;
+    const cutoff = new Date(Date.now() - ARCHIVE_AFTER_MS);
+
+    const doneListIds = this.db
+      .select({ id: lists.id })
+      .from(lists)
+      .where(and(eq(lists.boardId, boardId), eq(lists.isDone, true)));
+
+    await this.db
+      .update(cards)
+      .set({ archivedAt: new Date() })
+      .where(
+        and(
+          eq(cards.completed, true),
+          isNotNull(cards.completedAt),
+          lte(cards.completedAt, cutoff),
+          isNull(cards.archivedAt),
+          inArray(cards.listId, doneListIds),
+        ),
+      );
 
     const boardLists = await this.db
       .select()

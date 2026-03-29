@@ -10,6 +10,7 @@ export const lists = sqliteTable(
       .notNull()
       .references(() => boards.id, { onDelete: 'cascade' }),
     position: text('position').notNull(),
+    isDone: integer('is_done', { mode: 'boolean' }).notNull().default(false),
     createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
     updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
     archivedAt: integer('archived_at', { mode: 'timestamp' }),

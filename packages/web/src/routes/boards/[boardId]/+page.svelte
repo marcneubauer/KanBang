@@ -15,6 +15,7 @@
     listId: string;
     position: string;
     completed: boolean;
+    completedAt: string | null;
     dueDate: string | null;
     checklistProgress: { total: number; completed: number };
   }
@@ -24,6 +25,7 @@
     name: string;
     boardId: string;
     position: string;
+    isDone: boolean;
     cards: CardItem[];
   }
 
@@ -59,10 +61,23 @@
   const flipDurationMs = 200;
 
   // --- List collapse ---
-  function loadCollapsedLists(boardId: string): Set<string> {
+  function loadCollapsedLists(boardId: string, allLists: ListItem[]): Set<string> {
     try {
       const raw = localStorage.getItem(`kanbang:collapsed-lists:${boardId}`);
-      return raw ? new Set(JSON.parse(raw)) : new Set();
+      const saved: Set<string> = raw ? new Set(JSON.parse(raw)) : new Set();
+
+      // Done lists default to collapsed if user hasn't explicitly expanded them
+      const explicitKey = `kanbang:collapse-explicit:${boardId}`;
+      const explicitRaw = localStorage.getItem(explicitKey);
+      const explicitIds: Set<string> = explicitRaw ? new Set(JSON.parse(explicitRaw)) : new Set();
+
+      for (const list of allLists) {
+        if (list.isDone && !explicitIds.has(list.id)) {
+          saved.add(list.id);
+        }
+      }
+
+      return saved;
     } catch {
       return new Set();
     }
@@ -72,7 +87,23 @@
     localStorage.setItem(`kanbang:collapsed-lists:${boardId}`, JSON.stringify([...ids]));
   }
 
-  let collapsedListIds = $state<Set<string>>(loadCollapsedLists(data.board.id));
+  function markExplicitCollapse(boardId: string, listId: string) {
+    try {
+      const key = `kanbang:collapse-explicit:${boardId}`;
+      const raw = localStorage.getItem(key);
+      const explicit: Set<string> = raw ? new Set(JSON.parse(raw)) : new Set();
+      explicit.add(listId);
+      localStorage.setItem(key, JSON.stringify([...explicit]));
+    } catch {
+      // ignore
+    }
+  }
+
+  let collapsedListIds = $state<Set<string>>(loadCollapsedLists(data.board.id, lists));
+
+  // --- Done list separation ---
+  let regularLists = $derived(lists.filter((l) => !l.isDone));
+  let doneList = $derived(lists.find((l) => l.isDone) ?? null);
 
   function toggleCollapse(listId: string) {
     if (collapsedListIds.has(listId)) {
@@ -82,6 +113,7 @@
     }
     collapsedListIds = new Set(collapsedListIds);
     saveCollapsedLists(data.board.id, collapsedListIds);
+    markExplicitCollapse(data.board.id, listId);
   }
 
   // --- Board-level error message ---
@@ -157,13 +189,30 @@
   }
 
   async function toggleCardCompleted(cardId: string, listId: string, completed: boolean) {
-    await api(`/cards/${cardId}`, {
+    const { card: updatedCard } = await api<{ card: CardItem }>(`/cards/${cardId}`, {
       method: 'PATCH',
       body: JSON.stringify({ completed }),
     });
-    const listIndex = lists.findIndex((l) => l.id === listId);
-    const card = lists[listIndex].cards.find((c) => c.id === cardId);
-    if (card) card.completed = completed;
+
+    if (updatedCard.listId !== listId) {
+      // Card was auto-moved to Done list
+      const oldListIdx = lists.findIndex((l) => l.id === listId);
+      if (oldListIdx !== -1) {
+        lists[oldListIdx].cards = lists[oldListIdx].cards.filter((c) => c.id !== cardId);
+      }
+      const newListIdx = lists.findIndex((l) => l.id === updatedCard.listId);
+      if (newListIdx !== -1) {
+        lists[newListIdx].cards = [...lists[newListIdx].cards, { ...updatedCard, checklistProgress: { total: 0, completed: 0 } }];
+      }
+    } else {
+      // Just update completed status in place
+      const listIndex = lists.findIndex((l) => l.id === listId);
+      const card = lists[listIndex].cards.find((c) => c.id === cardId);
+      if (card) {
+        card.completed = completed;
+        card.completedAt = updatedCard.completedAt;
+      }
+    }
   }
 
   async function archiveCard(cardId: string, listId: string) {
@@ -185,26 +234,29 @@
   }
 
   function handleListConsider(e: CustomEvent<{ items: ListItem[] }>) {
-    lists = e.detail.items;
+    const done = lists.filter((l) => l.isDone);
+    lists = [...e.detail.items, ...done];
   }
 
   async function handleListFinalize(e: CustomEvent<{ items: ListItem[]; info: { id: string } }>) {
-    const newLists = e.detail.items;
+    const newRegularLists = e.detail.items;
     const info = e.detail.info;
+    const done = lists.filter((l) => l.isDone);
 
-    lists = newLists;
+    lists = [...newRegularLists, ...done];
 
-    const movedIndex = newLists.findIndex((l) => l.id === info.id);
+    const movedIndex = newRegularLists.findIndex((l) => l.id === info.id);
     if (movedIndex === -1) return;
 
-    const newPosition = computePosition(newLists, movedIndex);
+    const newPosition = computePosition(newRegularLists, movedIndex);
 
     try {
       await api(`/lists/${info.id}/reorder`, {
         method: 'PATCH',
         body: JSON.stringify({ position: newPosition }),
       });
-      lists[movedIndex].position = newPosition;
+      const globalIdx = lists.findIndex((l) => l.id === info.id);
+      if (globalIdx !== -1) lists[globalIdx].position = newPosition;
     } catch {
       boardError = 'Failed to reorder list. Refreshing board...';
       invalidateAll();
@@ -392,13 +444,14 @@
     </button>
   </header>
 
+  <div class="board-columns-wrapper">
   <div
     class="board-columns"
-    use:dndzone={{ items: lists, type: 'list', flipDurationMs, dropTargetStyle: {} }}
+    use:dndzone={{ items: regularLists, type: 'list', flipDurationMs, dropTargetStyle: {} }}
     onconsider={handleListConsider}
     onfinalize={handleListFinalize}
   >
-    {#each lists as list (list.id)}
+    {#each regularLists as list (list.id)}
       {#if collapsedListIds.has(list.id)}
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div
@@ -616,6 +669,179 @@
     </div>
   </div>
 
+  <!-- Done list (outside dnd zone, positioned on right) -->
+  {#if doneList}
+    {#if collapsedListIds.has(doneList.id)}
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div
+        class="list-collapsed list-collapsed-done"
+        onclick={() => toggleCollapse(doneList.id)}
+        onkeydown={(e) => { if (e.key === 'Enter') toggleCollapse(doneList.id); }}
+        tabindex="0"
+        role="button"
+        aria-label="Expand list {doneList.name}"
+      >
+        <span class="done-check-collapsed">✓</span>
+        <span class="list-collapsed-name">{doneList.name}</span>
+        {#if doneList.cards.length > 0}
+          <span class="list-collapsed-count">{doneList.cards.length}</span>
+        {/if}
+      </div>
+    {:else}
+      <div class="list-column list-column-done">
+        <div class="list-header">
+          {#if editingListId === doneList.id}
+            <!-- svelte-ignore a11y_autofocus -->
+            <input
+              class="list-name-input"
+              bind:value={editingListName}
+              onblur={saveListName}
+              onkeydown={(e) => e.key === 'Enter' && saveListName()}
+              autofocus
+            />
+          {:else}
+            <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+            <h2
+              class="list-name"
+              ondblclick={() => startEditList(doneList.id, doneList.name)}
+              onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); startEditList(doneList.id, doneList.name); } }}
+              tabindex="0"
+            >
+              <span class="done-check">✓</span>
+              {doneList.name}
+            </h2>
+          {/if}
+          <button class="list-collapse-btn" onclick={() => toggleCollapse(doneList.id)} aria-label="Collapse list">
+            <svg viewBox="0 0 14 14" width="12" height="12"
+              fill="none" stroke="currentColor" stroke-width="1.5"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 3L5 7l4 4"/>
+            </svg>
+          </button>
+          <button class="list-archive" onclick={() => archiveList(doneList.id)} aria-label="Archive list">
+            <svg viewBox="0 0 14 14" width="12" height="12"
+              fill="none" stroke="currentColor" stroke-width="1.2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 3.5V2.5a2 2 0 014 0v1"/>
+              <line x1="1" y1="3.5" x2="13" y2="3.5"/>
+              <path d="M2.5 3.5L3 12.5h8l.5-9"/>
+              <line x1="5.5" y1="3.5" x2="5.2" y2="12.5"/>
+              <line x1="7" y1="3.5" x2="7" y2="12.5"/>
+              <line x1="8.5" y1="3.5" x2="8.8" y2="12.5"/>
+            </svg>
+          </button>
+        </div>
+
+        <div
+          class="card-list"
+          use:dndzone={{ items: doneList.cards, type: 'card', flipDurationMs, dropTargetStyle: {} }}
+          onconsider={(e) => handleCardConsider(doneList.id, e)}
+          onfinalize={(e) => handleCardFinalize(doneList.id, e)}
+        >
+          {#each doneList.cards as card (card.id)}
+            <div class="card-item card-item-done">
+              <button
+                class="card-checkbox"
+                class:card-checkbox-checked={card.completed}
+                onclick={(e) => { e.stopPropagation(); toggleCardCompleted(card.id, doneList.id, !card.completed); }}
+                aria-label={card.completed ? 'Mark incomplete' : 'Mark complete'}
+              >
+                {#if card.completed}
+                  <svg viewBox="0 0 16 16" width="16" height="16">
+                    <rect width="16" height="16" rx="2" fill="#22c55e"/>
+                    <path d="M4 8l3 3 5-5" stroke="white" stroke-width="2"
+                    fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                {:else}
+                  <svg viewBox="0 0 16 16" width="16" height="16">
+                    <rect x="0.5" y="0.5" width="15" height="15" rx="1.5"
+                    fill="none" stroke="#b0b0b0" stroke-width="1"/>
+                  </svg>
+                {/if}
+              </button>
+              {#if editingCardId === card.id}
+                <!-- svelte-ignore a11y_autofocus -->
+                <input
+                  class="card-title-input"
+                  bind:value={editingCardTitle}
+                  onblur={saveCardTitle}
+                  onkeydown={(e) => e.key === 'Enter' && saveCardTitle()}
+                  autofocus
+                />
+              {:else}
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <span
+                  class="card-title card-title-completed"
+                  onclick={(e) => { e.stopPropagation(); handleCardClick(card, doneList.id); }}
+                  onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleCardClick(card, doneList.id); } }}
+                  tabindex="0"
+                >
+                  {card.title}
+                </span>
+              {/if}
+              <button
+                class="card-archive"
+                onclick={() => archiveCard(card.id, doneList.id)}
+                aria-label="Archive card"
+              >
+                <svg viewBox="0 0 14 14" width="11" height="11"
+                  fill="none" stroke="currentColor" stroke-width="1.2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 3.5V2.5a2 2 0 014 0v1"/>
+                  <line x1="1" y1="3.5" x2="13" y2="3.5"/>
+                  <path d="M2.5 3.5L3 12.5h8l.5-9"/>
+                  <line x1="5.5" y1="3.5" x2="5.2" y2="12.5"/>
+                  <line x1="7" y1="3.5" x2="7" y2="12.5"/>
+                  <line x1="8.5" y1="3.5" x2="8.8" y2="12.5"/>
+                </svg>
+              </button>
+              {#if card.dueDate}
+                <span class="due-date-badge due-date-{getDueDateStatus(card.dueDate, card.completed)}">
+                  {formatDueDate(card.dueDate)}
+                </span>
+              {/if}
+              {#if card.checklistProgress && card.checklistProgress.total > 0}
+                <span
+                  class="checklist-badge"
+                  class:checklist-badge-complete={card.checklistProgress.completed === card.checklistProgress.total}
+                >
+                  <svg viewBox="0 0 16 16" width="12" height="12">
+                    <rect x="0.5" y="0.5" width="15" height="15" rx="1.5"
+                    fill="none" stroke="currentColor" stroke-width="1"/>
+                    <path d="M4 8l3 3 5-5" stroke="currentColor" stroke-width="1.5"
+                    fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  {card.checklistProgress.completed}/{card.checklistProgress.total}
+                </span>
+              {/if}
+            </div>
+          {/each}
+        </div>
+
+        {#if addingCardToList === doneList.id}
+          <form class="add-card-form" onsubmit={(e) => submitNewCard(e, doneList.id)}>
+            <!-- svelte-ignore a11y_autofocus -->
+            <textarea
+              bind:value={newCardTitle}
+              placeholder="Enter a title for this card..."
+              rows="2"
+              autofocus
+            ></textarea>
+            <div class="add-card-actions">
+              <button type="submit" class="btn-primary-sm">Add Card</button>
+              <button type="button" class="btn-close" onclick={() => { addingCardToList = null; newCardTitle = ''; }}>&times;</button>
+            </div>
+          </form>
+        {:else}
+          <button class="add-card-btn" onclick={() => { addingCardToList = doneList.id; }}>
+            + Add a card
+          </button>
+        {/if}
+      </div>
+    {/if}
+  {/if}
+  </div>
+
   <!-- Archived items panel -->
   <div class="archived-panel">
     <button class="archived-toggle" onclick={toggleArchived}>
@@ -674,8 +900,14 @@
     <BoardSettingsModal
       boardId={data.board.id}
       boardName={boardName}
+      lists={lists.map((l) => ({ id: l.id, name: l.name, isDone: l.isDone }))}
       onclose={() => { showSettings = false; }}
-      onupdated={() => { invalidateAll(); showSettings = false; }}
+      onupdated={async () => {
+        const { board } = await api<{ board: { name: string; lists: ListItem[] } }>(`/boards/${data.board.id}`);
+        lists = board.lists.map((l) => ({ ...l, cards: l.cards.map((c) => ({ ...c })) }));
+        boardName = board.name;
+        showSettings = false;
+      }}
     />
   {/if}
 </div>
@@ -751,12 +983,18 @@
     background: rgba(0, 0, 0, 0.08);
   }
 
-  .board-columns {
+  .board-columns-wrapper {
     display: flex;
     gap: 12px;
     padding: 0 16px 16px;
     overflow-x: auto;
     flex: 1;
+    align-items: flex-start;
+  }
+
+  .board-columns {
+    display: flex;
+    gap: 12px;
     align-items: flex-start;
   }
 
@@ -1205,5 +1443,31 @@
   :global(.dragged) {
     opacity: 0.8;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Done list styles */
+  .list-column-done {
+    margin-left: auto;
+  }
+
+  .list-collapsed-done {
+    margin-left: auto;
+  }
+
+  .card-item-done {
+    opacity: 0.6;
+  }
+
+  .done-check {
+    color: #22c55e;
+    font-weight: 700;
+    margin-right: 4px;
+  }
+
+  .done-check-collapsed {
+    color: #22c55e;
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 4px;
   }
 </style>

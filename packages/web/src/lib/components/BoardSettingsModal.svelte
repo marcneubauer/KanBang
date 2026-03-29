@@ -2,15 +2,48 @@
   import { api } from '$lib/api';
   import { goto } from '$app/navigation';
 
-  let { boardId, boardName: initialBoardName, onclose, onupdated }: {
+  interface DoneListOption {
+    id: string;
+    name: string;
+    isDone: boolean;
+  }
+
+  let { boardId, boardName: initialBoardName, lists, onclose, onupdated }: {
     boardId: string;
     boardName: string;
+    lists: DoneListOption[];
     onclose: () => void;
     onupdated: () => void;
   } = $props();
 
   let boardName = $state(initialBoardName);
   let confirmingArchive = $state(false);
+
+  let currentDoneListId = $derived(lists.find((l) => l.isDone)?.id ?? '');
+  let selectedDoneListId = $state(lists.find((l) => l.isDone)?.id ?? '');
+
+  async function handleDoneListChange(e: Event) {
+    const newId = (e.target as HTMLSelectElement).value;
+    const previousId = currentDoneListId;
+
+    // If clearing the done list
+    if (!newId && previousId) {
+      await api(`/lists/${previousId}/done`, {
+        method: 'PATCH',
+        body: JSON.stringify({ isDone: false }),
+      });
+    }
+    // If setting a new done list
+    else if (newId) {
+      await api(`/lists/${newId}/done`, {
+        method: 'PATCH',
+        body: JSON.stringify({ isDone: true }),
+      });
+    }
+
+    selectedDoneListId = newId;
+    onupdated();
+  }
 
   async function saveBoardName() {
     const trimmed = boardName.trim();
@@ -56,6 +89,26 @@
         onblur={saveBoardName}
         onkeydown={(e) => e.key === 'Enter' && saveBoardName()}
       />
+    </div>
+
+    <!-- Done list section -->
+    <div class="modal-section">
+      <h3 class="section-label">Done list</h3>
+
+      <label class="field-label" for="done-list-select">
+        Cards marked complete will auto-move to this list
+      </label>
+      <select
+        id="done-list-select"
+        class="field-input"
+        value={selectedDoneListId}
+        onchange={handleDoneListChange}
+      >
+        <option value="">None</option>
+        {#each lists as list (list.id)}
+          <option value={list.id}>{list.name}</option>
+        {/each}
+      </select>
     </div>
 
     <!-- Danger zone -->

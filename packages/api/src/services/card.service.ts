@@ -4,9 +4,16 @@ import type { Database } from '../db/index.js';
 import { cards, lists } from '../db/schema.js';
 import { generateKeyBetween } from '@kanbang/shared/utils/fractional-index.js';
 import type { CreateCardInput, UpdateCardInput } from '@kanbang/shared/validation/card.js';
+import type { ListService } from './list.service.js';
 
 export class CardService {
+  private listService?: ListService;
+
   constructor(private db: Database) {}
+
+  setListService(listService: ListService) {
+    this.listService = listService;
+  }
 
   async create(listId: string, input: CreateCardInput) {
     // Get the last active card position to append after it
@@ -41,8 +48,40 @@ export class CardService {
     const updates: Partial<typeof cards.$inferInsert> = { updatedAt: new Date() };
     if (input.title !== undefined) updates.title = input.title;
     if (input.description !== undefined) updates.description = input.description;
-    if (input.completed !== undefined) updates.completed = input.completed;
     if (input.dueDate !== undefined) updates.dueDate = input.dueDate;
+
+    if (input.completed !== undefined) {
+      updates.completed = input.completed;
+
+      if (input.completed) {
+        updates.completedAt = new Date();
+
+        // Auto-move to Done list if one exists
+        if (this.listService) {
+          const currentListId = await this.getListId(cardId);
+          if (currentListId) {
+            const boardId = await this.listService.getBoardId(currentListId);
+            if (boardId) {
+              const doneList = await this.listService.getDoneList(boardId);
+              if (doneList && currentListId !== doneList.id) {
+                // Get last card position in the Done list
+                const [lastCard] = await this.db
+                  .select({ position: cards.position })
+                  .from(cards)
+                  .where(and(eq(cards.listId, doneList.id), isNull(cards.archivedAt)))
+                  .orderBy(desc(cards.position))
+                  .limit(1);
+
+                updates.listId = doneList.id;
+                updates.position = generateKeyBetween(lastCard?.position ?? null, null);
+              }
+            }
+          }
+        }
+      } else {
+        updates.completedAt = null;
+      }
+    }
 
     const [card] = await this.db
       .update(cards)

@@ -12,6 +12,7 @@ export const cards = sqliteTable(
       .references(() => lists.id, { onDelete: 'cascade' }),
     position: text('position').notNull(),
     completed: integer('completed', { mode: 'boolean' }).notNull().default(false),
+    completedAt: integer('completed_at', { mode: 'timestamp' }),
     dueDate: integer('due_date', { mode: 'timestamp' }),
     createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
     updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),

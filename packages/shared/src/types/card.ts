@@ -5,6 +5,7 @@ export interface Card {
   listId: string;
   position: string;
   completed: boolean;
+  completedAt: Date | null;
   dueDate: Date | null;
   createdAt: Date;
   updatedAt: Date;

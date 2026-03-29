@@ -15,6 +15,7 @@ export default async function cardRoutes(fastify: FastifyInstance) {
   const cardService = new CardService(fastify.db);
   const listService = new ListService(fastify.db);
   const boardService = new BoardService(fastify.db);
+  cardService.setListService(listService);
 
   fastify.addHook('preHandler', fastify.requireAuth);
 

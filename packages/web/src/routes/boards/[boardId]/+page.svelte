@@ -1,7 +1,6 @@
 <script lang="ts">
   import { api } from '$lib/api';
   import { invalidateAll } from '$app/navigation';
-  import { goto } from '$app/navigation';
   import { dndzone } from 'svelte-dnd-action';
   import { generateKeyBetween } from '@kanbang/shared';
   import { getDueDateStatus, formatDueDate } from '$lib/utils/due-date';
@@ -100,11 +99,6 @@
       body: JSON.stringify({ name: boardName.trim() }),
     });
     editingBoardName = false;
-  }
-
-  async function archiveBoard() {
-    await api(`/boards/${data.board.id}/archive`, { method: 'PATCH' });
-    goto('/boards');
   }
 
   // --- List actions ---
@@ -388,28 +382,14 @@
         tabindex="0"
       >{boardName}</h1>
     {/if}
-    <div class="board-header-actions">
-      <button class="board-header-btn" onclick={() => { showSettings = true; }} aria-label="Board settings">
-        <svg viewBox="0 0 14 14" width="14" height="14"
-          fill="none" stroke="currentColor" stroke-width="1.2"
-          stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="7" cy="7" r="2.5"/>
-          <path d="M5.7 1.5h2.6l.3 1.6a4.5 4.5 0 011.1.6l1.5-.6 1.3 2.3-1.2 1a4.5 4.5 0 010 1.2l1.2 1-1.3 2.3-1.5-.6a4.5 4.5 0 01-1.1.6l-.3 1.6H5.7l-.3-1.6a4.5 4.5 0 01-1.1-.6l-1.5.6-1.3-2.3 1.2-1a4.5 4.5 0 010-1.2l-1.2-1 1.3-2.3 1.5.6a4.5 4.5 0 011.1-.6z"/>
-        </svg>
-      </button>
-      <button class="board-header-btn" onclick={archiveBoard} aria-label="Archive board">
-        <svg viewBox="0 0 14 14" width="14" height="14"
-          fill="none" stroke="currentColor" stroke-width="1.2"
-          stroke-linecap="round" stroke-linejoin="round">
-          <path d="M5 3.5V2.5a2 2 0 014 0v1"/>
-          <line x1="1" y1="3.5" x2="13" y2="3.5"/>
-          <path d="M2.5 3.5L3 12.5h8l.5-9"/>
-          <line x1="5.5" y1="3.5" x2="5.2" y2="12.5"/>
-          <line x1="7" y1="3.5" x2="7" y2="12.5"/>
-          <line x1="8.5" y1="3.5" x2="8.8" y2="12.5"/>
-        </svg>
-      </button>
-    </div>
+    <button class="board-header-btn" onclick={() => { showSettings = true; }} aria-label="Board settings">
+      <svg viewBox="0 0 14 14" width="14" height="14"
+        fill="none" stroke="currentColor" stroke-width="1.2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="7" cy="7" r="2.5"/>
+        <path d="M5.7 1.5h2.6l.3 1.6a4.5 4.5 0 011.1.6l1.5-.6 1.3 2.3-1.2 1a4.5 4.5 0 010 1.2l1.2 1-1.3 2.3-1.5-.6a4.5 4.5 0 01-1.1.6l-.3 1.6H5.7l-.3-1.6a4.5 4.5 0 01-1.1-.6l-1.5.6-1.3-2.3 1.2-1a4.5 4.5 0 010-1.2l-1.2-1 1.3-2.3 1.5.6a4.5 4.5 0 011.1-.6z"/>
+      </svg>
+    </button>
   </header>
 
   <div
@@ -747,12 +727,6 @@
     border: 2px solid var(--color-primary);
     border-radius: var(--radius-sm);
     padding: 2px 8px;
-  }
-
-  .board-header-actions {
-    display: flex;
-    align-items: center;
-    gap: 4px;
   }
 
   .board-header-btn {

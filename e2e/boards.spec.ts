@@ -43,15 +43,22 @@ test.describe('Boards', () => {
     await expect(page.locator('.board-name')).toHaveText('New Name');
   });
 
-  test('delete a board', async ({ page }) => {
-    await createBoard(page, 'To Delete');
+  test('archive a board via settings', async ({ page }) => {
+    await createBoard(page, 'To Archive');
+    await page.getByText('To Archive').click();
+    await page.waitForURL(/\/boards\//);
 
-    page.on('dialog', (dialog) => dialog.accept());
-    await page.locator('.board-card', { hasText: 'To Delete' }).locator('.board-delete').click({
-      force: true, // hidden by default, shown on hover
-    });
+    // Open board settings
+    await page.getByLabel('Board settings').click();
+    await expect(page.getByText('Board Settings')).toBeVisible();
 
-    await expect(page.locator('.board-card', { hasText: 'To Delete' })).toHaveCount(0);
+    // Click archive, then confirm
+    await page.getByRole('button', { name: 'Archive this board' }).click();
+    await page.getByRole('button', { name: 'Yes, archive board' }).click();
+
+    // Should redirect to boards list without the archived board
+    await page.waitForURL('/boards');
+    await expect(page.locator('.board-card', { hasText: 'To Archive' })).toHaveCount(0);
   });
 
   test('empty state when no boards', async ({ page }) => {

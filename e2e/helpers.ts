@@ -30,6 +30,25 @@ export async function loginUser(page: Page, user: ReturnType<typeof uniqueUser>)
   await page.waitForURL('/boards', { waitUntil: 'load' });
 }
 
+export async function createList(page: Page, name: string) {
+  // If the add-list form is already open, use it; otherwise click to open
+  const formInput = page.getByPlaceholder('Enter list name...');
+  if (!(await formInput.isVisible())) {
+    await page.getByText('+ Add another list').click();
+  }
+  await formInput.fill(name);
+  await page.getByRole('button', { name: 'Add List' }).click();
+  await page.locator('.list-name', { hasText: name }).waitFor();
+}
+
+export async function createCard(page: Page, listName: string, cardTitle: string) {
+  const list = page.locator('.list-column', { hasText: listName });
+  await list.getByText('+ Add a card').click();
+  await page.getByPlaceholder('Enter a title for this card...').fill(cardTitle);
+  await page.getByRole('button', { name: 'Add Card' }).click();
+  await page.locator('.card-title', { hasText: cardTitle }).waitFor();
+}
+
 export async function createBoard(page: Page, name: string) {
   await page.getByRole('button', { name: '+ Create Board' }).click();
   await page.getByPlaceholder('Board name').fill(name);

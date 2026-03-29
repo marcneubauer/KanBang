@@ -48,14 +48,13 @@ test.describe('Lists and Cards', () => {
     await expect(page.locator('.list-name', { hasText: 'Renamed List' })).toBeVisible();
   });
 
-  test('delete a list', async ({ page }) => {
+  test('archive a list', async ({ page }) => {
     // Create list
     await page.getByText('+ Add another list').click();
     await page.getByPlaceholder('Enter list name...').fill('Remove Me');
     await page.getByRole('button', { name: 'Add List' }).click();
 
-    page.on('dialog', (dialog) => dialog.accept());
-    await page.getByLabel('Delete list').click({ force: true });
+    await page.getByLabel('Archive list').click({ force: true });
 
     await expect(page.locator('.list-column')).toHaveCount(0);
   });
@@ -114,17 +113,17 @@ test.describe('Lists and Cards', () => {
     await expect(page.locator('.card-title', { hasText: 'Updated Title' })).toBeVisible();
   });
 
-  test('delete a card', async ({ page }) => {
+  test('archive a card', async ({ page }) => {
     // Create list + card
     await page.getByText('+ Add another list').click();
     await page.getByPlaceholder('Enter list name...').fill('Tasks');
     await page.getByRole('button', { name: 'Add List' }).click();
 
     await page.getByText('+ Add a card').click();
-    await page.getByPlaceholder('Enter a title for this card...').fill('Delete Me');
+    await page.getByPlaceholder('Enter a title for this card...').fill('Archive Me');
     await page.getByRole('button', { name: 'Add Card' }).click();
 
-    await page.locator('.card-item', { hasText: 'Delete Me' }).locator('.card-delete').click({
+    await page.locator('.card-item', { hasText: 'Archive Me' }).locator('.card-archive').click({
       force: true,
     });
 
@@ -197,6 +196,7 @@ test.describe('Lists and Cards', () => {
     await page.getByText('+ Add a card').click();
     await page.getByPlaceholder('Enter a title for this card...').fill('Persistent Card');
     await page.getByRole('button', { name: 'Add Card' }).click();
+    await expect(page.locator('.card-title', { hasText: 'Persistent Card' })).toBeVisible();
 
     // Reload and verify
     await page.reload();

@@ -26,7 +26,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
   const authRateLimit = {
     config: {
       rateLimit: {
-        max: 10,
+        max: Number(process.env.RATE_LIMIT_MAX) || 10,
         timeWindow: '1 minute',
       },
     },

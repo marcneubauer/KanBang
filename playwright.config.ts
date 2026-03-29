@@ -24,6 +24,7 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       env: {
         DATABASE_URL: './e2e-test.db',
+        RATE_LIMIT_MAX: '1000',
       },
     },
     {

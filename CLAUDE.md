@@ -91,6 +91,15 @@ pnpm db:migrate                  # Drizzle-kit apply migration
 - **E2E tests**: `e2e/*.spec.ts` — each test creates its own user for isolation
 - **Test DB**: In-memory SQLite (`:memory:`) for unit/integration; file-based (`e2e-test.db`) for E2E
 
+## pnpm Workspace Rules
+
+**Always run pnpm commands from the repo root**, never from inside a package directory.
+
+- Use `pnpm --filter @kanbang/web add zod` to add a dep to a specific package
+- Do NOT `cd packages/web && pnpm add zod` — this corrupts the lockfile
+
+**Why:** Running `pnpm add` from inside a package subdirectory regenerates lockfile entries with stale peer-dependency hashes. In this monorepo, the root `vitest.config.ts` uses a `projects` array to run all tests in one process. The web package's `vitest` binary gets a peer hash that includes `jsdom`, but a sub-directory install strips that, producing a binary that points to a non-existent store path. The result is a `Cannot find module …/vitest/vitest.mjs` crash that a plain `pnpm install` from the root does not fix — only `pnpm install --force` (which rebuilds all binaries) recovers it. Avoid the problem entirely by always operating from the root.
+
 ## Important Notes
 
 - Drizzle schema cross-references use extensionless imports (for drizzle-kit CJS compatibility)

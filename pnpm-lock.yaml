@@ -118,6 +118,9 @@ importers:
       svelte-dnd-action:
         specifier: ^0.9.0
         version: 0.9.69(svelte@5.53.5)
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
     devDependencies:
       '@sveltejs/adapter-node':
         specifier: ^5.0.0

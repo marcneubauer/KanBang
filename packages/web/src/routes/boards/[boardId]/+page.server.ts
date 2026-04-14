@@ -1,5 +1,6 @@
 import { redirect, error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
+import { boardDetailResponseSchema } from '@kanbang/shared';
 
 const API_URL = process.env.API_URL || 'http://localhost:3001';
 
@@ -15,6 +16,6 @@ export const load: PageServerLoad = async ({ locals, cookies, params }) => {
   if (res.status === 403) error(403, 'Forbidden');
   if (!res.ok) error(500, 'Failed to load board');
 
-  const { board } = await res.json();
+  const { board } = boardDetailResponseSchema.parse(await res.json());
   return { board };
 };

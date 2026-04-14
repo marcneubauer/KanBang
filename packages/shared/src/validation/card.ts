@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { checklistProgressSchema } from './checklist.js';
 
 export const cardSchema = z.object({
   id: z.string(),
@@ -17,6 +18,11 @@ export const cardSchema = z.object({
 export type Card = z.infer<typeof cardSchema>;
 export const cardResponseSchema = z.object({ card: cardSchema });
 export const cardsResponseSchema = z.object({ cards: z.array(cardSchema) });
+
+export const cardWithProgressSchema = cardSchema.extend({
+  checklistProgress: checklistProgressSchema,
+});
+export type CardWithProgress = z.infer<typeof cardWithProgressSchema>;
 
 export const createCardSchema = z.object({
   title: z.string().min(1).max(500).trim(),

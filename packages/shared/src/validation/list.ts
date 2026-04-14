@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { cardSchema } from './card.js';
+import { cardSchema, cardWithProgressSchema } from './card.js';
 
 export const listSchema = z.object({
   id: z.string(),
@@ -19,6 +19,11 @@ export const listWithCardsSchema = listSchema.extend({
 });
 
 export type ListWithCards = z.infer<typeof listWithCardsSchema>;
+
+export const listWithCardsDetailSchema = listSchema.extend({
+  cards: z.array(cardWithProgressSchema),
+});
+export type ListWithCardsDetail = z.infer<typeof listWithCardsDetailSchema>;
 
 export const listResponseSchema = z.object({ list: listSchema });
 export const listWithCardsResponseSchema = z.object({ list: listWithCardsSchema });

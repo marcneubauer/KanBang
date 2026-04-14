@@ -1,3 +1,5 @@
+import type { ZodType } from 'zod';
+
 const API_BASE = '/api/v1';
 
 class ApiError extends Error {
@@ -15,6 +17,7 @@ class ApiError extends Error {
 export async function api<T>(
   path: string,
   options: RequestInit = {},
+  schema?: ZodType<T>,
   fetchFn: typeof fetch = fetch,
 ): Promise<T> {
   const url = `${API_BASE}${path}`;
@@ -42,7 +45,8 @@ export async function api<T>(
     );
   }
 
-  return response.json();
+  const data = await response.json();
+  return schema ? schema.parse(data) : (data as T);
 }
 
 export { ApiError };

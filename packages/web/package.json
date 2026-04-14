@@ -13,7 +13,8 @@
   "dependencies": {
     "@kanbang/shared": "workspace:*",
     "@simplewebauthn/browser": "^13.0.0",
-    "svelte-dnd-action": "^0.9.0"
+    "svelte-dnd-action": "^0.9.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@sveltejs/adapter-node": "^5.0.0",

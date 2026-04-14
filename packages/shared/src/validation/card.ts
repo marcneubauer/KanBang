@@ -1,5 +1,23 @@
 import { z } from 'zod';
 
+export const cardSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string().nullable(),
+  listId: z.string(),
+  position: z.string(),
+  completed: z.boolean(),
+  completedAt: z.string().datetime().nullable(),
+  dueDate: z.string().datetime().nullable(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  archivedAt: z.string().datetime().nullable(),
+});
+
+export type Card = z.infer<typeof cardSchema>;
+export const cardResponseSchema = z.object({ card: cardSchema });
+export const cardsResponseSchema = z.object({ cards: z.array(cardSchema) });
+
 export const createCardSchema = z.object({
   title: z.string().min(1).max(500).trim(),
   description: z.string().max(5000).optional(),

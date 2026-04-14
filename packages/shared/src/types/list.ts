@@ -1,10 +1,2 @@
-export interface List {
-  id: string;
-  name: string;
-  boardId: string;
-  position: string;
-  isDone: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-  archivedAt: Date | null;
-}
+export { listSchema, listWithCardsSchema, listResponseSchema, listWithCardsResponseSchema } from '../validation/list.js';
+export type { List, ListWithCards } from '../validation/list.js';

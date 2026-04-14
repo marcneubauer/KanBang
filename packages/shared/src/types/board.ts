@@ -1,8 +1,2 @@
-export interface Board {
-  id: string;
-  name: string;
-  userId: string;
-  createdAt: Date;
-  updatedAt: Date;
-  archivedAt: Date | null;
-}
+export { boardSchema, boardResponseSchema, boardsResponseSchema } from '../validation/board.js';
+export type { Board } from '../validation/board.js';

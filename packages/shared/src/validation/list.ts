@@ -1,4 +1,27 @@
 import { z } from 'zod';
+import { cardSchema } from './card.js';
+
+export const listSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  boardId: z.string(),
+  position: z.string(),
+  isDone: z.boolean(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  archivedAt: z.string().datetime().nullable(),
+});
+
+export type List = z.infer<typeof listSchema>;
+
+export const listWithCardsSchema = listSchema.extend({
+  cards: z.array(cardSchema),
+});
+
+export type ListWithCards = z.infer<typeof listWithCardsSchema>;
+
+export const listResponseSchema = z.object({ list: listSchema });
+export const listWithCardsResponseSchema = z.object({ list: listWithCardsSchema });
 
 export const createListSchema = z.object({
   name: z.string().min(1).max(100).trim(),

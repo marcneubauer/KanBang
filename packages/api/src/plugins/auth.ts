@@ -28,30 +28,33 @@ const SESSION_MAX_AGE = 30 * 24 * 60 * 60; // 30 days in seconds
 
 export { COOKIE_NAME, SESSION_MAX_AGE };
 
-export default fp(async (fastify) => {
-  const authService = new AuthService(fastify.db);
-  fastify.decorate('authService', authService);
+export default fp(
+  async (fastify) => {
+    const authService = new AuthService(fastify.db);
+    fastify.decorate('authService', authService);
 
-  const passkeyService = new PasskeyService(fastify.db);
-  fastify.decorate('passkeyService', passkeyService);
+    const passkeyService = new PasskeyService(fastify.db);
+    fastify.decorate('passkeyService', passkeyService);
 
-  fastify.decorateRequest('user', null);
+    fastify.decorateRequest('user', null);
 
-  // Parse session on every request
-  fastify.addHook('onRequest', async (request) => {
-    const sessionId = request.cookies[COOKIE_NAME];
-    if (!sessionId) return;
+    // Parse session on every request
+    fastify.addHook('onRequest', async (request) => {
+      const sessionId = request.cookies[COOKIE_NAME];
+      if (!sessionId) return;
 
-    const user = await authService.validateSession(sessionId);
-    if (user) {
-      request.user = user;
-    }
-  });
+      const user = await authService.validateSession(sessionId);
+      if (user) {
+        request.user = user;
+      }
+    });
 
-  // Helper to require auth on specific routes
-  fastify.decorate('requireAuth', async (request: FastifyRequest, reply: FastifyReply) => {
-    if (!request.user) {
-      return reply.code(401).send({ error: 'Unauthorized', code: 'UNAUTHORIZED' });
-    }
-  });
-});
+    // Helper to require auth on specific routes
+    fastify.decorate('requireAuth', async (request: FastifyRequest, reply: FastifyReply) => {
+      if (!request.user) {
+        return reply.code(401).send({ error: 'Unauthorized', code: 'UNAUTHORIZED' });
+      }
+    });
+  },
+  { name: 'kanbang-auth', dependencies: ['kanbang-db'] },
+);

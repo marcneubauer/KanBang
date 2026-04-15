@@ -35,9 +35,52 @@ function setSessionCookie(reply: FastifyReply, sessionId: string) {
   });
 }
 
+const okResponse = {
+  type: 'object',
+  properties: { ok: { type: 'boolean' } },
+} as const;
+
+const errorResponse = {
+  type: 'object',
+  properties: {
+    error: { type: 'string' },
+    code:  { type: 'string' },
+  },
+} as const;
+
+const webauthnOptionsResponse = {
+  type: 'object',
+  properties: {
+    options: { type: 'object', additionalProperties: true },
+  },
+} as const;
+
 export default async function passkeyRoutes(fastify: FastifyInstance) {
   // GET /api/v1/passkeys — list user's passkeys
-  fastify.get('/', { preHandler: [fastify.requireAuth] }, async (request) => {
+  fastify.get('/', {
+    preHandler: [fastify.requireAuth],
+    schema: {
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            passkeys: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id:         { type: 'string' },
+                  deviceType: { type: 'string' },
+                  backedUp:   { type: 'boolean' },
+                  createdAt:  { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  }, async (request) => {
     const { user } = request as AuthenticatedRequest;
     const creds = await fastify.passkeyService.getCredentialsByUserId(user.id);
     return {
@@ -53,7 +96,15 @@ export default async function passkeyRoutes(fastify: FastifyInstance) {
   // DELETE /api/v1/passkeys/:credentialId — delete a passkey
   fastify.delete(
     '/:credentialId',
-    { preHandler: [fastify.requireAuth] },
+    {
+      preHandler: [fastify.requireAuth],
+      schema: {
+        response: {
+          200: okResponse,
+          404: errorResponse,
+        },
+      },
+    },
     async (request, reply) => {
       const { user } = request as AuthenticatedRequest;
       const { credentialId } = request.params as { credentialId: string };
@@ -68,7 +119,14 @@ export default async function passkeyRoutes(fastify: FastifyInstance) {
   // POST /api/v1/passkeys/register/options — start passkey registration
   fastify.post(
     '/register/options',
-    { preHandler: [fastify.requireAuth] },
+    {
+      preHandler: [fastify.requireAuth],
+      schema: {
+        response: {
+          200: webauthnOptionsResponse,
+        },
+      },
+    },
     async (request, reply) => {
       const { user } = request as AuthenticatedRequest;
       const options = await fastify.passkeyService.generateRegOptions(user);
@@ -80,7 +138,18 @@ export default async function passkeyRoutes(fastify: FastifyInstance) {
   // POST /api/v1/passkeys/register/verify — complete passkey registration
   fastify.post(
     '/register/verify',
-    { preHandler: [fastify.requireAuth] },
+    {
+      preHandler: [fastify.requireAuth],
+      schema: {
+        response: {
+          200: {
+            type: 'object',
+            properties: { verified: { type: 'boolean' } },
+          },
+          400: errorResponse,
+        },
+      },
+    },
     async (request, reply) => {
       const { user } = request as AuthenticatedRequest;
       const challenge = request.cookies[CHALLENGE_COOKIE];
@@ -119,14 +188,31 @@ export default async function passkeyRoutes(fastify: FastifyInstance) {
   );
 
   // POST /api/v1/passkeys/login/options — start passkey login
-  fastify.post('/login/options', async (_request, reply) => {
+  fastify.post('/login/options', {
+    schema: {
+      response: {
+        200: webauthnOptionsResponse,
+      },
+    },
+  }, async (_request, reply) => {
     const options = await fastify.passkeyService.generateAuthOptions();
     setChallengeCookie(reply, options.challenge);
     return { options };
   });
 
   // POST /api/v1/passkeys/login/verify — complete passkey login
-  fastify.post('/login/verify', async (request, reply) => {
+  fastify.post('/login/verify', {
+    schema: {
+      response: {
+        200: {
+          type: 'object',
+          properties: { user: { $ref: 'user#' } },
+        },
+        400: errorResponse,
+        401: errorResponse,
+      },
+    },
+  }, async (request, reply) => {
     const challenge = request.cookies[CHALLENGE_COOKIE];
     if (!challenge) {
       return reply.code(400).send({

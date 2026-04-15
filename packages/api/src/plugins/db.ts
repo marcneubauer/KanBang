@@ -13,12 +13,15 @@ declare module 'fastify' {
   }
 }
 
-export default fp(async (fastify, opts: { databaseUrl?: string }) => {
-  const db = createDb(opts.databaseUrl);
+export default fp(
+  async (fastify, opts: { databaseUrl?: string }) => {
+    const db = createDb(opts.databaseUrl);
 
-  // Run migrations on startup
-  const migrationsFolder = path.resolve(__dirname, '../db/migrations');
-  migrate(db, { migrationsFolder });
+    // Run migrations on startup
+    const migrationsFolder = path.resolve(__dirname, '../db/migrations');
+    migrate(db, { migrationsFolder });
 
-  fastify.decorate('db', db);
-});
+    fastify.decorate('db', db);
+  },
+  { name: 'kanbang-db' },
+);

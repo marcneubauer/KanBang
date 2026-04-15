@@ -22,6 +22,25 @@ function clearCookie(reply: FastifyReply) {
   });
 }
 
+const userResponse = {
+  type: 'object',
+  properties: { user: { $ref: 'user#' } },
+} as const;
+
+const okResponse = {
+  type: 'object',
+  properties: { ok: { type: 'boolean' } },
+} as const;
+
+const errorResponse = {
+  type: 'object',
+  properties: {
+    error:   { type: 'string' },
+    code:    { type: 'string' },
+    details: { type: 'object', additionalProperties: true },
+  },
+} as const;
+
 export default async function authRoutes(fastify: FastifyInstance) {
   const authRateLimit = {
     config: {
@@ -33,7 +52,16 @@ export default async function authRoutes(fastify: FastifyInstance) {
   };
 
   // POST /api/v1/auth/register
-  fastify.post('/register', authRateLimit, async (request, reply) => {
+  fastify.post('/register', {
+    ...authRateLimit,
+    schema: {
+      response: {
+        201: userResponse,
+        400: errorResponse,
+        409: errorResponse,
+      },
+    },
+  }, async (request, reply) => {
     const parsed = registerSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.code(400).send({
@@ -59,7 +87,16 @@ export default async function authRoutes(fastify: FastifyInstance) {
   });
 
   // POST /api/v1/auth/login
-  fastify.post('/login', authRateLimit, async (request, reply) => {
+  fastify.post('/login', {
+    ...authRateLimit,
+    schema: {
+      response: {
+        200: userResponse,
+        400: errorResponse,
+        401: errorResponse,
+      },
+    },
+  }, async (request, reply) => {
     const parsed = loginSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.code(400).send({
@@ -82,7 +119,14 @@ export default async function authRoutes(fastify: FastifyInstance) {
   });
 
   // POST /api/v1/auth/logout
-  fastify.post('/logout', { preHandler: [fastify.requireAuth] }, async (request, reply) => {
+  fastify.post('/logout', {
+    preHandler: [fastify.requireAuth],
+    schema: {
+      response: {
+        200: okResponse,
+      },
+    },
+  }, async (request, reply) => {
     const sessionId = request.cookies[COOKIE_NAME];
     if (sessionId) {
       await fastify.authService.destroySession(sessionId);
@@ -92,7 +136,14 @@ export default async function authRoutes(fastify: FastifyInstance) {
   });
 
   // GET /api/v1/auth/me
-  fastify.get('/me', { preHandler: [fastify.requireAuth] }, async (request) => {
+  fastify.get('/me', {
+    preHandler: [fastify.requireAuth],
+    schema: {
+      response: {
+        200: userResponse,
+      },
+    },
+  }, async (request) => {
     return { user: request.user };
   });
 }

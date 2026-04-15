@@ -1,4 +1,4 @@
-import type { FastifyInstance, FastifyReply } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 import type { AuthenticatedRequest } from '../../plugins/auth.js';
 import { CardService } from '../../services/card.service.js';
 import { ListService } from '../../services/list.service.js';
@@ -11,6 +11,21 @@ import {
 import { validateBody } from '../../utils/validate.js';
 import { verifyListOwnership } from '../../utils/ownership.js';
 
+const cardResponse200 = {
+  type: 'object',
+  properties: { card: { $ref: 'card#' } },
+} as const;
+
+const cardResponse201 = {
+  type: 'object',
+  properties: { card: { $ref: 'card#' } },
+} as const;
+
+const okResponse = {
+  type: 'object',
+  properties: { ok: { type: 'boolean' } },
+} as const;
+
 export default async function cardRoutes(fastify: FastifyInstance) {
   const cardService = new CardService(fastify.db);
   const listService = new ListService(fastify.db);
@@ -19,39 +34,28 @@ export default async function cardRoutes(fastify: FastifyInstance) {
 
   fastify.addHook('preHandler', fastify.requireAuth);
 
-  async function verifyCardOwnership(
-    cardId: string,
-    userId: string,
-    reply: FastifyReply,
-  ): Promise<boolean> {
+  async function verifyCardOwnership(cardId: string, userId: string): Promise<void> {
     const listId = await cardService.getListId(cardId);
-    if (!listId) {
-      reply.code(404).send({ error: 'Card not found', code: 'NOT_FOUND' });
-      return false;
-    }
+    if (!listId) throw fastify.httpErrors.notFound('Card not found');
     const boardId = await listService.getBoardId(listId);
-    if (!boardId) {
-      reply.code(404).send({ error: 'Card not found', code: 'NOT_FOUND' });
-      return false;
-    }
+    if (!boardId) throw fastify.httpErrors.notFound('Card not found');
     const board = await boardService.getById(boardId);
-    if (!board) {
-      reply.code(404).send({ error: 'Card not found', code: 'NOT_FOUND' });
-      return false;
-    }
-    if (board.userId !== userId) {
-      reply.code(403).send({ error: 'Forbidden', code: 'FORBIDDEN' });
-      return false;
-    }
-    return true;
+    if (!board) throw fastify.httpErrors.notFound('Card not found');
+    if (board.userId !== userId) throw fastify.httpErrors.forbidden('Forbidden');
   }
 
   // GET /api/v1/cards/:cardId
-  fastify.get<{ Params: { cardId: string } }>('/cards/:cardId', async (request, reply) => {
+  fastify.get<{ Params: { cardId: string } }>('/cards/:cardId', {
+    schema: {
+      response: {
+        200: cardResponse200,
+      },
+    },
+  }, async (request) => {
     const { user } = request as AuthenticatedRequest;
     const { cardId } = request.params;
 
-    if (!(await verifyCardOwnership(cardId, user.id, reply))) return;
+    await verifyCardOwnership(cardId, user.id);
 
     const card = await cardService.getById(cardId);
     return { card };
@@ -60,11 +64,18 @@ export default async function cardRoutes(fastify: FastifyInstance) {
   // POST /api/v1/lists/:listId/cards
   fastify.post<{ Params: { listId: string } }>(
     '/lists/:listId/cards',
+    {
+      schema: {
+        response: {
+          201: cardResponse201,
+        },
+      },
+    },
     async (request, reply) => {
       const { user } = request as AuthenticatedRequest;
       const { listId } = request.params;
 
-      if (!(await verifyListOwnership(listId, user.id, listService, boardService, reply))) return;
+      await verifyListOwnership(listId, user.id, listService, boardService);
 
       const data = await validateBody(createCardSchema, request.body, reply);
       if (!data) return;
@@ -75,11 +86,17 @@ export default async function cardRoutes(fastify: FastifyInstance) {
   );
 
   // PATCH /api/v1/cards/:cardId
-  fastify.patch<{ Params: { cardId: string } }>('/cards/:cardId', async (request, reply) => {
+  fastify.patch<{ Params: { cardId: string } }>('/cards/:cardId', {
+    schema: {
+      response: {
+        200: cardResponse200,
+      },
+    },
+  }, async (request, reply) => {
     const { user } = request as AuthenticatedRequest;
     const { cardId } = request.params;
 
-    if (!(await verifyCardOwnership(cardId, user.id, reply))) return;
+    await verifyCardOwnership(cardId, user.id);
 
     const data = await validateBody(updateCardSchema, request.body, reply);
     if (!data) return;
@@ -91,18 +108,24 @@ export default async function cardRoutes(fastify: FastifyInstance) {
   // PATCH /api/v1/cards/:cardId/move
   fastify.patch<{ Params: { cardId: string } }>(
     '/cards/:cardId/move',
+    {
+      schema: {
+        response: {
+          200: cardResponse200,
+        },
+      },
+    },
     async (request, reply) => {
       const { user } = request as AuthenticatedRequest;
       const { cardId } = request.params;
 
-      if (!(await verifyCardOwnership(cardId, user.id, reply))) return;
+      await verifyCardOwnership(cardId, user.id);
 
       const data = await validateBody(moveCardSchema, request.body, reply);
       if (!data) return;
 
       // Verify target list ownership
-      if (!(await verifyListOwnership(data.listId, user.id, listService, boardService, reply)))
-        return;
+      await verifyListOwnership(data.listId, user.id, listService, boardService);
 
       const card = await cardService.move(cardId, data.listId, data.position);
       return { card };
@@ -112,11 +135,18 @@ export default async function cardRoutes(fastify: FastifyInstance) {
   // PATCH /api/v1/cards/:cardId/archive
   fastify.patch<{ Params: { cardId: string } }>(
     '/cards/:cardId/archive',
-    async (request, reply) => {
+    {
+      schema: {
+        response: {
+          200: okResponse,
+        },
+      },
+    },
+    async (request) => {
       const { user } = request as AuthenticatedRequest;
       const { cardId } = request.params;
 
-      if (!(await verifyCardOwnership(cardId, user.id, reply))) return;
+      await verifyCardOwnership(cardId, user.id);
 
       await cardService.archive(cardId);
       return { ok: true };
@@ -126,11 +156,18 @@ export default async function cardRoutes(fastify: FastifyInstance) {
   // PATCH /api/v1/cards/:cardId/unarchive
   fastify.patch<{ Params: { cardId: string } }>(
     '/cards/:cardId/unarchive',
-    async (request, reply) => {
+    {
+      schema: {
+        response: {
+          200: okResponse,
+        },
+      },
+    },
+    async (request) => {
       const { user } = request as AuthenticatedRequest;
       const { cardId } = request.params;
 
-      if (!(await verifyCardOwnership(cardId, user.id, reply))) return;
+      await verifyCardOwnership(cardId, user.id);
 
       await cardService.unarchive(cardId);
       return { ok: true };

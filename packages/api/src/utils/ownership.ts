@@ -1,55 +1,40 @@
-import type { FastifyReply } from 'fastify';
 import type { BoardService } from '../services/board.service.js';
 import type { ListService } from '../services/list.service.js';
 
+function httpError(statusCode: number, message: string, code: string): Error {
+  const err = new Error(message) as Error & { statusCode: number; code: string };
+  err.statusCode = statusCode;
+  err.code = code;
+  return err;
+}
+
 /**
  * Verify that a board exists and belongs to the given user.
- * Sends 404 if the board doesn't exist, 403 if the user doesn't own it.
- * Returns true if ownership is confirmed, false otherwise (response already sent).
+ * Throws 404 if the board doesn't exist, 403 if the user doesn't own it.
  */
 export async function verifyBoardOwnership(
   boardId: string,
   userId: string,
   boardService: BoardService,
-  reply: FastifyReply,
-): Promise<boolean> {
+): Promise<void> {
   const board = await boardService.getById(boardId);
-  if (!board) {
-    reply.code(404).send({ error: 'Board not found', code: 'NOT_FOUND' });
-    return false;
-  }
-  if (board.userId !== userId) {
-    reply.code(403).send({ error: 'Forbidden', code: 'FORBIDDEN' });
-    return false;
-  }
-  return true;
+  if (!board) throw httpError(404, 'Board not found', 'NOT_FOUND');
+  if (board.userId !== userId) throw httpError(403, 'Forbidden', 'FORBIDDEN');
 }
 
 /**
  * Verify that a list exists and its board belongs to the given user.
- * Sends 404 if the list or its board doesn't exist, 403 if the user doesn't own the board.
- * Returns true if ownership is confirmed, false otherwise (response already sent).
+ * Throws 404 if the list or its board doesn't exist, 403 if the user doesn't own the board.
  */
 export async function verifyListOwnership(
   listId: string,
   userId: string,
   listService: ListService,
   boardService: BoardService,
-  reply: FastifyReply,
-): Promise<boolean> {
+): Promise<void> {
   const boardId = await listService.getBoardId(listId);
-  if (!boardId) {
-    reply.code(404).send({ error: 'List not found', code: 'NOT_FOUND' });
-    return false;
-  }
+  if (!boardId) throw httpError(404, 'List not found', 'NOT_FOUND');
   const board = await boardService.getById(boardId);
-  if (!board) {
-    reply.code(404).send({ error: 'List not found', code: 'NOT_FOUND' });
-    return false;
-  }
-  if (board.userId !== userId) {
-    reply.code(403).send({ error: 'Forbidden', code: 'FORBIDDEN' });
-    return false;
-  }
-  return true;
+  if (!board) throw httpError(404, 'List not found', 'NOT_FOUND');
+  if (board.userId !== userId) throw httpError(403, 'Forbidden', 'FORBIDDEN');
 }

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { api } from '$lib/api';
   import { invalidateAll } from '$app/navigation';
+  import { SvelteSet } from 'svelte/reactivity';
   import { dndzone } from 'svelte-dnd-action';
   import { generateKeyBetween } from '@kanbang/shared';
   import { getDueDateStatus, formatDueDate } from '$lib/utils/due-date';
@@ -64,7 +65,7 @@
   function loadCollapsedLists(boardId: string, allLists: ListItem[]): Set<string> {
     try {
       const raw = localStorage.getItem(`kanbang:collapsed-lists:${boardId}`);
-      const saved: Set<string> = raw ? new Set(JSON.parse(raw)) : new Set();
+      const saved: SvelteSet<string> = raw ? new SvelteSet(JSON.parse(raw)) : new SvelteSet();
 
       // Done lists default to collapsed if user hasn't explicitly expanded them
       const explicitKey = `kanbang:collapse-explicit:${boardId}`;
@@ -91,7 +92,7 @@
     try {
       const key = `kanbang:collapse-explicit:${boardId}`;
       const raw = localStorage.getItem(key);
-      const explicit: Set<string> = raw ? new Set(JSON.parse(raw)) : new Set();
+      const explicit: SvelteSet<string> = raw ? new SvelteSet(JSON.parse(raw)) : new SvelteSet();
       explicit.add(listId);
       localStorage.setItem(key, JSON.stringify([...explicit]));
     } catch {
@@ -111,7 +112,7 @@
     } else {
       collapsedListIds.add(listId);
     }
-    collapsedListIds = new Set(collapsedListIds);
+    collapsedListIds = new SvelteSet(collapsedListIds);
     saveCollapsedLists(data.board.id, collapsedListIds);
     markExplicitCollapse(data.board.id, listId);
   }
@@ -202,7 +203,10 @@
       }
       const newListIdx = lists.findIndex((l) => l.id === updatedCard.listId);
       if (newListIdx !== -1) {
-        lists[newListIdx].cards = [...lists[newListIdx].cards, { ...updatedCard, checklistProgress: { total: 0, completed: 0 } }];
+        lists[newListIdx].cards = [
+          ...lists[newListIdx].cards,
+          { ...updatedCard, checklistProgress: { total: 0, completed: 0 } },
+        ];
       }
     } else {
       // Just update completed status in place
@@ -439,7 +443,9 @@
         fill="none" stroke="currentColor" stroke-width="1.2"
         stroke-linecap="round" stroke-linejoin="round">
         <circle cx="7" cy="7" r="2.5"/>
-        <path d="M5.7 1.5h2.6l.3 1.6a4.5 4.5 0 011.1.6l1.5-.6 1.3 2.3-1.2 1a4.5 4.5 0 010 1.2l1.2 1-1.3 2.3-1.5-.6a4.5 4.5 0 01-1.1.6l-.3 1.6H5.7l-.3-1.6a4.5 4.5 0 01-1.1-.6l-1.5.6-1.3-2.3 1.2-1a4.5 4.5 0 010-1.2l-1.2-1 1.3-2.3 1.5.6a4.5 4.5 0 011.1-.6z"/>
+        <path d="M5.7 1.5h2.6l.3 1.6a4.5 4.5 0 011.1.6l1.5-.6 1.3 2.3-1.2 1a4.5 4.5 0 010 1.2l1.2 1
+          -1.3 2.3-1.5-.6a4.5 4.5 0 01-1.1.6l-.3 1.6H5.7l-.3-1.6a4.5 4.5 0 01-1.1-.6l-1.5.6
+          -1.3-2.3 1.2-1a4.5 4.5 0 010-1.2l-1.2-1 1.3-2.3 1.5.6a4.5 4.5 0 011.1-.6z"/>
       </svg>
     </button>
   </header>
@@ -453,7 +459,6 @@
   >
     {#each regularLists as list (list.id)}
       {#if collapsedListIds.has(list.id)}
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div
           class="list-collapsed"
           onclick={() => toggleCollapse(list.id)}
@@ -672,7 +677,6 @@
   <!-- Done list (outside dnd zone, positioned on right) -->
   {#if doneList}
     {#if collapsedListIds.has(doneList.id)}
-      <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div
         class="list-collapsed list-collapsed-done"
         onclick={() => toggleCollapse(doneList.id)}

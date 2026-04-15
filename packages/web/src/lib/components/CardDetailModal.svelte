@@ -1,6 +1,5 @@
 <script lang="ts">
   import { api } from '$lib/api';
-  import { generateKeyBetween } from '@kanbang/shared';
 
   interface ChecklistItemData {
     id: string;
@@ -268,7 +267,8 @@
                   onkeydown={(e) => { if (e.key === 'Enter') { editingChecklistId = cl.id; editingChecklistName = cl.name; } }}
                 >{cl.name}</h3>
               {/if}
-              <button class="checklist-delete" onclick={() => deleteChecklist(cl.id)} aria-label="Delete checklist">&times;</button>
+              <button class="checklist-delete" onclick={() => deleteChecklist(cl.id)}
+                aria-label="Delete checklist">&times;</button>
             </div>
 
             <!-- Progress bar -->
@@ -327,14 +327,20 @@
                     >{item.title}</span>
                   {/if}
                   <div class="item-actions">
-                    <button class="item-action-btn" onclick={() => convertToCard(item.id, cl.id)} aria-label="Convert to card" title="Convert to card">
-                      <svg viewBox="0 0 14 14" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+                    <button class="item-action-btn"
+                      onclick={() => convertToCard(item.id, cl.id)}
+                      aria-label="Convert to card" title="Convert to card">
+                      <svg viewBox="0 0 14 14" width="12" height="12"
+                        fill="none" stroke="currentColor" stroke-width="1.2"
+                        stroke-linecap="round" stroke-linejoin="round">
                         <rect x="1" y="2" width="12" height="10" rx="1"/>
                         <line x1="4" y1="5" x2="10" y2="5"/>
                         <line x1="4" y1="8" x2="7" y2="8"/>
                       </svg>
                     </button>
-                    <button class="item-action-btn" onclick={() => deleteItem(item.id, cl.id)} aria-label="Delete item">&times;</button>
+                    <button class="item-action-btn"
+                      onclick={() => deleteItem(item.id, cl.id)}
+                      aria-label="Delete item">&times;</button>
                   </div>
                 </div>
               {/each}

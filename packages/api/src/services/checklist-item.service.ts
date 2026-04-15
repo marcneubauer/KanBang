@@ -1,7 +1,7 @@
 import { eq, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { Database } from '../db/index.js';
-import { checklistItems, checklists, cards } from '../db/schema.js';
+import { checklistItems, cards } from '../db/schema.js';
 import { generateKeyBetween } from '@kanbang/shared/utils/fractional-index.js';
 import type { CreateChecklistItemInput, UpdateChecklistItemInput } from '@kanbang/shared/validation/checklist.js';
 

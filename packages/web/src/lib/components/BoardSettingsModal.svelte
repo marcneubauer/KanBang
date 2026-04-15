@@ -70,7 +70,6 @@
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <div class="modal-backdrop" onclick={handleBackdropClick} onkeydown={handleKeydown}>
   <div class="modal" role="dialog" aria-modal="true">
     <button class="modal-close" onclick={onclose} aria-label="Close">&times;</button>

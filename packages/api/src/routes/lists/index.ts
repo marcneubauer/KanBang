@@ -60,7 +60,7 @@ export default async function listRoutes(fastify: FastifyInstance) {
         200: listWithCardsResponse,
       },
     },
-  }, async (request, reply) => {
+  }, async (request) => {
     const { user } = request as AuthenticatedRequest;
     const { listId } = request.params;
 

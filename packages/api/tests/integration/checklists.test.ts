@@ -86,7 +86,7 @@ describe('Checklist routes', () => {
   describe('GET /api/v1/cards/:cardId/checklists', () => {
     it('returns checklists with items ordered by position', async () => {
       const { body: cl1 } = await createChecklist('First');
-      const { body: cl2 } = await createChecklist('Second');
+      const { body: _cl2 } = await createChecklist('Second');
       await createItem(cl1.checklist.id, 'Item A');
       await createItem(cl1.checklist.id, 'Item B');
 

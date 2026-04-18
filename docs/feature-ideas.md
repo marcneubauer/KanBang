@@ -12,7 +12,7 @@ Items within each section are ordered by usefulness.
 
 ## Board Organization
 
-- [ ] **"Done" column** — auto-move checked/completed items to a dedicated "Done" list
+- [x] **"Done" column** — auto-move checked/completed items to a dedicated "Done" list
   - Done column's cards are automatically archived 3 days after they are checked done
 - [ ] **Card filtering** — filter bar at top of board accepting labels, assignees, due date ranges. Non-destructive: dims non-matching cards rather than hiding them to preserve spatial context.
 - [ ] **Board search** — highlights matching cards in place (dims non-matching), does not navigate away from the board
@@ -64,3 +64,4 @@ Items within each section are ordered by usefulness.
 ## Auth
 
 - [ ] **Password reset flow** — "forgot password" page with email-based reset tokens (requires SMTP setup)
+- [ ] **Generic login/register error messages** — currently raw `ApiError.message` from the backend is shown on [login](packages/web/src/routes/login/+page.svelte) and [register](packages/web/src/routes/register/+page.svelte). If backend messages distinguish "email not found" from "wrong password", this enables user enumeration. Before a public deployment, map `ApiError` by status code to a generic "Invalid email or password" string. Keeping detailed errors for now during development. (From security audit, 2026-04-17.)

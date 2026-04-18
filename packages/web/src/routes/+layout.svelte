@@ -1,6 +1,7 @@
 <script lang="ts">
   import '../app.css';
   import { api } from '$lib/api';
+  import ErrorIndicator from '$lib/components/ErrorIndicator.svelte';
 
   let { data, children } = $props();
 
@@ -14,6 +15,7 @@
   <nav class="nav">
     <a href="/boards" class="nav-brand">KanBang</a>
     <div class="nav-right">
+      <ErrorIndicator />
       <span class="nav-user">{data.user.username}</span>
       <a href="/settings" class="nav-link">Settings</a>
       <button class="nav-logout" onclick={logout} aria-label="Log out">Log out</button>

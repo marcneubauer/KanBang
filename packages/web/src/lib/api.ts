@@ -1,4 +1,5 @@
 import type { ZodType } from 'zod';
+import { errorStore } from './errorStore.svelte';
 
 const API_BASE = '/api/v1';
 
@@ -21,6 +22,7 @@ export async function api<T>(
   fetchFn: typeof fetch = fetch,
 ): Promise<T> {
   const url = `${API_BASE}${path}`;
+  const method = (options.method ?? 'GET').toUpperCase();
   const headers: Record<string, string> = {
     ...(options.headers as Record<string, string>),
   };
@@ -29,20 +31,40 @@ export async function api<T>(
     headers['Content-Type'] = 'application/json';
   }
 
-  const response = await fetchFn(url, {
-    ...options,
-    headers,
-    credentials: 'include',
-  });
+  let response: Response;
+  try {
+    response = await fetchFn(url, {
+      ...options,
+      headers,
+      credentials: 'include',
+    });
+  } catch (err) {
+    errorStore.add({
+      method,
+      path,
+      status: null,
+      code: 'NETWORK_ERROR',
+      message: err instanceof Error ? err.message : 'Network request failed',
+    });
+    throw err;
+  }
 
   if (!response.ok) {
     const body = await response.json().catch(() => ({ code: 'PARSE_ERROR', error: 'Could not parse error response' }));
-    throw new ApiError(
+    const apiErr = new ApiError(
       response.status,
       body.code ?? 'UNKNOWN',
       body.error ?? 'Request failed',
       body.details,
     );
+    errorStore.add({
+      method,
+      path,
+      status: apiErr.status,
+      code: apiErr.code,
+      message: apiErr.message,
+    });
+    throw apiErr;
   }
 
   const data = await response.json();

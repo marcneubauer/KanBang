@@ -18,14 +18,7 @@ export default defineConfig({
           setupFiles: ['tests/setup.ts'],
         },
       },
-      {
-        test: {
-          name: 'web',
-          root: './packages/web',
-          include: ['tests/**/*.test.ts'],
-          environment: 'jsdom',
-        },
-      },
+      './packages/web/vitest.config.ts',
     ],
     coverage: {
       provider: 'v8',

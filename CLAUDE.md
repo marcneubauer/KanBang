@@ -16,6 +16,16 @@ KanBang is a self-hosted personal Trello clone — a kanban board app with board
 | Testing | Vitest (unit/integration) + Playwright (E2E) |
 | Deployment | Docker Compose |
 
+## Task Management
+
+Tasks live in `.dex/` (committed) and sync to GitHub Issues automatically.
+
+- Use `/dex` to plan and track work persistently across sessions.
+- Local-first: `dex list`, `dex list --all`, `dex show <id>` read from `.dex/` without network calls.
+- Issues created on GitHub: run `dex import --all` (or `dex import #N`) to pull them into `.dex/`. Apply the `dex` label to remote-created issues you want round-tripped via `--all`.
+- Always pass `--commit <sha>` (or `--no-commit`) to `dex complete` so issues close cleanly on push.
+- The pre-dex docs/plans and docs/logs folders are archived under docs/archive/.
+
 ## Monorepo Structure
 
 ```
@@ -27,7 +37,7 @@ kanbang/
 ├── e2e/           # Playwright E2E tests
 ├── docs/
 │   ├── specs/     # 8 specification documents (00–07)
-│   └── plans/     # Planning documents: X_ are completed, O_ are not started, I_ are incomplete
+│   └── archive/   # Pre-dex task tracking (plans, logs, feature-ideas), frozen for reference
 └── playwright.config.ts
 ```
 

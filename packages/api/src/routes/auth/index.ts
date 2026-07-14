@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyReply } from 'fastify';
-import { registerSchema, loginSchema } from '@kanbang/shared/validation/auth.js';
+import { registerSchema, loginSchema, changePasswordSchema } from '@kanbang/shared/validation/auth.js';
 import { COOKIE_NAME, SESSION_MAX_AGE } from '../../plugins/auth.js';
 import { config } from '../../config.js';
 
@@ -132,6 +132,44 @@ export default async function authRoutes(fastify: FastifyInstance) {
       await fastify.authService.destroySession(sessionId);
     }
     clearCookie(reply);
+    return { ok: true };
+  });
+
+  // POST /api/v1/auth/change-password
+  fastify.post('/change-password', {
+    ...authRateLimit,
+    preHandler: [fastify.requireAuth],
+    schema: {
+      response: {
+        200: okResponse,
+        400: errorResponse,
+      },
+    },
+  }, async (request, reply) => {
+    const parsed = changePasswordSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.code(400).send({
+        error: 'Validation failed',
+        code: 'VALIDATION_ERROR',
+        details: parsed.error.flatten().fieldErrors,
+      });
+    }
+
+    const sessionId = request.cookies[COOKIE_NAME]!;
+    const changed = await fastify.authService.changePassword(
+      request.user!.id,
+      parsed.data.currentPassword,
+      parsed.data.newPassword,
+      sessionId,
+    );
+
+    if (!changed) {
+      return reply.code(400).send({
+        error: 'Current password is incorrect',
+        code: 'INVALID_PASSWORD',
+      });
+    }
+
     return { ok: true };
   });
 

@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq, ne } from 'drizzle-orm';
 import { hash, verify } from 'argon2';
 import { nanoid } from 'nanoid';
 import type { Database } from '../db/index.js';
@@ -56,6 +56,40 @@ export class AuthService {
       user: { id: user.id, email: user.email, username: user.username },
       session,
     };
+  }
+
+  /**
+   * Change the user's password after verifying the current one.
+   * Invalidates all other sessions. Returns false if the current password is wrong.
+   */
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+    currentSessionId: string,
+  ) {
+    const [user] = await this.db
+      .select({ passwordHash: users.passwordHash })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!user?.passwordHash) return false;
+
+    const valid = await verify(user.passwordHash, currentPassword);
+    if (!valid) return false;
+
+    const passwordHash = await hash(newPassword);
+    await this.db
+      .update(users)
+      .set({ passwordHash, updatedAt: new Date() })
+      .where(eq(users.id, userId));
+
+    await this.db
+      .delete(sessions)
+      .where(and(eq(sessions.userId, userId), ne(sessions.id, currentSessionId)));
+
+    return true;
   }
 
   async createSession(userId: string) {

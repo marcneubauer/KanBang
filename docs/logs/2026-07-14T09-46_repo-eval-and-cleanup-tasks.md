@@ -61,6 +61,17 @@ Actions (evaluation, plan mode):
 - 203/203 unit+integration tests, 34/34 Playwright E2E, ESLint clean, typecheck 0 errors (warnings 19 → 17).
 - Needed environment fixes along the way: Node 25 via nvm (ABI mismatch under 22), `npx playwright install chromium`.
 
+## Continuation (same session): GH-57 and GH-58
+
+**Prompt 3:** "continue with 57 58"
+
+| Task | Commit | Result |
+|------|--------|--------|
+| GH-57 change password | `b1e18fa` | `POST /auth/change-password` (rate-limited): verifies current password, argon2id re-hash, invalidates all other sessions; `changePasswordSchema` in shared; settings-page form with confirm field; 5 integration tests |
+| GH-58 JSON export | `413ac24` | `GET /api/v1/export`: new `ExportService` builds nested boards→lists→cards→checklists→items in 5 set-based queries (archived included); dated attachment filename; settings-page download link; 4 integration tests |
+
+Final state: 212/212 unit+integration tests, lint clean, typecheck 0 errors.
+
 ## Remaining backlog (feature track, in recommended order)
 
-GH-57 change password → GH-58 JSON export → GH-10 labels → GH-26/GH-53 filter+search UI → GH-59, GH-60, GH-61, GH-46.
+GH-10 labels → GH-26/GH-53 filter+search UI → GH-59 markdown, GH-60 keyboard move, GH-61 undo toast, GH-46 quick-edit.

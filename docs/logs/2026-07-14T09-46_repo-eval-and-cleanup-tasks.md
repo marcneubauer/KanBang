@@ -80,6 +80,13 @@ Final state: 212/212 unit+integration tests, lint clean, typecheck 0 errors.
 - GH-10 labels (`30a021a`): `labels` + `card_labels` tables (migration 0006), LabelService, 6 routes (board label CRUD, card assign/remove with cross-board guard), labels in board detail + export. Web: colored chips on card faces (new BoardCard `labels`/`dimmed` props), header filter bar dims non-matching cards, `CardLabelsSection` in card modal (create/edit/delete, toggle, 10 preset colors). 12 integration tests + new `e2e/labels.spec.ts` (4 tests).
 - Final state: 224 unit/integration + 38 E2E tests green, lint clean, typecheck 0 errors.
 
+## Continuation: GH-26 card filtering + GH-53 board search
+
+**Prompt 5:** "continue"
+
+- Both done in one commit (`088a765`): pure `cardMatchesFilter` util in `$lib/utils/card-filter.ts` combining text search (title+description, case-insensitive), label chips, and due-date filter (overdue/soon/has/none) with AND semantics. Non-matching cards dim in place. `ListColumn` now takes an `isCardDimmed` predicate instead of raw label state. Assignee filtering deferred until GH-13 members exist.
+- 14 unit tests + `e2e/board-filter.spec.ts` (3 tests). Final: 238 unit/integration + 41 E2E green.
+
 ## Remaining backlog (feature track, in recommended order)
 
-GH-26/GH-53 filter+search UI → GH-59 markdown, GH-60 keyboard move, GH-61 undo toast, GH-46 quick-edit.
+GH-59 markdown descriptions → GH-60 keyboard card move → GH-61 undo toast → GH-46 quick-edit.

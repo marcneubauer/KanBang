@@ -1,5 +1,7 @@
 <script lang="ts">
   import { api } from '$lib/api';
+  import type { Label } from '@kanbang/shared';
+  import CardLabelsSection from './board/CardLabelsSection.svelte';
 
   interface ChecklistItemData {
     id: string;
@@ -17,11 +19,14 @@
     items: ChecklistItemData[];
   }
 
-  let { cardId, cardTitle, cardDescription, listId, onclose, onupdated }: {
+  let { cardId, cardTitle, cardDescription, listId, boardId, boardLabels, cardLabelIds, onclose, onupdated }: {
     cardId: string;
     cardTitle: string;
     cardDescription: string | null;
     listId: string;
+    boardId: string;
+    boardLabels: Label[];
+    cardLabelIds: string[];
     onclose: () => void;
     onupdated: () => void;
   } = $props();
@@ -213,6 +218,17 @@
           onkeydown={(e) => { if (e.key === 'Enter') editingTitle = true; }}
         >{title}</h2>
       {/if}
+    </div>
+
+    <!-- Labels -->
+    <div class="modal-section">
+      <CardLabelsSection
+        {cardId}
+        {boardId}
+        labels={boardLabels}
+        labelIds={cardLabelIds}
+        onchanged={onupdated}
+      />
     </div>
 
     <!-- Description -->

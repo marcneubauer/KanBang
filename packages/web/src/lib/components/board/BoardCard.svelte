@@ -1,10 +1,12 @@
 <script lang="ts">
-  import type { CardWithProgress } from '@kanbang/shared';
+  import type { CardWithProgress, Label } from '@kanbang/shared';
   import { getDueDateStatus, formatDueDate } from '$lib/utils/due-date';
   import DatePicker from '$lib/components/DatePicker.svelte';
 
   interface Props {
     card: CardWithProgress;
+    labels?: Label[];
+    dimmed?: boolean;
     isDone?: boolean;
     editingCardId?: string | null;
     editingCardTitle?: string;
@@ -18,6 +20,8 @@
 
   let {
     card,
+    labels = [],
+    dimmed = false,
     isDone = false,
     editingCardId = $bindable(null),
     editingCardTitle = $bindable(''),
@@ -30,7 +34,16 @@
   }: Props = $props();
 </script>
 
-<div class="card-item" class:card-item-done={isDone}>
+<div class="card-item" class:card-item-done={isDone} class:card-item-dimmed={dimmed}>
+  {#if labels.length > 0}
+    <div class="card-labels">
+      {#each labels as label (label.id)}
+        <span class="card-label-chip" style="background: {label.color}" title={label.name}>
+          {label.name}
+        </span>
+      {/each}
+    </div>
+  {/if}
   <button
     class="card-checkbox"
     class:card-checkbox-checked={card.completed}
@@ -154,6 +167,30 @@
 
   .card-item-done {
     opacity: 0.6;
+  }
+
+  .card-item-dimmed {
+    opacity: 0.25;
+  }
+
+  .card-labels {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 6px;
+  }
+
+  .card-label-chip {
+    font-size: 10px;
+    font-weight: 600;
+    color: white;
+    border-radius: 3px;
+    padding: 1px 6px;
+    min-width: 32px;
+    min-height: 14px;
+    line-height: 14px;
+    text-shadow: 0 0 2px rgba(0, 0, 0, 0.35);
   }
 
   .card-title {

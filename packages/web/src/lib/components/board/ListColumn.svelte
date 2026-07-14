@@ -1,6 +1,6 @@
 <script lang="ts">
   import { dndzone } from 'svelte-dnd-action';
-  import type { CardWithProgress, ListWithCardsDetail } from '@kanbang/shared';
+  import type { CardWithProgress, Label, ListWithCardsDetail } from '@kanbang/shared';
   import BoardCard from './BoardCard.svelte';
 
   type CardDndEvent = CustomEvent<{ items: CardWithProgress[]; info: { id: string } }>;
@@ -9,6 +9,8 @@
     list: ListWithCardsDetail;
     collapsed: boolean;
     flipDurationMs: number;
+    boardLabels?: Label[];
+    filterLabelIds?: ReadonlySet<string>;
     editingListId?: string | null;
     editingListName?: string;
     editingCardId?: string | null;
@@ -33,6 +35,8 @@
     list,
     collapsed,
     flipDurationMs,
+    boardLabels = [],
+    filterLabelIds = new Set<string>(),
     editingListId = $bindable(null),
     editingListName = $bindable(''),
     editingCardId = $bindable(null),
@@ -56,6 +60,16 @@
   function startEditList() {
     editingListId = list.id;
     editingListName = list.name;
+  }
+
+  function cardLabels(card: CardWithProgress): Label[] {
+    if (card.labelIds.length === 0) return [];
+    return boardLabels.filter((l) => card.labelIds.includes(l.id));
+  }
+
+  function isDimmed(card: CardWithProgress): boolean {
+    if (filterLabelIds.size === 0) return false;
+    return !card.labelIds.some((id) => filterLabelIds.has(id));
   }
 </script>
 
@@ -133,6 +147,8 @@
       {#each list.cards as card (card.id)}
         <BoardCard
           {card}
+          labels={cardLabels(card)}
+          dimmed={isDimmed(card)}
           isDone={list.isDone}
           bind:editingCardId
           bind:editingCardTitle

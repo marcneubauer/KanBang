@@ -1,6 +1,6 @@
 import { asc, eq, inArray } from 'drizzle-orm';
 import type { Database } from '../db/index.js';
-import { boards, lists, cards, checklists, checklistItems } from '../db/schema.js';
+import { boards, lists, cards, checklists, checklistItems, labels, cardLabels } from '../db/schema.js';
 
 export class ExportService {
   constructor(private db: Database) {}
@@ -49,8 +49,24 @@ export class ExportService {
         .orderBy(asc(checklistItems.position))
       : [];
 
+    const userLabels = boardIds.length
+      ? await this.db
+        .select()
+        .from(labels)
+        .where(inArray(labels.boardId, boardIds))
+        .orderBy(asc(labels.createdAt))
+      : [];
+
+    const userCardLabels = cardIds.length
+      ? await this.db
+        .select()
+        .from(cardLabels)
+        .where(inArray(cardLabels.cardId, cardIds))
+      : [];
+
     return userBoards.map((board) => ({
       ...board,
+      labels: userLabels.filter((label) => label.boardId === board.id),
       lists: userLists
         .filter((list) => list.boardId === board.id)
         .map((list) => ({
@@ -59,6 +75,9 @@ export class ExportService {
             .filter((card) => card.listId === list.id)
             .map((card) => ({
               ...card,
+              labelIds: userCardLabels
+                .filter((cl) => cl.cardId === card.id)
+                .map((cl) => cl.labelId),
               checklists: userChecklists
                 .filter((checklist) => checklist.cardId === card.id)
                 .map((checklist) => ({

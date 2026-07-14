@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { listWithCardsDetailSchema } from './list.js';
+import { labelSchema } from './label.js';
 
 export const createBoardSchema = z.object({
   name: z.string().min(1).max(100).trim(),
@@ -28,6 +29,7 @@ export const boardResponseSchema = z.object({ board: boardSchema });
 
 export const boardDetailSchema = boardSchema.extend({
   lists: z.array(listWithCardsDetailSchema),
+  labels: z.array(labelSchema),
 });
 export type BoardDetail = z.infer<typeof boardDetailSchema>;
 export const boardDetailResponseSchema = z.object({ board: boardDetailSchema });

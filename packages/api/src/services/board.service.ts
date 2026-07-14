@@ -1,7 +1,7 @@
 import { eq, and, asc, isNull, isNotNull, lte, count, sql, inArray } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { Database } from '../db/index.js';
-import { boards, lists, cards, checklists, checklistItems } from '../db/schema.js';
+import { boards, lists, cards, checklists, checklistItems, labels, cardLabels } from '../db/schema.js';
 import type { CreateBoardInput, UpdateBoardInput } from '@kanbang/shared/validation/board.js';
 
 export class BoardService {
@@ -76,6 +76,29 @@ export class BoardService {
 
     const progressByCard = new Map(progressRows.map((r) => [r.cardId, r]));
 
+    const boardLabels = await this.db
+      .select()
+      .from(labels)
+      .where(eq(labels.boardId, boardId))
+      .orderBy(asc(labels.createdAt));
+
+    const labelRows = cardIds.length
+      ? await this.db
+        .select()
+        .from(cardLabels)
+        .where(inArray(cardLabels.cardId, cardIds))
+      : [];
+
+    const labelIdsByCard = new Map<string, string[]>();
+    for (const row of labelRows) {
+      const existing = labelIdsByCard.get(row.cardId);
+      if (existing) {
+        existing.push(row.labelId);
+      } else {
+        labelIdsByCard.set(row.cardId, [row.labelId]);
+      }
+    }
+
     const listsWithCards = boardLists.map((list) => ({
       ...list,
       cards: boardCards
@@ -88,11 +111,12 @@ export class BoardService {
               total: progress?.total ?? 0,
               completed: progress?.completed ?? 0,
             },
+            labelIds: labelIdsByCard.get(card.id) ?? [],
           };
         }),
     }));
 
-    return { ...board, lists: listsWithCards };
+    return { ...board, lists: listsWithCards, labels: boardLabels };
   }
 
   /** Archive cards completed 3+ days ago in the board's Done list. */

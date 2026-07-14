@@ -4,7 +4,7 @@
   import { SvelteSet } from 'svelte/reactivity';
   import { dndzone } from 'svelte-dnd-action';
   import { generateKeyBetween } from '@kanbang/shared';
-  import type { Card, CardWithProgress, ListWithCardsDetail } from '@kanbang/shared';
+  import type { Card, CardWithProgress, Label, ListWithCardsDetail } from '@kanbang/shared';
   import CardDetailModal from '$lib/components/CardDetailModal.svelte';
   import BoardSettingsModal from '$lib/components/BoardSettingsModal.svelte';
   import ListColumn from '$lib/components/board/ListColumn.svelte';
@@ -17,12 +17,28 @@
     cards: l.cards.map((c: CardWithProgress) => ({ ...c })),
   })));
 
+  let boardLabels: Label[] = $state(data.board.labels);
+
   const flipDurationMs = 200;
 
   async function refetchBoard() {
-    const { board } = await api<{ board: { name: string; lists: ListWithCardsDetail[] } }>(`/boards/${data.board.id}`);
+    const { board } = await api<{ board: { name: string; lists: ListWithCardsDetail[]; labels: Label[] } }>(
+      `/boards/${data.board.id}`,
+    );
     lists = board.lists.map((l) => ({ ...l, cards: l.cards.map((c) => ({ ...c })) }));
+    boardLabels = board.labels;
     return board;
+  }
+
+  // --- Label filtering ---
+  const filterLabelIds = new SvelteSet<string>();
+
+  function toggleFilterLabel(labelId: string) {
+    if (filterLabelIds.has(labelId)) {
+      filterLabelIds.delete(labelId);
+    } else {
+      filterLabelIds.add(labelId);
+    }
   }
 
   // --- List collapse ---
@@ -135,7 +151,7 @@
     const listIndex = lists.findIndex((l) => l.id === listId);
     lists[listIndex].cards = [
       ...lists[listIndex].cards,
-      { ...card, checklistProgress: { total: 0, completed: 0 } },
+      { ...card, checklistProgress: { total: 0, completed: 0 }, labelIds: [] },
     ];
   }
 
@@ -172,7 +188,7 @@
       if (newListIdx !== -1) {
         lists[newListIdx].cards = [
           ...lists[newListIdx].cards,
-          { ...updatedCard, checklistProgress: { total: 0, completed: 0 } },
+          { ...updatedCard, checklistProgress: { total: 0, completed: 0 }, labelIds: [] },
         ];
       }
     } else {
@@ -341,6 +357,12 @@
 
   // --- Archived items panel ---
   let archivedItems = $state<ArchivedItems | null>(null);
+
+  let modalCardLabelIds = $derived(
+    modalCard
+      ? lists.flatMap((l) => l.cards).find((c) => c.id === modalCard!.id)?.labelIds ?? []
+      : [],
+  );
 </script>
 
 <div class="board-page">
@@ -369,6 +391,27 @@
         tabindex="0"
       >{boardName}</h1>
     {/if}
+    {#if boardLabels.length > 0}
+      <div class="label-filter" role="group" aria-label="Filter by label">
+        {#each boardLabels as label (label.id)}
+          <button
+            class="label-filter-chip"
+            class:label-filter-active={filterLabelIds.has(label.id)}
+            style="background: {label.color}"
+            title={label.name || 'Unnamed label'}
+            aria-pressed={filterLabelIds.has(label.id)}
+            onclick={() => toggleFilterLabel(label.id)}
+          >
+            {label.name}
+          </button>
+        {/each}
+        {#if filterLabelIds.size > 0}
+          <button class="label-filter-clear" onclick={() => { filterLabelIds.clear(); }}>
+            Clear
+          </button>
+        {/if}
+      </div>
+    {/if}
     <button class="board-header-btn" onclick={() => { showSettings = true; }} aria-label="Board settings">
       <svg viewBox="0 0 14 14" width="14" height="14"
         fill="none" stroke="currentColor" stroke-width="1.2"
@@ -393,6 +436,8 @@
         {list}
         collapsed={collapsedListIds.has(list.id)}
         {flipDurationMs}
+        {boardLabels}
+        {filterLabelIds}
         bind:editingListId
         bind:editingListName
         bind:editingCardId
@@ -444,6 +489,8 @@
       list={doneList}
       collapsed={collapsedListIds.has(doneList.id)}
       {flipDurationMs}
+      {boardLabels}
+      {filterLabelIds}
       bind:editingListId
       bind:editingListName
       bind:editingCardId
@@ -474,6 +521,9 @@
       cardTitle={modalCard.title}
       cardDescription={modalCard.description}
       listId={modalCard.listId}
+      boardId={data.board.id}
+      {boardLabels}
+      cardLabelIds={modalCardLabelIds}
       onclose={() => { modalCard = null; }}
       onupdated={handleModalUpdated}
     />
@@ -541,6 +591,52 @@
     border: 2px solid var(--color-primary);
     border-radius: var(--radius-sm);
     padding: 2px 8px;
+  }
+
+  .label-filter {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin-left: auto;
+    margin-right: 12px;
+  }
+
+  .label-filter-chip {
+    border: 2px solid transparent;
+    border-radius: 3px;
+    padding: 2px 8px;
+    min-width: 28px;
+    min-height: 18px;
+    font-size: 11px;
+    font-weight: 600;
+    color: white;
+    cursor: pointer;
+    opacity: 0.55;
+    text-shadow: 0 0 2px rgba(0, 0, 0, 0.35);
+    transition: opacity 150ms, border-color 150ms;
+  }
+
+  .label-filter-chip:hover {
+    opacity: 0.85;
+  }
+
+  .label-filter-active {
+    opacity: 1;
+    border-color: var(--color-text);
+  }
+
+  .label-filter-clear {
+    background: none;
+    border: none;
+    font-size: 12px;
+    color: var(--color-text-subtle);
+    cursor: pointer;
+    padding: 2px 6px;
+  }
+
+  .label-filter-clear:hover {
+    color: var(--color-text);
   }
 
   .board-header-btn {

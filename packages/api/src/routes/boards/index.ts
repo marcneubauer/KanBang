@@ -34,6 +34,7 @@ const cardWithProgressSchema = {
         completed: { type: 'number' },
       },
     },
+    labelIds: { type: 'array', items: { type: 'string' } },
   },
 } as const;
 
@@ -143,6 +144,7 @@ export default async function boardRoutes(fastify: FastifyInstance) {
                 updatedAt:  { type: 'string' },
                 archivedAt: { type: ['string', 'null'] },
                 lists:      { type: 'array', items: listWithCardsSchema },
+                labels:     { type: 'array', items: { $ref: 'label#' } },
               },
             },
           },

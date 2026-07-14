@@ -9,7 +9,7 @@ import {
   moveCardSchema,
 } from '@kanbang/shared/validation/card.js';
 import { validateBody } from '../../utils/validate.js';
-import { verifyListOwnership } from '../../utils/ownership.js';
+import { verifyListOwnership, verifyCardOwnership as verifyCardOwnershipUtil } from '../../utils/ownership.js';
 
 const cardResponse200 = {
   type: 'object',
@@ -34,15 +34,8 @@ export default async function cardRoutes(fastify: FastifyInstance) {
 
   fastify.addHook('preHandler', fastify.requireAuth);
 
-  async function verifyCardOwnership(cardId: string, userId: string): Promise<void> {
-    const listId = await cardService.getListId(cardId);
-    if (!listId) throw fastify.httpErrors.notFound('Card not found');
-    const boardId = await listService.getBoardId(listId);
-    if (!boardId) throw fastify.httpErrors.notFound('Card not found');
-    const board = await boardService.getById(boardId);
-    if (!board) throw fastify.httpErrors.notFound('Card not found');
-    if (board.userId !== userId) throw fastify.httpErrors.forbidden('Forbidden');
-  }
+  const verifyCardOwnership = (cardId: string, userId: string) =>
+    verifyCardOwnershipUtil(cardId, userId, cardService, listService, boardService);
 
   // GET /api/v1/cards/:cardId
   fastify.get<{ Params: { cardId: string } }>('/cards/:cardId', {

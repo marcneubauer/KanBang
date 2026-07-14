@@ -45,7 +45,58 @@ export class BoardService {
 
     if (!board) return null;
 
-    // Auto-archive cards completed 3+ days ago in the Done list
+    const boardLists = await this.db
+      .select()
+      .from(lists)
+      .where(and(eq(lists.boardId, boardId), isNull(lists.archivedAt)))
+      .orderBy(asc(lists.position));
+
+    const listIds = boardLists.map((l) => l.id);
+    const boardCards = listIds.length
+      ? await this.db
+        .select()
+        .from(cards)
+        .where(and(inArray(cards.listId, listIds), isNull(cards.archivedAt)))
+        .orderBy(asc(cards.position))
+      : [];
+
+    const cardIds = boardCards.map((c) => c.id);
+    const progressRows = cardIds.length
+      ? await this.db
+        .select({
+          cardId: checklists.cardId,
+          total: count(),
+          completed: count(sql`CASE WHEN ${checklistItems.completed} = 1 THEN 1 END`),
+        })
+        .from(checklistItems)
+        .innerJoin(checklists, eq(checklistItems.checklistId, checklists.id))
+        .where(inArray(checklists.cardId, cardIds))
+        .groupBy(checklists.cardId)
+      : [];
+
+    const progressByCard = new Map(progressRows.map((r) => [r.cardId, r]));
+
+    const listsWithCards = boardLists.map((list) => ({
+      ...list,
+      cards: boardCards
+        .filter((card) => card.listId === list.id)
+        .map((card) => {
+          const progress = progressByCard.get(card.id);
+          return {
+            ...card,
+            checklistProgress: {
+              total: progress?.total ?? 0,
+              completed: progress?.completed ?? 0,
+            },
+          };
+        }),
+    }));
+
+    return { ...board, lists: listsWithCards };
+  }
+
+  /** Archive cards completed 3+ days ago in the board's Done list. */
+  async archiveStaleDoneCards(boardId: string) {
     const ARCHIVE_AFTER_MS = 3 * 24 * 60 * 60 * 1000;
     const cutoff = new Date(Date.now() - ARCHIVE_AFTER_MS);
 
@@ -66,47 +117,6 @@ export class BoardService {
           inArray(cards.listId, doneListIds),
         ),
       );
-
-    const boardLists = await this.db
-      .select()
-      .from(lists)
-      .where(and(eq(lists.boardId, boardId), isNull(lists.archivedAt)))
-      .orderBy(asc(lists.position));
-
-    const listsWithCards = await Promise.all(
-      boardLists.map(async (list) => {
-        const listCards = await this.db
-          .select()
-          .from(cards)
-          .where(and(eq(cards.listId, list.id), isNull(cards.archivedAt)))
-          .orderBy(asc(cards.position));
-
-        const cardsWithProgress = await Promise.all(
-          listCards.map(async (card) => {
-            const [progress] = await this.db
-              .select({
-                total: count(),
-                completed: count(sql`CASE WHEN ${checklistItems.completed} = 1 THEN 1 END`),
-              })
-              .from(checklistItems)
-              .innerJoin(checklists, eq(checklistItems.checklistId, checklists.id))
-              .where(eq(checklists.cardId, card.id));
-
-            return {
-              ...card,
-              checklistProgress: {
-                total: progress?.total ?? 0,
-                completed: progress?.completed ?? 0,
-              },
-            };
-          }),
-        );
-
-        return { ...list, cards: cardsWithProgress };
-      }),
-    );
-
-    return { ...board, lists: listsWithCards };
   }
 
   async update(boardId: string, input: UpdateBoardInput) {
@@ -176,13 +186,13 @@ export class BoardService {
     return { archivedLists: archivedListsWithCards, archivedCards };
   }
 
-  async isOwner(boardId: string, userId: string) {
+  async getOwnerId(boardId: string) {
     const [board] = await this.db
       .select({ userId: boards.userId })
       .from(boards)
-      .where(and(eq(boards.id, boardId), eq(boards.userId, userId)))
+      .where(eq(boards.id, boardId))
       .limit(1);
 
-    return !!board;
+    return board?.userId ?? null;
   }
 }

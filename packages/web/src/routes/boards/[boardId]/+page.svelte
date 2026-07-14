@@ -305,6 +305,29 @@
   let editingCardId = $state<string | null>(null);
   let editingCardTitle = $state('');
   let datePickerCardId = $state<string | null>(null);
+  let quickEditCardId = $state<string | null>(null);
+
+  // --- Quick-edit actions ---
+  function findCard(cardId: string, listId: string) {
+    const listIndex = lists.findIndex((l) => l.id === listId);
+    return listIndex === -1 ? undefined : lists[listIndex].cards.find((c) => c.id === cardId);
+  }
+
+  async function quickSaveTitle(cardId: string, listId: string, title: string) {
+    await updateCard(cardId, { title });
+    const card = findCard(cardId, listId);
+    if (card) card.title = title;
+  }
+
+  async function toggleCardLabel(cardId: string, listId: string, labelId: string, assign: boolean) {
+    await api(`/cards/${cardId}/labels/${labelId}`, { method: assign ? 'POST' : 'DELETE' });
+    const card = findCard(cardId, listId);
+    if (card) {
+      card.labelIds = assign
+        ? [...card.labelIds, labelId]
+        : card.labelIds.filter((id) => id !== labelId);
+    }
+  }
 
   // --- Card detail modal ---
   let modalCard = $state<{ id: string; title: string; description: string | null; listId: string } | null>(null);
@@ -473,6 +496,7 @@
         bind:addingCardToList
         bind:newCardTitle
         bind:datePickerCardId
+        bind:quickEditCardId
         ontogglecollapse={() => toggleCollapse(list.id)}
         onarchivelist={() => archiveList(list.id)}
         onsavelistname={saveListName}
@@ -482,6 +506,8 @@
         ontogglecardcompleted={(cardId, completed) => toggleCardCompleted(cardId, list.id, completed)}
         onarchivecard={(cardId) => archiveCard(cardId, list.id)}
         onsetcardduedate={(cardId, date) => setCardDueDate(cardId, list.id, date)}
+        onquicksavetitle={(cardId, title) => quickSaveTitle(cardId, list.id, title)}
+        ontogglecardlabel={(cardId, labelId, assign) => toggleCardLabel(cardId, list.id, labelId, assign)}
         oncardconsider={(e) => handleCardConsider(list.id, e)}
         oncardfinalize={(e) => handleCardFinalize(list.id, e)}
       />
@@ -526,6 +552,7 @@
       bind:addingCardToList
       bind:newCardTitle
       bind:datePickerCardId
+      bind:quickEditCardId
       ontogglecollapse={() => toggleCollapse(doneList!.id)}
       onarchivelist={() => archiveList(doneList!.id)}
       onsavelistname={saveListName}
@@ -535,6 +562,8 @@
       ontogglecardcompleted={(cardId, completed) => toggleCardCompleted(cardId, doneList!.id, completed)}
       onarchivecard={(cardId) => archiveCard(cardId, doneList!.id)}
       onsetcardduedate={(cardId, date) => setCardDueDate(cardId, doneList!.id, date)}
+      onquicksavetitle={(cardId, title) => quickSaveTitle(cardId, doneList!.id, title)}
+      ontogglecardlabel={(cardId, labelId, assign) => toggleCardLabel(cardId, doneList!.id, labelId, assign)}
       oncardconsider={(e) => handleCardConsider(doneList!.id, e)}
       oncardfinalize={(e) => handleCardFinalize(doneList!.id, e)}
     />

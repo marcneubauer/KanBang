@@ -18,6 +18,7 @@
     addingCardToList?: string | null;
     newCardTitle?: string;
     datePickerCardId?: string | null;
+    quickEditCardId?: string | null;
     ontogglecollapse: () => void;
     onarchivelist: () => void;
     onsavelistname: () => void;
@@ -27,6 +28,8 @@
     ontogglecardcompleted: (cardId: string, completed: boolean) => void;
     onarchivecard: (cardId: string) => void;
     onsetcardduedate: (cardId: string, date: string | null) => void;
+    onquicksavetitle: (cardId: string, title: string) => void;
+    ontogglecardlabel: (cardId: string, labelId: string, assign: boolean) => void;
     oncardconsider: (e: CardDndEvent) => void;
     oncardfinalize: (e: CardDndEvent) => void;
   }
@@ -44,6 +47,7 @@
     addingCardToList = $bindable(null),
     newCardTitle = $bindable(''),
     datePickerCardId = $bindable(null),
+    quickEditCardId = $bindable(null),
     ontogglecollapse,
     onarchivelist,
     onsavelistname,
@@ -53,6 +57,8 @@
     ontogglecardcompleted,
     onarchivecard,
     onsetcardduedate,
+    onquicksavetitle,
+    ontogglecardlabel,
     oncardconsider,
     oncardfinalize,
   }: Props = $props();
@@ -143,16 +149,20 @@
         <BoardCard
           {card}
           labels={cardLabels(card)}
+          {boardLabels}
           dimmed={isCardDimmed(card)}
           isDone={list.isDone}
           bind:editingCardId
           bind:editingCardTitle
           bind:datePickerCardId
+          bind:quickEditCardId
           oncardclick={() => oncardclick(card)}
           ontogglecompleted={(completed) => ontogglecardcompleted(card.id, completed)}
           onarchive={() => onarchivecard(card.id)}
           onsavetitle={onsavecardtitle}
           onsetduedate={(date) => onsetcardduedate(card.id, date)}
+          onquicksavetitle={(title) => onquicksavetitle(card.id, title)}
+          ontogglelabel={(labelId, assign) => ontogglecardlabel(card.id, labelId, assign)}
         />
       {/each}
     </div>

@@ -2,35 +2,44 @@
   import type { CardWithProgress, Label } from '@kanbang/shared';
   import { getDueDateStatus, formatDueDate } from '$lib/utils/due-date';
   import DatePicker from '$lib/components/DatePicker.svelte';
+  import QuickEditPopover from './QuickEditPopover.svelte';
 
   interface Props {
     card: CardWithProgress;
     labels?: Label[];
+    boardLabels?: Label[];
     dimmed?: boolean;
     isDone?: boolean;
     editingCardId?: string | null;
     editingCardTitle?: string;
     datePickerCardId?: string | null;
+    quickEditCardId?: string | null;
     oncardclick: () => void;
     ontogglecompleted: (completed: boolean) => void;
     onarchive: () => void;
     onsavetitle: () => void;
     onsetduedate: (date: string | null) => void;
+    onquicksavetitle: (title: string) => void;
+    ontogglelabel: (labelId: string, assign: boolean) => void;
   }
 
   let {
     card,
     labels = [],
+    boardLabels = [],
     dimmed = false,
     isDone = false,
     editingCardId = $bindable(null),
     editingCardTitle = $bindable(''),
     datePickerCardId = $bindable(null),
+    quickEditCardId = $bindable(null),
     oncardclick,
     ontogglecompleted,
     onarchive,
     onsavetitle,
     onsetduedate,
+    onquicksavetitle,
+    ontogglelabel,
   }: Props = $props();
 </script>
 
@@ -104,6 +113,21 @@
     </button>
   {/if}
   <button
+    class="card-quick-edit"
+    onclick={(e) => {
+      e.stopPropagation();
+      quickEditCardId = quickEditCardId === card.id ? null : card.id;
+    }}
+    aria-label="Quick edit card"
+  >
+    <svg viewBox="0 0 14 14" width="11" height="11"
+      fill="none" stroke="currentColor" stroke-width="1.2"
+      stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9.5 1.5l3 3L5 12l-3.5.5L2 9z"/>
+      <path d="M8 3l3 3"/>
+    </svg>
+  </button>
+  <button
     class="card-archive"
     onclick={onarchive}
     aria-label="Archive card"
@@ -129,6 +153,16 @@
       value={card.dueDate}
       onchange={(date) => onsetduedate(date)}
       onclose={() => { datePickerCardId = null; }}
+    />
+  {/if}
+  {#if quickEditCardId === card.id}
+    <QuickEditPopover
+      {card}
+      {boardLabels}
+      onsavetitle={onquicksavetitle}
+      {ontogglelabel}
+      {onsetduedate}
+      onclose={() => { quickEditCardId = null; }}
     />
   {/if}
   {#if card.checklistProgress && card.checklistProgress.total > 0}
@@ -234,7 +268,8 @@
     opacity: 0.6;
   }
 
-  .card-archive {
+  .card-archive,
+  .card-quick-edit {
     background: none;
     border: none;
     color: var(--color-text-subtle);
@@ -247,11 +282,13 @@
     flex-shrink: 0;
   }
 
-  .card-item:hover .card-archive {
+  .card-item:hover .card-archive,
+  .card-item:hover .card-quick-edit {
     opacity: 1;
   }
 
-  .card-archive:hover {
+  .card-archive:hover,
+  .card-quick-edit:hover {
     color: var(--color-text);
   }
 

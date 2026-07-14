@@ -213,6 +213,16 @@
       </button>
     </form>
   </section>
+
+  <section class="section">
+    <h2>Export data</h2>
+    <p class="section-desc">
+      Download all your boards, lists, cards, and checklists (including archived items) as a JSON file.
+    </p>
+    <a class="register-btn export-btn" href="/api/v1/export" download>
+      Download export
+    </a>
+  </section>
 </div>
 
 <style>
@@ -262,6 +272,13 @@
   .password-form input:focus {
     outline: none;
     border-color: var(--color-primary);
+  }
+
+  .export-btn {
+    display: block;
+    text-align: center;
+    text-decoration: none;
+    box-sizing: border-box;
   }
 
   h2 {

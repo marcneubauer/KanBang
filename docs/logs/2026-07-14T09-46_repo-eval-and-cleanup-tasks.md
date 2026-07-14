@@ -72,6 +72,14 @@ Actions (evaluation, plan mode):
 
 Final state: 212/212 unit+integration tests, lint clean, typecheck 0 errors.
 
+## Continuation: push + GH-10 labels
+
+**Prompt 4:** "go ahead and push if theres a remote attached, then continue with gh-10"
+
+- Pushed branch to origin (github.com/marcneubauer/KanBang) and committed dex state sync.
+- GH-10 labels (`30a021a`): `labels` + `card_labels` tables (migration 0006), LabelService, 6 routes (board label CRUD, card assign/remove with cross-board guard), labels in board detail + export. Web: colored chips on card faces (new BoardCard `labels`/`dimmed` props), header filter bar dims non-matching cards, `CardLabelsSection` in card modal (create/edit/delete, toggle, 10 preset colors). 12 integration tests + new `e2e/labels.spec.ts` (4 tests).
+- Final state: 224 unit/integration + 38 E2E tests green, lint clean, typecheck 0 errors.
+
 ## Remaining backlog (feature track, in recommended order)
 
-GH-10 labels → GH-26/GH-53 filter+search UI → GH-59 markdown, GH-60 keyboard move, GH-61 undo toast, GH-46 quick-edit.
+GH-26/GH-53 filter+search UI → GH-59 markdown, GH-60 keyboard move, GH-61 undo toast, GH-46 quick-edit.

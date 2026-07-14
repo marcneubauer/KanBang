@@ -34,6 +34,7 @@ const cardWithProgressSchema = {
         completed: { type: 'number' },
       },
     },
+    labelIds: { type: 'array', items: { type: 'string' } },
   },
 } as const;
 
@@ -143,6 +144,7 @@ export default async function boardRoutes(fastify: FastifyInstance) {
                 updatedAt:  { type: 'string' },
                 archivedAt: { type: ['string', 'null'] },
                 lists:      { type: 'array', items: listWithCardsSchema },
+                labels:     { type: 'array', items: { $ref: 'label#' } },
               },
             },
           },
@@ -153,12 +155,12 @@ export default async function boardRoutes(fastify: FastifyInstance) {
     const { user } = request as AuthenticatedRequest;
     const { boardId } = request.params;
 
+    await verifyBoardOwnership(boardId, user.id, boardService);
+    await boardService.archiveStaleDoneCards(boardId);
+
     const board = await boardService.getById(boardId);
     if (!board) {
       return reply.code(404).send({ error: 'Board not found', code: 'NOT_FOUND' });
-    }
-    if (board.userId !== user.id) {
-      return reply.code(403).send({ error: 'Forbidden', code: 'FORBIDDEN' });
     }
 
     return { board };

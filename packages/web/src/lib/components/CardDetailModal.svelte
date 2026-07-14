@@ -1,5 +1,14 @@
 <script lang="ts">
   import { api } from '$lib/api';
+  import { generateKeyBetween, type Label } from '@kanbang/shared';
+  import { renderMarkdown } from '$lib/utils/markdown';
+  import CardLabelsSection from './board/CardLabelsSection.svelte';
+
+  interface MoveTargetList {
+    id: string;
+    name: string;
+    cards: { id: string; position: string }[];
+  }
 
   interface ChecklistItemData {
     id: string;
@@ -17,11 +26,15 @@
     items: ChecklistItemData[];
   }
 
-  let { cardId, cardTitle, cardDescription, listId, onclose, onupdated }: {
+  let { cardId, cardTitle, cardDescription, listId, boardId, boardLabels, cardLabelIds, lists, onclose, onupdated }: {
     cardId: string;
     cardTitle: string;
     cardDescription: string | null;
     listId: string;
+    boardId: string;
+    boardLabels: Label[];
+    cardLabelIds: string[];
+    lists: MoveTargetList[];
     onclose: () => void;
     onupdated: () => void;
   } = $props();
@@ -182,6 +195,40 @@
     return { total, completed, percent: total > 0 ? Math.round((completed / total) * 100) : 0 };
   }
 
+  // --- Move card (keyboard-accessible alternative to drag-and-drop) ---
+  let moveTargetListId = $state(listId);
+  let movePosition = $state(1);
+  let moving = $state(false);
+
+  // Positions available in the target list, not counting this card itself
+  let moveSlotCount = $derived.by(() => {
+    const target = lists.find((l) => l.id === moveTargetListId);
+    if (!target) return 1;
+    return target.cards.filter((c) => c.id !== cardId).length + 1;
+  });
+
+  async function moveCard(e: Event) {
+    e.preventDefault();
+    const target = lists.find((l) => l.id === moveTargetListId);
+    if (!target) return;
+
+    const others = target.cards.filter((c) => c.id !== cardId);
+    const index = Math.min(movePosition, others.length + 1) - 1;
+    const before = index > 0 ? others[index - 1].position : null;
+    const after = index < others.length ? others[index].position : null;
+
+    moving = true;
+    try {
+      await api(`/cards/${cardId}/move`, {
+        method: 'PATCH',
+        body: JSON.stringify({ listId: moveTargetListId, position: generateKeyBetween(before, after) }),
+      });
+      onupdated();
+    } finally {
+      moving = false;
+    }
+  }
+
   function handleBackdropClick(e: MouseEvent) {
     if (e.target === e.currentTarget) onclose();
   }
@@ -215,6 +262,43 @@
       {/if}
     </div>
 
+    <!-- Labels -->
+    <div class="modal-section">
+      <CardLabelsSection
+        {cardId}
+        {boardId}
+        labels={boardLabels}
+        labelIds={cardLabelIds}
+        onchanged={onupdated}
+      />
+    </div>
+
+    <!-- Move card -->
+    <div class="modal-section">
+      <h3 class="section-label">Move</h3>
+      <form class="move-form" onsubmit={moveCard}>
+        <label class="move-field">
+          List
+          <select bind:value={moveTargetListId} aria-label="Target list">
+            {#each lists as list (list.id)}
+              <option value={list.id}>{list.name}</option>
+            {/each}
+          </select>
+        </label>
+        <label class="move-field">
+          Position
+          <select bind:value={movePosition} aria-label="Target position">
+            {#each Array.from({ length: moveSlotCount }, (_, i) => i + 1) as slot (slot)}
+              <option value={slot}>{slot}</option>
+            {/each}
+          </select>
+        </label>
+        <button type="submit" class="move-btn" disabled={moving}>
+          {moving ? 'Moving...' : 'Move'}
+        </button>
+      </form>
+    </div>
+
     <!-- Description -->
     <div class="modal-section">
       <h3 class="section-label">Description</h3>
@@ -232,11 +316,17 @@
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div
           class="description-display"
+          class:description-markdown={!!description}
           onclick={() => { editingDescription = true; }}
           onkeydown={(e) => { if (e.key === 'Enter') editingDescription = true; }}
           tabindex="0"
         >
-          {description || 'Add a description...'}
+          {#if description}
+            <!-- eslint-disable-next-line svelte/no-at-html-tags -- renderMarkdown output is DOMPurify-sanitized -->
+            {@html renderMarkdown(description)}
+          {:else}
+            Add a description...
+          {/if}
         </div>
       {/if}
     </div>
@@ -473,6 +563,45 @@
     resize: vertical;
   }
 
+  .move-form {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+  }
+
+  .move-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--color-text-subtle);
+  }
+
+  .move-form select {
+    padding: 5px 6px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    background: white;
+    color: var(--color-text);
+    cursor: pointer;
+  }
+
+  .move-btn {
+    padding: 6px 14px;
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .move-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
   .description-display {
     font-size: 14px;
     color: var(--color-text-subtle);
@@ -483,6 +612,65 @@
     min-height: 40px;
     white-space: pre-wrap;
     word-break: break-word;
+  }
+
+  /* Rendered markdown: undo pre-wrap (markdown handles breaks) and style common elements */
+  .description-markdown {
+    white-space: normal;
+    color: var(--color-text);
+  }
+
+  .description-markdown :global(p),
+  .description-markdown :global(ul),
+  .description-markdown :global(ol),
+  .description-markdown :global(pre),
+  .description-markdown :global(blockquote) {
+    margin: 0 0 8px;
+  }
+
+  .description-markdown :global(*:last-child) {
+    margin-bottom: 0;
+  }
+
+  .description-markdown :global(ul),
+  .description-markdown :global(ol) {
+    padding-left: 20px;
+  }
+
+  .description-markdown :global(h1),
+  .description-markdown :global(h2),
+  .description-markdown :global(h3) {
+    font-size: 15px;
+    margin: 8px 0 4px;
+  }
+
+  .description-markdown :global(code) {
+    background: rgba(0, 0, 0, 0.07);
+    border-radius: 3px;
+    padding: 1px 4px;
+    font-size: 13px;
+  }
+
+  .description-markdown :global(pre) {
+    background: rgba(0, 0, 0, 0.07);
+    border-radius: var(--radius-sm);
+    padding: 8px;
+    overflow-x: auto;
+  }
+
+  .description-markdown :global(pre code) {
+    background: none;
+    padding: 0;
+  }
+
+  .description-markdown :global(blockquote) {
+    border-left: 3px solid var(--color-border);
+    padding-left: 8px;
+    color: var(--color-text-subtle);
+  }
+
+  .description-markdown :global(a) {
+    color: var(--color-primary);
   }
 
   .loading-msg {

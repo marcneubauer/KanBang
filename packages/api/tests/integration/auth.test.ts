@@ -173,4 +173,92 @@ describe('Auth routes', () => {
       expect(response.statusCode).toBe(401);
     });
   });
+
+  describe('POST /api/v1/auth/change-password', () => {
+    const NEW_PASSWORD = 'newpassword12345';
+
+    it('changes the password and allows login with the new one', async () => {
+      const { sessionCookie } = await registerUser(app);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/change-password',
+        headers: authHeader(sessionCookie!),
+        payload: { currentPassword: 'password12345', newPassword: NEW_PASSWORD },
+      });
+      expect(response.statusCode).toBe(200);
+
+      const oldLogin = await loginUser(app);
+      expect(oldLogin.response.statusCode).toBe(401);
+
+      const newLogin = await loginUser(app, { password: NEW_PASSWORD });
+      expect(newLogin.response.statusCode).toBe(200);
+    });
+
+    it('rejects a wrong current password', async () => {
+      const { sessionCookie } = await registerUser(app);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/change-password',
+        headers: authHeader(sessionCookie!),
+        payload: { currentPassword: 'wrongpassword12345', newPassword: NEW_PASSWORD },
+      });
+      expect(response.statusCode).toBe(400);
+      expect(JSON.parse(response.body).code).toBe('INVALID_PASSWORD');
+
+      const login = await loginUser(app);
+      expect(login.response.statusCode).toBe(200);
+    });
+
+    it('rejects a too-short new password', async () => {
+      const { sessionCookie } = await registerUser(app);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/change-password',
+        headers: authHeader(sessionCookie!),
+        payload: { currentPassword: 'password12345', newPassword: 'short' },
+      });
+      expect(response.statusCode).toBe(400);
+      expect(JSON.parse(response.body).code).toBe('VALIDATION_ERROR');
+    });
+
+    it('invalidates other sessions but keeps the current one', async () => {
+      const { sessionCookie } = await registerUser(app);
+      const otherLogin = await loginUser(app);
+      const otherCookie = otherLogin.sessionCookie;
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/change-password',
+        headers: authHeader(sessionCookie!),
+        payload: { currentPassword: 'password12345', newPassword: NEW_PASSWORD },
+      });
+      expect(response.statusCode).toBe(200);
+
+      const otherMe = await app.inject({
+        method: 'GET',
+        url: '/api/v1/auth/me',
+        headers: authHeader(otherCookie!),
+      });
+      expect(otherMe.statusCode).toBe(401);
+
+      const currentMe = await app.inject({
+        method: 'GET',
+        url: '/api/v1/auth/me',
+        headers: authHeader(sessionCookie!),
+      });
+      expect(currentMe.statusCode).toBe(200);
+    });
+
+    it('returns 401 when not authenticated', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/change-password',
+        payload: { currentPassword: 'password12345', newPassword: NEW_PASSWORD },
+      });
+      expect(response.statusCode).toBe(401);
+    });
+  });
 });

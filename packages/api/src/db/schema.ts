@@ -6,3 +6,5 @@ export { lists } from './schema/lists.js';
 export { cards } from './schema/cards.js';
 export { checklists } from './schema/checklists.js';
 export { checklistItems } from './schema/checklist-items.js';
+export { labels } from './schema/labels.js';
+export { cardLabels } from './schema/card-labels.js';

@@ -85,6 +85,45 @@
       day: 'numeric',
     });
   }
+
+  // --- Change password ---
+  let currentPassword = $state('');
+  let newPassword = $state('');
+  let confirmPassword = $state('');
+  let passwordError = $state('');
+  let passwordSuccess = $state('');
+  let changingPassword = $state(false);
+
+  async function changePassword(e: Event) {
+    e.preventDefault();
+    passwordError = '';
+    passwordSuccess = '';
+
+    if (newPassword.length < 12) {
+      passwordError = 'New password must be at least 12 characters';
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      passwordError = 'New passwords do not match';
+      return;
+    }
+
+    changingPassword = true;
+    try {
+      await api('/auth/change-password', {
+        method: 'POST',
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      passwordSuccess = 'Password changed. Other sessions have been signed out.';
+      currentPassword = '';
+      newPassword = '';
+      confirmPassword = '';
+    } catch (err) {
+      passwordError = err instanceof ApiError ? err.message : 'Failed to change password';
+    } finally {
+      changingPassword = false;
+    }
+  }
 </script>
 
 <div class="settings-page">
@@ -141,6 +180,49 @@
       <p class="unsupported">Your browser does not support passkeys.</p>
     {/if}
   </section>
+
+  <section class="section">
+    <h2>Change password</h2>
+    <p class="section-desc">
+      Changing your password signs you out everywhere else.
+    </p>
+
+    {#if passwordError}
+      <div class="error" role="alert">{passwordError}</div>
+    {/if}
+
+    {#if passwordSuccess}
+      <div class="success" role="status" aria-live="polite">{passwordSuccess}</div>
+    {/if}
+
+    <form class="password-form" onsubmit={changePassword}>
+      <label>
+        Current password
+        <input type="password" bind:value={currentPassword} autocomplete="current-password" required />
+      </label>
+      <label>
+        New password
+        <input type="password" bind:value={newPassword} autocomplete="new-password" required minlength="12" />
+      </label>
+      <label>
+        Confirm new password
+        <input type="password" bind:value={confirmPassword} autocomplete="new-password" required minlength="12" />
+      </label>
+      <button type="submit" class="register-btn" disabled={changingPassword}>
+        {changingPassword ? 'Changing...' : 'Change password'}
+      </button>
+    </form>
+  </section>
+
+  <section class="section">
+    <h2>Export data</h2>
+    <p class="section-desc">
+      Download all your boards, lists, cards, and checklists (including archived items) as a JSON file.
+    </p>
+    <a class="register-btn export-btn" href="/api/v1/export" download>
+      Download export
+    </a>
+  </section>
 </div>
 
 <style>
@@ -160,6 +242,43 @@
     border-radius: var(--radius);
     padding: 20px;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  }
+
+  .section + .section {
+    margin-top: 20px;
+  }
+
+  .password-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .password-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13px;
+    color: var(--color-text-subtle);
+  }
+
+  .password-form input {
+    padding: 8px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+  }
+
+  .password-form input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+  }
+
+  .export-btn {
+    display: block;
+    text-align: center;
+    text-decoration: none;
+    box-sizing: border-box;
   }
 
   h2 {

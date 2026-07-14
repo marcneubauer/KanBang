@@ -15,7 +15,7 @@ import {
   convertToCardSchema,
 } from '@kanbang/shared/validation/checklist.js';
 import { validateBody } from '../../utils/validate.js';
-import { verifyListOwnership } from '../../utils/ownership.js';
+import { verifyListOwnership, verifyCardOwnership as verifyCardOwnershipUtil } from '../../utils/ownership.js';
 
 // Checklist with nested items (returned by create and list endpoints)
 const checklistWithItemsSchema = {
@@ -71,15 +71,8 @@ export default async function checklistRoutes(fastify: FastifyInstance) {
 
   fastify.addHook('preHandler', fastify.requireAuth);
 
-  async function verifyCardOwnership(cardId: string, userId: string): Promise<void> {
-    const listId = await cardService.getListId(cardId);
-    if (!listId) throw fastify.httpErrors.notFound('Card not found');
-    const boardId = await listService.getBoardId(listId);
-    if (!boardId) throw fastify.httpErrors.notFound('Card not found');
-    const board = await boardService.getById(boardId);
-    if (!board) throw fastify.httpErrors.notFound('Card not found');
-    if (board.userId !== userId) throw fastify.httpErrors.forbidden('Forbidden');
-  }
+  const verifyCardOwnership = (cardId: string, userId: string) =>
+    verifyCardOwnershipUtil(cardId, userId, cardService, listService, boardService);
 
   async function verifyChecklistOwnership(checklistId: string, userId: string): Promise<void> {
     const cardId = await checklistService.getCardId(checklistId);

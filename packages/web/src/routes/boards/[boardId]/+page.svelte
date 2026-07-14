@@ -226,10 +226,9 @@
   }
 
   // --- Drag and drop ---
-  // Known accessibility gap: svelte-dnd-action does not support keyboard-based
-  // reordering of lists or cards. Users who cannot use a mouse/pointer will not
-  // be able to reorder items via drag-and-drop. A future enhancement could add
-  // explicit "move up / move down" buttons as a keyboard-accessible alternative.
+  // svelte-dnd-action is mouse-only; the card detail modal's Move section is
+  // the keyboard-accessible alternative for moving cards. List reordering
+  // still has no keyboard path.
   function computePosition(items: { position: string }[], index: number): string {
     const before = index > 0 ? items[index - 1].position : null;
     const after = index < items.length - 1 ? items[index + 1].position : null;
@@ -581,6 +580,7 @@
       boardId={data.board.id}
       {boardLabels}
       cardLabelIds={modalCardLabelIds}
+      {lists}
       onclose={() => { modalCard = null; }}
       onupdated={handleModalUpdated}
     />

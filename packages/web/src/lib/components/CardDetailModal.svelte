@@ -1,8 +1,14 @@
 <script lang="ts">
   import { api } from '$lib/api';
-  import type { Label } from '@kanbang/shared';
+  import { generateKeyBetween, type Label } from '@kanbang/shared';
   import { renderMarkdown } from '$lib/utils/markdown';
   import CardLabelsSection from './board/CardLabelsSection.svelte';
+
+  interface MoveTargetList {
+    id: string;
+    name: string;
+    cards: { id: string; position: string }[];
+  }
 
   interface ChecklistItemData {
     id: string;
@@ -20,7 +26,7 @@
     items: ChecklistItemData[];
   }
 
-  let { cardId, cardTitle, cardDescription, listId, boardId, boardLabels, cardLabelIds, onclose, onupdated }: {
+  let { cardId, cardTitle, cardDescription, listId, boardId, boardLabels, cardLabelIds, lists, onclose, onupdated }: {
     cardId: string;
     cardTitle: string;
     cardDescription: string | null;
@@ -28,6 +34,7 @@
     boardId: string;
     boardLabels: Label[];
     cardLabelIds: string[];
+    lists: MoveTargetList[];
     onclose: () => void;
     onupdated: () => void;
   } = $props();
@@ -188,6 +195,40 @@
     return { total, completed, percent: total > 0 ? Math.round((completed / total) * 100) : 0 };
   }
 
+  // --- Move card (keyboard-accessible alternative to drag-and-drop) ---
+  let moveTargetListId = $state(listId);
+  let movePosition = $state(1);
+  let moving = $state(false);
+
+  // Positions available in the target list, not counting this card itself
+  let moveSlotCount = $derived.by(() => {
+    const target = lists.find((l) => l.id === moveTargetListId);
+    if (!target) return 1;
+    return target.cards.filter((c) => c.id !== cardId).length + 1;
+  });
+
+  async function moveCard(e: Event) {
+    e.preventDefault();
+    const target = lists.find((l) => l.id === moveTargetListId);
+    if (!target) return;
+
+    const others = target.cards.filter((c) => c.id !== cardId);
+    const index = Math.min(movePosition, others.length + 1) - 1;
+    const before = index > 0 ? others[index - 1].position : null;
+    const after = index < others.length ? others[index].position : null;
+
+    moving = true;
+    try {
+      await api(`/cards/${cardId}/move`, {
+        method: 'PATCH',
+        body: JSON.stringify({ listId: moveTargetListId, position: generateKeyBetween(before, after) }),
+      });
+      onupdated();
+    } finally {
+      moving = false;
+    }
+  }
+
   function handleBackdropClick(e: MouseEvent) {
     if (e.target === e.currentTarget) onclose();
   }
@@ -230,6 +271,32 @@
         labelIds={cardLabelIds}
         onchanged={onupdated}
       />
+    </div>
+
+    <!-- Move card -->
+    <div class="modal-section">
+      <h3 class="section-label">Move</h3>
+      <form class="move-form" onsubmit={moveCard}>
+        <label class="move-field">
+          List
+          <select bind:value={moveTargetListId} aria-label="Target list">
+            {#each lists as list (list.id)}
+              <option value={list.id}>{list.name}</option>
+            {/each}
+          </select>
+        </label>
+        <label class="move-field">
+          Position
+          <select bind:value={movePosition} aria-label="Target position">
+            {#each Array.from({ length: moveSlotCount }, (_, i) => i + 1) as slot (slot)}
+              <option value={slot}>{slot}</option>
+            {/each}
+          </select>
+        </label>
+        <button type="submit" class="move-btn" disabled={moving}>
+          {moving ? 'Moving...' : 'Move'}
+        </button>
+      </form>
     </div>
 
     <!-- Description -->
@@ -494,6 +561,45 @@
     font-size: 14px;
     font-family: inherit;
     resize: vertical;
+  }
+
+  .move-form {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+  }
+
+  .move-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--color-text-subtle);
+  }
+
+  .move-form select {
+    padding: 5px 6px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    background: white;
+    color: var(--color-text);
+    cursor: pointer;
+  }
+
+  .move-btn {
+    padding: 6px 14px;
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .move-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 
   .description-display {

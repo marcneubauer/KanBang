@@ -260,7 +260,8 @@
     opacity: 1;
   }
 
-  .card-item:hover .card-checkbox {
+  .card-item:hover .card-checkbox,
+  .card-item:focus-within .card-checkbox {
     opacity: 1;
   }
 
@@ -283,7 +284,9 @@
   }
 
   .card-item:hover .card-archive,
-  .card-item:hover .card-quick-edit {
+  .card-item:hover .card-quick-edit,
+  .card-item:focus-within .card-archive,
+  .card-item:focus-within .card-quick-edit {
     opacity: 1;
   }
 
@@ -305,7 +308,8 @@
     flex-shrink: 0;
   }
 
-  .card-item:hover .card-due-date-btn {
+  .card-item:hover .card-due-date-btn,
+  .card-item:focus-within .card-due-date-btn {
     opacity: 1;
   }
 

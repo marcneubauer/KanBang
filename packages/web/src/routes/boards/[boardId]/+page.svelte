@@ -5,6 +5,7 @@
   import { dndzone } from 'svelte-dnd-action';
   import { generateKeyBetween } from '@kanbang/shared';
   import type { Card, CardWithProgress, Label, ListWithCardsDetail } from '@kanbang/shared';
+  import { cardMatchesFilter, isFilterActive, type CardFilter, type DueFilter } from '$lib/utils/card-filter';
   import CardDetailModal from '$lib/components/CardDetailModal.svelte';
   import BoardSettingsModal from '$lib/components/BoardSettingsModal.svelte';
   import ListColumn from '$lib/components/board/ListColumn.svelte';
@@ -30,8 +31,17 @@
     return board;
   }
 
-  // --- Label filtering ---
+  // --- Card filtering (search text, labels, due date) ---
   const filterLabelIds = new SvelteSet<string>();
+  let searchQuery = $state('');
+  let dueFilter = $state<DueFilter>('any');
+
+  let cardFilter = $derived<CardFilter>({ query: searchQuery, labelIds: filterLabelIds, due: dueFilter });
+  let filterActive = $derived(isFilterActive(cardFilter));
+
+  function isCardDimmed(card: CardWithProgress): boolean {
+    return filterActive && !cardMatchesFilter(card, cardFilter);
+  }
 
   function toggleFilterLabel(labelId: string) {
     if (filterLabelIds.has(labelId)) {
@@ -39,6 +49,12 @@
     } else {
       filterLabelIds.add(labelId);
     }
+  }
+
+  function clearFilters() {
+    searchQuery = '';
+    dueFilter = 'any';
+    filterLabelIds.clear();
   }
 
   // --- List collapse ---
@@ -391,27 +407,39 @@
         tabindex="0"
       >{boardName}</h1>
     {/if}
-    {#if boardLabels.length > 0}
-      <div class="label-filter" role="group" aria-label="Filter by label">
-        {#each boardLabels as label (label.id)}
-          <button
-            class="label-filter-chip"
-            class:label-filter-active={filterLabelIds.has(label.id)}
-            style="background: {label.color}"
-            title={label.name || 'Unnamed label'}
-            aria-pressed={filterLabelIds.has(label.id)}
-            onclick={() => toggleFilterLabel(label.id)}
-          >
-            {label.name}
-          </button>
-        {/each}
-        {#if filterLabelIds.size > 0}
-          <button class="label-filter-clear" onclick={() => { filterLabelIds.clear(); }}>
-            Clear
-          </button>
-        {/if}
-      </div>
-    {/if}
+    <div class="board-filter" role="group" aria-label="Filter cards">
+      <input
+        class="filter-search"
+        type="search"
+        placeholder="Search cards..."
+        bind:value={searchQuery}
+        aria-label="Search cards"
+      />
+      {#each boardLabels as label (label.id)}
+        <button
+          class="label-filter-chip"
+          class:label-filter-active={filterLabelIds.has(label.id)}
+          style="background: {label.color}"
+          title={label.name || 'Unnamed label'}
+          aria-pressed={filterLabelIds.has(label.id)}
+          onclick={() => toggleFilterLabel(label.id)}
+        >
+          {label.name}
+        </button>
+      {/each}
+      <select class="filter-due" bind:value={dueFilter} aria-label="Filter by due date">
+        <option value="any">Due: any</option>
+        <option value="overdue">Overdue</option>
+        <option value="soon">Due soon</option>
+        <option value="has">Has due date</option>
+        <option value="none">No due date</option>
+      </select>
+      {#if filterActive}
+        <button class="label-filter-clear" onclick={clearFilters}>
+          Clear
+        </button>
+      {/if}
+    </div>
     <button class="board-header-btn" onclick={() => { showSettings = true; }} aria-label="Board settings">
       <svg viewBox="0 0 14 14" width="14" height="14"
         fill="none" stroke="currentColor" stroke-width="1.2"
@@ -437,7 +465,7 @@
         collapsed={collapsedListIds.has(list.id)}
         {flipDurationMs}
         {boardLabels}
-        {filterLabelIds}
+        {isCardDimmed}
         bind:editingListId
         bind:editingListName
         bind:editingCardId
@@ -490,7 +518,7 @@
       collapsed={collapsedListIds.has(doneList.id)}
       {flipDurationMs}
       {boardLabels}
-      {filterLabelIds}
+      {isCardDimmed}
       bind:editingListId
       bind:editingListName
       bind:editingCardId
@@ -593,13 +621,36 @@
     padding: 2px 8px;
   }
 
-  .label-filter {
+  .board-filter {
     display: flex;
     align-items: center;
     gap: 4px;
     flex-wrap: wrap;
     margin-left: auto;
     margin-right: 12px;
+  }
+
+  .filter-search {
+    padding: 4px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    width: 180px;
+  }
+
+  .filter-search:focus {
+    outline: none;
+    border-color: var(--color-primary);
+  }
+
+  .filter-due {
+    padding: 4px 6px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    background: white;
+    color: var(--color-text);
+    cursor: pointer;
   }
 
   .label-filter-chip {

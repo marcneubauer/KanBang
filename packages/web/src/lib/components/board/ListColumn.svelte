@@ -10,7 +10,7 @@
     collapsed: boolean;
     flipDurationMs: number;
     boardLabels?: Label[];
-    filterLabelIds?: ReadonlySet<string>;
+    isCardDimmed?: (card: CardWithProgress) => boolean;
     editingListId?: string | null;
     editingListName?: string;
     editingCardId?: string | null;
@@ -36,7 +36,7 @@
     collapsed,
     flipDurationMs,
     boardLabels = [],
-    filterLabelIds = new Set<string>(),
+    isCardDimmed = () => false,
     editingListId = $bindable(null),
     editingListName = $bindable(''),
     editingCardId = $bindable(null),
@@ -65,11 +65,6 @@
   function cardLabels(card: CardWithProgress): Label[] {
     if (card.labelIds.length === 0) return [];
     return boardLabels.filter((l) => card.labelIds.includes(l.id));
-  }
-
-  function isDimmed(card: CardWithProgress): boolean {
-    if (filterLabelIds.size === 0) return false;
-    return !card.labelIds.some((id) => filterLabelIds.has(id));
   }
 </script>
 
@@ -148,7 +143,7 @@
         <BoardCard
           {card}
           labels={cardLabels(card)}
-          dimmed={isDimmed(card)}
+          dimmed={isCardDimmed(card)}
           isDone={list.isDone}
           bind:editingCardId
           bind:editingCardTitle

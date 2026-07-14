@@ -95,6 +95,14 @@ Final state: 212/212 unit+integration tests, lint clean, typecheck 0 errors.
 - GH-46 (`a69748c`): `QuickEditPopover.svelte` — pencil icon on card hover opens an inline popover for title rename, label toggles, and due date set/remove without the full modal. Member assignment omitted (GH-13 not implemented). 4 E2E tests.
 - Final state: 244 unit/integration + 46 E2E green, lint clean, typecheck 0 errors.
 
-## Remaining backlog (feature track, in recommended order)
+## Continuation: GH-60 keyboard card move + GH-61 undo toast
 
-GH-60 keyboard card move → GH-61 undo toast.
+**Prompt 7:** "ok take on the last two"
+
+- GH-60 (`069a36c`): Move section in CardDetailModal (target list + position selects → PATCH /cards/:id/move with generateKeyBetween). Card hover buttons also reveal on `:focus-within` for keyboard reach. 2 E2E tests.
+- GH-61 (`1d711e2`): `toastStore.svelte.ts` + global `Toaster.svelte`; archiving a card/list shows a 6s Undo toast calling the unarchive endpoints. 5 unit + 3 E2E tests.
+- Final: 249 unit/integration + 51 E2E green, lint/typecheck clean.
+
+## Backlog status
+
+The entire agreed queue from the 2026-07-14 evaluation is complete. Remaining open dex tasks are the original pre-eval feature ideas (GH-2..GH-51: members, comments, attachments, board backgrounds, etc.), unprioritized.

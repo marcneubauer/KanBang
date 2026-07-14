@@ -1,6 +1,7 @@
 <script lang="ts">
   import { api } from '$lib/api';
   import type { Label } from '@kanbang/shared';
+  import { renderMarkdown } from '$lib/utils/markdown';
   import CardLabelsSection from './board/CardLabelsSection.svelte';
 
   interface ChecklistItemData {
@@ -248,11 +249,17 @@
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div
           class="description-display"
+          class:description-markdown={!!description}
           onclick={() => { editingDescription = true; }}
           onkeydown={(e) => { if (e.key === 'Enter') editingDescription = true; }}
           tabindex="0"
         >
-          {description || 'Add a description...'}
+          {#if description}
+            <!-- eslint-disable-next-line svelte/no-at-html-tags -- renderMarkdown output is DOMPurify-sanitized -->
+            {@html renderMarkdown(description)}
+          {:else}
+            Add a description...
+          {/if}
         </div>
       {/if}
     </div>
@@ -499,6 +506,65 @@
     min-height: 40px;
     white-space: pre-wrap;
     word-break: break-word;
+  }
+
+  /* Rendered markdown: undo pre-wrap (markdown handles breaks) and style common elements */
+  .description-markdown {
+    white-space: normal;
+    color: var(--color-text);
+  }
+
+  .description-markdown :global(p),
+  .description-markdown :global(ul),
+  .description-markdown :global(ol),
+  .description-markdown :global(pre),
+  .description-markdown :global(blockquote) {
+    margin: 0 0 8px;
+  }
+
+  .description-markdown :global(*:last-child) {
+    margin-bottom: 0;
+  }
+
+  .description-markdown :global(ul),
+  .description-markdown :global(ol) {
+    padding-left: 20px;
+  }
+
+  .description-markdown :global(h1),
+  .description-markdown :global(h2),
+  .description-markdown :global(h3) {
+    font-size: 15px;
+    margin: 8px 0 4px;
+  }
+
+  .description-markdown :global(code) {
+    background: rgba(0, 0, 0, 0.07);
+    border-radius: 3px;
+    padding: 1px 4px;
+    font-size: 13px;
+  }
+
+  .description-markdown :global(pre) {
+    background: rgba(0, 0, 0, 0.07);
+    border-radius: var(--radius-sm);
+    padding: 8px;
+    overflow-x: auto;
+  }
+
+  .description-markdown :global(pre code) {
+    background: none;
+    padding: 0;
+  }
+
+  .description-markdown :global(blockquote) {
+    border-left: 3px solid var(--color-border);
+    padding-left: 8px;
+    color: var(--color-text-subtle);
+  }
+
+  .description-markdown :global(a) {
+    color: var(--color-primary);
   }
 
   .loading-msg {

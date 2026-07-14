@@ -2,6 +2,7 @@
   import '../app.css';
   import { api } from '$lib/api';
   import ErrorIndicator from '$lib/components/ErrorIndicator.svelte';
+  import Toaster from '$lib/components/Toaster.svelte';
 
   let { data, children } = $props();
 
@@ -26,6 +27,8 @@
 <main class:has-nav={!!data.user}>
   {@render children()}
 </main>
+
+<Toaster />
 
 <style>
   .nav {

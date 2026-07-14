@@ -6,6 +6,7 @@
   import { generateKeyBetween } from '@kanbang/shared';
   import type { Card, CardWithProgress, Label, ListWithCardsDetail } from '@kanbang/shared';
   import { cardMatchesFilter, isFilterActive, type CardFilter, type DueFilter } from '$lib/utils/card-filter';
+  import { toastStore } from '$lib/toastStore.svelte';
   import CardDetailModal from '$lib/components/CardDetailModal.svelte';
   import BoardSettingsModal from '$lib/components/BoardSettingsModal.svelte';
   import ListColumn from '$lib/components/board/ListColumn.svelte';
@@ -153,9 +154,18 @@
   }
 
   async function archiveList(listId: string) {
+    const listName = lists.find((l) => l.id === listId)?.name;
     await api(`/lists/${listId}/archive`, { method: 'PATCH' });
     lists = lists.filter((l) => l.id !== listId);
     archivedItems = null;
+    toastStore.show(`List "${listName ?? 'list'}" archived`, {
+      actionLabel: 'Undo',
+      action: async () => {
+        await api(`/lists/${listId}/unarchive`, { method: 'PATCH' });
+        archivedItems = null;
+        await refetchBoard();
+      },
+    });
   }
 
   // --- Card actions ---
@@ -219,10 +229,19 @@
   }
 
   async function archiveCard(cardId: string, listId: string) {
+    const cardTitle = findCard(cardId, listId)?.title;
     await api(`/cards/${cardId}/archive`, { method: 'PATCH' });
     const listIndex = lists.findIndex((l) => l.id === listId);
     lists[listIndex].cards = lists[listIndex].cards.filter((c) => c.id !== cardId);
     archivedItems = null;
+    toastStore.show(`Card "${cardTitle ?? 'card'}" archived`, {
+      actionLabel: 'Undo',
+      action: async () => {
+        await api(`/cards/${cardId}/unarchive`, { method: 'PATCH' });
+        archivedItems = null;
+        await refetchBoard();
+      },
+    });
   }
 
   // --- Drag and drop ---

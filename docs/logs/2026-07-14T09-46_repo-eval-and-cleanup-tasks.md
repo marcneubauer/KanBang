@@ -87,6 +87,14 @@ Final state: 212/212 unit+integration tests, lint clean, typecheck 0 errors.
 - Both done in one commit (`088a765`): pure `cardMatchesFilter` util in `$lib/utils/card-filter.ts` combining text search (title+description, case-insensitive), label chips, and due-date filter (overdue/soon/has/none) with AND semantics. Non-matching cards dim in place. `ListColumn` now takes an `isCardDimmed` predicate instead of raw label state. Assignee filtering deferred until GH-13 members exist.
 - 14 unit tests + `e2e/board-filter.spec.ts` (3 tests). Final: 238 unit/integration + 41 E2E green.
 
+## Continuation: GH-59 markdown descriptions + GH-46 quick-edit
+
+**Prompt 6:** "do 59 and 46"
+
+- GH-59 (`92660f6`): `renderMarkdown` util (marked GFM + DOMPurify) renders description view mode in CardDetailModal; edit stays a textarea, raw text unchanged in DB. 6 unit tests (rendering + XSS stripping) + 1 E2E. New web deps: marked, dompurify.
+- GH-46 (`a69748c`): `QuickEditPopover.svelte` — pencil icon on card hover opens an inline popover for title rename, label toggles, and due date set/remove without the full modal. Member assignment omitted (GH-13 not implemented). 4 E2E tests.
+- Final state: 244 unit/integration + 46 E2E green, lint clean, typecheck 0 errors.
+
 ## Remaining backlog (feature track, in recommended order)
 
-GH-59 markdown descriptions → GH-60 keyboard card move → GH-61 undo toast → GH-46 quick-edit.
+GH-60 keyboard card move → GH-61 undo toast.

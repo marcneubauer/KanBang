@@ -301,6 +301,68 @@
     }
   }
 
+  // --- Comments ---
+  interface CommentData {
+    id: string;
+    body: string;
+    cardId: string;
+    createdAt: string;
+    updatedAt: string;
+  }
+
+  let comments = $state<CommentData[]>([]);
+  let newCommentBody = $state('');
+  let editingCommentId = $state<string | null>(null);
+  let editingCommentBody = $state('');
+
+  $effect(() => {
+    api<{ comments: CommentData[] }>(`/cards/${cardId}/comments`).then((result) => {
+      comments = result.comments;
+    });
+  });
+
+  async function addComment(e: Event) {
+    e.preventDefault();
+    if (!newCommentBody.trim()) return;
+    const { comment } = await api<{ comment: CommentData }>(`/cards/${cardId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ body: newCommentBody.trim() }),
+    });
+    comments = [comment, ...comments];
+    newCommentBody = '';
+    onupdated();
+  }
+
+  async function saveComment(commentId: string) {
+    if (!editingCommentBody.trim()) {
+      editingCommentId = null;
+      return;
+    }
+    const { comment } = await api<{ comment: CommentData }>(`/comments/${commentId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ body: editingCommentBody.trim() }),
+    });
+    const idx = comments.findIndex((c) => c.id === commentId);
+    if (idx !== -1) comments[idx] = comment;
+    editingCommentId = null;
+  }
+
+  async function deleteComment(commentId: string) {
+    if (!confirm('Delete this comment?')) return;
+    await api(`/comments/${commentId}`, { method: 'DELETE' });
+    comments = comments.filter((c) => c.id !== commentId);
+    onupdated();
+  }
+
+  function formatCommentDate(iso: string) {
+    return new Date(iso).toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
   function handleBackdropClick(e: MouseEvent) {
     if (e.target === e.currentTarget) onclose();
   }
@@ -449,6 +511,51 @@
           {/if}
         </div>
       {/if}
+    </div>
+
+    <!-- Comments -->
+    <div class="modal-section">
+      <h3 class="section-label">Comments</h3>
+      <form class="comment-form" onsubmit={addComment}>
+        <textarea
+          bind:value={newCommentBody}
+          rows="2"
+          placeholder="Write a comment... (markdown supported)"
+        ></textarea>
+        <button type="submit" class="move-btn" disabled={!newCommentBody.trim()}>Comment</button>
+      </form>
+      {#each comments as comment (comment.id)}
+        <div class="comment">
+          <div class="comment-meta">
+            <span class="comment-date">{formatCommentDate(comment.createdAt)}</span>
+            {#if comment.updatedAt !== comment.createdAt}
+              <span class="comment-edited">(edited)</span>
+            {/if}
+            <button
+              class="comment-action"
+              onclick={() => { editingCommentId = comment.id; editingCommentBody = comment.body; }}
+            >Edit</button>
+            <button class="comment-action comment-delete" onclick={() => deleteComment(comment.id)}>
+              Delete
+            </button>
+          </div>
+          {#if editingCommentId === comment.id}
+            <!-- svelte-ignore a11y_autofocus -->
+            <textarea
+              class="comment-edit-textarea"
+              bind:value={editingCommentBody}
+              onblur={() => saveComment(comment.id)}
+              rows="2"
+              autofocus
+            ></textarea>
+          {:else}
+            <div class="comment-body">
+              <!-- eslint-disable-next-line svelte/no-at-html-tags -- renderMarkdown output is DOMPurify-sanitized -->
+              {@html renderMarkdown(comment.body)}
+            </div>
+          {/if}
+        </div>
+      {/each}
     </div>
 
     <!-- Checklists -->
@@ -754,6 +861,70 @@
     margin-top: 8px;
     font-size: 13px;
     color: #166534;
+  }
+
+  .comment-form {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin-bottom: 12px;
+  }
+
+  .comment-form textarea,
+  .comment-edit-textarea {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-family: inherit;
+    resize: vertical;
+    width: 100%;
+  }
+
+  .comment {
+    padding: 8px 0;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .comment-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .comment-date {
+    font-size: 11px;
+    color: var(--color-text-subtle);
+  }
+
+  .comment-edited {
+    font-size: 11px;
+    color: var(--color-text-subtle);
+    font-style: italic;
+  }
+
+  .comment-action {
+    background: none;
+    border: none;
+    font-size: 11px;
+    color: var(--color-text-subtle);
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+  }
+
+  .comment-delete:hover {
+    color: var(--color-danger);
+  }
+
+  .comment-body {
+    font-size: 13px;
+  }
+
+  .comment-body :global(p) {
+    margin: 0 0 4px;
   }
 
   .description-display {

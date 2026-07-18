@@ -109,6 +109,18 @@ export const labelSchema = {
   },
 } as const;
 
+export const commentSchema = {
+  $id: 'comment',
+  type: 'object',
+  properties: {
+    id:        { type: 'string' },
+    body:      { type: 'string' },
+    cardId:    { type: 'string' },
+    createdAt: { type: 'string' },
+    updatedAt: { type: 'string' },
+  },
+} as const;
+
 export const allSchemas = [
   userSchema,
   boardSchema,
@@ -117,4 +129,5 @@ export const allSchemas = [
   checklistSchema,
   checklistItemSchema,
   labelSchema,
+  commentSchema,
 ] as const;

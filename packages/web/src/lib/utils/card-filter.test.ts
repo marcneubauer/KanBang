@@ -18,6 +18,7 @@ function makeCard(overrides: Partial<CardWithProgress> = {}): CardWithProgress {
     archivedAt: null,
     checklistProgress: { total: 0, completed: 0 },
     labelIds: [],
+    commentCount: 0,
     ...overrides,
   };
 }

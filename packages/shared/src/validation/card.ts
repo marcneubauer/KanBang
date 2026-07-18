@@ -23,6 +23,7 @@ export const cardsResponseSchema = z.object({ cards: z.array(cardSchema) });
 export const cardWithProgressSchema = cardSchema.extend({
   checklistProgress: checklistProgressSchema,
   labelIds: z.array(z.string()),
+  commentCount: z.number(),
 });
 export type CardWithProgress = z.infer<typeof cardWithProgressSchema>;
 

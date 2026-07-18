@@ -243,7 +243,7 @@
     const listIndex = lists.findIndex((l) => l.id === listId);
     lists[listIndex].cards = [
       ...lists[listIndex].cards,
-      { ...card, checklistProgress: { total: 0, completed: 0 }, labelIds: [] },
+      { ...card, checklistProgress: { total: 0, completed: 0 }, labelIds: [], commentCount: 0 },
     ];
   }
 
@@ -280,7 +280,7 @@
       if (newListIdx !== -1) {
         lists[newListIdx].cards = [
           ...lists[newListIdx].cards,
-          { ...updatedCard, checklistProgress: { total: 0, completed: 0 }, labelIds: [] },
+          { ...updatedCard, checklistProgress: { total: 0, completed: 0 }, labelIds: [], commentCount: 0 },
         ];
       }
     } else {

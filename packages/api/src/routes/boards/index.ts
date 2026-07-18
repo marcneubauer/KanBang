@@ -36,6 +36,7 @@ const cardWithProgressSchema = {
       },
     },
     labelIds: { type: 'array', items: { type: 'string' } },
+    commentCount: { type: 'number' },
   },
 } as const;
 

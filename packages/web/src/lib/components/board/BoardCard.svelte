@@ -188,6 +188,16 @@
       onclose={() => { quickEditCardId = null; }}
     />
   {/if}
+  {#if card.commentCount > 0}
+    <span class="comment-badge" title="{card.commentCount} comments">
+      <svg viewBox="0 0 16 16" width="12" height="12"
+        fill="none" stroke="currentColor" stroke-width="1.2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 10.5a1.5 1.5 0 01-1.5 1.5H5l-3 3V3.5A1.5 1.5 0 013.5 2h9A1.5 1.5 0 0114 3.5z"/>
+      </svg>
+      {card.commentCount}
+    </span>
+  {/if}
   {#if card.checklistProgress && card.checklistProgress.total > 0}
     <span
       class="checklist-badge"
@@ -405,6 +415,20 @@
     color: #555;
     width: auto;
     margin-top: 4px;
+  }
+
+  .comment-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: #f0f0f0;
+    color: #555;
+    width: auto;
+    margin-top: 4px;
+    margin-right: 4px;
   }
 
   .checklist-badge-complete {

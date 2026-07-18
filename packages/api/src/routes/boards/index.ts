@@ -23,6 +23,7 @@ const cardWithProgressSchema = {
     listId:      { type: 'string' },
     position:    { type: 'string' },
     completed:   { type: 'boolean' },
+    isTemplate:  { type: 'boolean' },
     completedAt: { type: ['string', 'null'] },
     dueDate:     { type: ['string', 'null'] },
     createdAt:   { type: 'string' },

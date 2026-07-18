@@ -163,6 +163,9 @@
       <line x1="8.5" y1="3.5" x2="8.8" y2="12.5"/>
     </svg>
   </button>
+  {#if card.isTemplate}
+    <span class="template-badge">Template</span>
+  {/if}
   {#if card.number != null}
     <span class="card-number">#{card.number}</span>
   {/if}
@@ -235,6 +238,19 @@
   .card-number {
     font-size: 11px;
     color: var(--color-text-subtle);
+    margin-top: 4px;
+    margin-right: 6px;
+  }
+
+  .template-badge {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #6b5b95;
+    background: #efeaf7;
+    border-radius: 3px;
+    padding: 2px 6px;
     margin-top: 4px;
     margin-right: 6px;
   }

@@ -59,6 +59,7 @@ export class CardService {
     const updates: Partial<typeof cards.$inferInsert> = { updatedAt: new Date() };
     if (input.title !== undefined) updates.title = input.title;
     if (input.description !== undefined) updates.description = input.description;
+    if (input.isTemplate !== undefined) updates.isTemplate = input.isTemplate;
     if (input.dueDate !== undefined) updates.dueDate = input.dueDate;
 
     if (input.completed !== undefined) {
@@ -182,6 +183,8 @@ export class CardService {
         description: source.description,
         listId: input.listId,
         position,
+        // Copies are working cards, even when the source is a template
+        isTemplate: false,
         completed: source.completed,
         completedAt: source.completedAt,
         dueDate: source.dueDate,

@@ -26,10 +26,11 @@
     items: ChecklistItemData[];
   }
 
-  let { cardId, cardTitle, cardDescription, listId, boardId, boardLabels, cardLabelIds, lists, defaultLabelColor, onclose, onupdated }: {
+  let { cardId, cardTitle, cardDescription, cardIsTemplate = false, listId, boardId, boardLabels, cardLabelIds, lists, defaultLabelColor, onclose, onupdated }: {
     cardId: string;
     cardTitle: string;
     cardDescription: string | null;
+    cardIsTemplate?: boolean;
     listId: string;
     boardId: string;
     boardLabels: Label[];
@@ -301,6 +302,19 @@
     }
   }
 
+  // --- Template flag ---
+  let isTemplate = $state(cardIsTemplate);
+
+  async function toggleTemplate(e: Event) {
+    const checked = (e.target as HTMLInputElement).checked;
+    isTemplate = checked;
+    await api(`/cards/${cardId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ isTemplate: checked }),
+    });
+    onupdated();
+  }
+
   // --- Comments ---
   interface CommentData {
     id: string;
@@ -479,6 +493,10 @@
       {#if copyMessage}
         <p class="copy-message" role="status" aria-live="polite">{copyMessage}</p>
       {/if}
+      <label class="copy-option template-toggle">
+        <input type="checkbox" checked={isTemplate} onchange={toggleTemplate} />
+        Template card — appears as a "From template" option when adding cards to this list
+      </label>
     </div>
 
     <!-- Description -->
@@ -861,6 +879,12 @@
     margin-top: 8px;
     font-size: 13px;
     color: #166534;
+  }
+
+  .template-toggle {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--color-text-subtle);
   }
 
   .comment-form {

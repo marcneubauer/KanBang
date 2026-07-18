@@ -9,6 +9,7 @@ export const cardSchema = z.object({
   listId: z.string(),
   position: z.string(),
   completed: z.boolean(),
+  isTemplate: z.boolean(),
   completedAt: z.string().datetime().nullable(),
   dueDate: z.string().datetime().nullable(),
   createdAt: z.string().datetime(),
@@ -37,6 +38,7 @@ export const updateCardSchema = z.object({
   title: z.string().min(1).max(500).trim().optional(),
   description: z.string().max(5000).nullable().optional(),
   completed: z.boolean().optional(),
+  isTemplate: z.boolean().optional(),
   dueDate: z.coerce.date().nullable().optional(),
 });
 

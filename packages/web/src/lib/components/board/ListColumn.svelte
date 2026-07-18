@@ -30,6 +30,7 @@
     onsavelistname: () => void;
     onsavecardtitle: () => void;
     onsubmitnewcard: (e: Event) => void;
+    onaddfromtemplate: (templateCardId: string) => void;
     oncardclick: (card: CardWithProgress) => void;
     ontogglecardcompleted: (cardId: string, completed: boolean) => void;
     onarchivecard: (cardId: string) => void;
@@ -65,6 +66,7 @@
     onsavelistname,
     onsavecardtitle,
     onsubmitnewcard,
+    onaddfromtemplate,
     oncardclick,
     ontogglecardcompleted,
     onarchivecard,
@@ -129,6 +131,7 @@
   }
 
   let overLimit = $derived(list.cardLimit != null && list.cards.length > list.cardLimit);
+  let templateCards = $derived(list.cards.filter((c) => c.isTemplate));
 
   function cardLabels(card: CardWithProgress): Label[] {
     if (card.labelIds.length === 0) return [];
@@ -314,6 +317,20 @@
           <button type="submit" class="btn-primary-sm">Add Card</button>
           <button type="button" class="btn-close" onclick={() => { addingCardToList = null; newCardTitle = ''; }}>&times;</button>
         </div>
+        {#if templateCards.length > 0}
+          <div class="template-chips">
+            <span class="template-chips-label">From template:</span>
+            {#each templateCards as template (template.id)}
+              <button
+                type="button"
+                class="template-chip"
+                onclick={() => { onaddfromtemplate(template.id); addingCardToList = null; }}
+              >
+                {template.title}
+              </button>
+            {/each}
+          </div>
+        {/if}
       </form>
     {:else}
       <button class="add-card-btn" onclick={() => { addingCardToList = list.id; }}>
@@ -612,6 +629,37 @@
     color: var(--color-text-subtle);
     cursor: pointer;
     padding: 0 6px;
+  }
+
+  .template-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    margin-top: 6px;
+  }
+
+  .template-chips-label {
+    font-size: 11px;
+    color: var(--color-text-subtle);
+  }
+
+  .template-chip {
+    font-size: 12px;
+    padding: 2px 8px;
+    background: #efeaf7;
+    color: #6b5b95;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .template-chip:hover {
+    background: #e2d8f0;
   }
 
   .list-column-done {

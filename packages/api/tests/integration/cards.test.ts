@@ -649,6 +649,39 @@ describe('Card routes', () => {
     });
   });
 
+  describe('card templates', () => {
+    it('toggles the template flag via PATCH', async () => {
+      const { body: cardBody } = await createCard(app, cookie, listId, 'Weekly review');
+      const res = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/cards/${cardBody.card.id}`,
+        headers: authHeader(cookie),
+        payload: { isTemplate: true },
+      });
+      expect(JSON.parse(res.body).card.isTemplate).toBe(true);
+    });
+
+    it('a copy of a template is a normal card', async () => {
+      const { body: cardBody } = await createCard(app, cookie, listId, 'Template card');
+      await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/cards/${cardBody.card.id}`,
+        headers: authHeader(cookie),
+        payload: { isTemplate: true },
+      });
+
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/v1/cards/${cardBody.card.id}/copy`,
+        headers: authHeader(cookie),
+        payload: { listId },
+      });
+      const { card: copy } = JSON.parse(res.body);
+      expect(copy.isTemplate).toBe(false);
+      expect(copy.title).toBe('Template card');
+    });
+  });
+
   describe('card numbering', () => {
     it('assigns sequential board-scoped numbers', async () => {
       const { body: c1 } = await createCard(app, cookie, listId, 'One');

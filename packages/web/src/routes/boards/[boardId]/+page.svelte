@@ -225,6 +225,14 @@
     toastStore.show(`List "${listName ?? 'list'}" moved to ${boardName ?? 'board'}`);
   }
 
+  async function addFromTemplate(listId: string, templateCardId: string) {
+    await api(`/cards/${templateCardId}/copy`, {
+      method: 'POST',
+      body: JSON.stringify({ listId }),
+    });
+    await refetchBoard();
+  }
+
   async function setCardLimit(listId: string, cardLimit: number | null) {
     const { list } = await api<{ list: ListWithCardsDetail }>(`/lists/${listId}`, {
       method: 'PATCH',
@@ -414,7 +422,7 @@
   }
 
   // --- Card detail modal ---
-  let modalCard = $state<{ id: string; title: string; description: string | null; listId: string } | null>(null);
+  let modalCard = $state<{ id: string; title: string; description: string | null; listId: string; isTemplate: boolean } | null>(null);
   let clickTimer: ReturnType<typeof setTimeout> | null = null;
 
   function handleCardClick(card: CardWithProgress, listId: string) {
@@ -425,7 +433,7 @@
     } else {
       clickTimer = setTimeout(() => {
         clickTimer = null;
-        modalCard = { id: card.id, title: card.title, description: card.description, listId };
+        modalCard = { id: card.id, title: card.title, description: card.description, listId, isTemplate: card.isTemplate };
       }, 250);
     }
   }
@@ -436,7 +444,7 @@
       for (const list of lists) {
         const card = list.cards.find((c) => c.id === modalCard!.id);
         if (card) {
-          modalCard = { id: card.id, title: card.title, description: card.description, listId: list.id };
+          modalCard = { id: card.id, title: card.title, description: card.description, listId: list.id, isTemplate: card.isTemplate };
           break;
         }
       }
@@ -598,6 +606,7 @@
         onsavelistname={saveListName}
         onsavecardtitle={saveCardTitle}
         onsubmitnewcard={(e) => submitNewCard(e, list.id)}
+        onaddfromtemplate={(templateCardId) => addFromTemplate(list.id, templateCardId)}
         oncardclick={(card) => handleCardClick(card, list.id)}
         ontogglecardcompleted={(cardId, completed) => toggleCardCompleted(cardId, list.id, completed)}
         onarchivecard={(cardId) => archiveCard(cardId, list.id)}
@@ -660,6 +669,7 @@
       onsavelistname={saveListName}
       onsavecardtitle={saveCardTitle}
       onsubmitnewcard={(e) => submitNewCard(e, doneList!.id)}
+      onaddfromtemplate={(templateCardId) => addFromTemplate(doneList!.id, templateCardId)}
       oncardclick={(card) => handleCardClick(card, doneList!.id)}
       ontogglecardcompleted={(cardId, completed) => toggleCardCompleted(cardId, doneList!.id, completed)}
       onarchivecard={(cardId) => archiveCard(cardId, doneList!.id)}
@@ -679,6 +689,7 @@
       cardId={modalCard.id}
       cardTitle={modalCard.title}
       cardDescription={modalCard.description}
+      cardIsTemplate={modalCard.isTemplate}
       listId={modalCard.listId}
       boardId={data.board.id}
       defaultLabelColor={accentColor || undefined}

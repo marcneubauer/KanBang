@@ -10,6 +10,7 @@
     collapsed: boolean;
     flipDurationMs: number;
     boardLabels?: Label[];
+    cardAgingDays?: number | null;
     isCardDimmed?: (card: CardWithProgress) => boolean;
     editingListId?: string | null;
     editingListName?: string;
@@ -41,6 +42,7 @@
     collapsed,
     flipDurationMs,
     boardLabels = [],
+    cardAgingDays = null,
     isCardDimmed = () => false,
     editingListId = $bindable(null),
     editingListName = $bindable(''),
@@ -246,6 +248,7 @@
           {boardLabels}
           dimmed={isCardDimmed(card)}
           isDone={list.isDone}
+          agingDays={cardAgingDays}
           bind:editingCardId
           bind:editingCardTitle
           bind:datePickerCardId

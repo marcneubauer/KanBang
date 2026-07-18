@@ -20,15 +20,17 @@
   })));
 
   let boardLabels: Label[] = $state(data.board.labels);
+  let cardAgingDays = $state<number | null>(data.board.cardAgingDays ?? null);
 
   const flipDurationMs = 200;
 
   async function refetchBoard() {
-    const { board } = await api<{ board: { name: string; lists: ListWithCardsDetail[]; labels: Label[] } }>(
+    const { board } = await api<{ board: { name: string; lists: ListWithCardsDetail[]; labels: Label[]; cardAgingDays: number | null } }>(
       `/boards/${data.board.id}`,
     );
     lists = board.lists.map((l) => ({ ...l, cards: l.cards.map((c) => ({ ...c })) }));
     boardLabels = board.labels;
+    cardAgingDays = board.cardAgingDays;
     return board;
   }
 
@@ -530,6 +532,7 @@
         collapsed={collapsedListIds.has(list.id)}
         {flipDurationMs}
         {boardLabels}
+        {cardAgingDays}
         {isCardDimmed}
         bind:editingListId
         bind:editingListName
@@ -588,6 +591,7 @@
       collapsed={collapsedListIds.has(doneList.id)}
       {flipDurationMs}
       {boardLabels}
+      {cardAgingDays}
       {isCardDimmed}
       bind:editingListId
       bind:editingListName
@@ -637,6 +641,7 @@
     <BoardSettingsModal
       boardId={data.board.id}
       boardName={boardName}
+      {cardAgingDays}
       lists={lists.map((l) => ({ id: l.id, name: l.name, isDone: l.isDone }))}
       onclose={() => { showSettings = false; }}
       onupdated={async () => {

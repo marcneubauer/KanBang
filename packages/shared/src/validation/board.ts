@@ -7,7 +7,8 @@ export const createBoardSchema = z.object({
 });
 
 export const updateBoardSchema = z.object({
-  name: z.string().min(1).max(100).trim(),
+  name: z.string().min(1).max(100).trim().optional(),
+  cardAgingDays: z.number().int().min(1).max(365).nullable().optional(),
 });
 
 export type CreateBoardInput = z.infer<typeof createBoardSchema>;
@@ -17,6 +18,7 @@ export const boardSchema = z.object({
   id: z.string(),
   name: z.string(),
   userId: z.string(),
+  cardAgingDays: z.number().int().nullable(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
   archivedAt: z.string().datetime().nullable(),

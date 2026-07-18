@@ -10,6 +10,7 @@
     boardLabels?: Label[];
     dimmed?: boolean;
     isDone?: boolean;
+    agingDays?: number | null;
     editingCardId?: string | null;
     editingCardTitle?: string;
     datePickerCardId?: string | null;
@@ -29,6 +30,7 @@
     boardLabels = [],
     dimmed = false,
     isDone = false,
+    agingDays = null,
     editingCardId = $bindable(null),
     editingCardTitle = $bindable(''),
     datePickerCardId = $bindable(null),
@@ -41,9 +43,27 @@
     onquicksavetitle,
     ontogglelabel,
   }: Props = $props();
+
+  // Card aging: untouched cards fade in tiers at 1x/2x/4x the configured period
+  let agingTier = $derived.by(() => {
+    if (!agingDays || isDone || card.completed) return 0;
+    const ageDays = (Date.now() - new Date(card.updatedAt).getTime()) / 86_400_000;
+    if (ageDays >= agingDays * 4) return 3;
+    if (ageDays >= agingDays * 2) return 2;
+    if (ageDays >= agingDays) return 1;
+    return 0;
+  });
 </script>
 
-<div class="card-item" class:card-item-done={isDone} class:card-item-dimmed={dimmed}>
+<div
+  class="card-item"
+  class:card-item-done={isDone}
+  class:card-item-dimmed={dimmed}
+  class:card-aging-1={agingTier === 1}
+  class:card-aging-2={agingTier === 2}
+  class:card-aging-3={agingTier === 3}
+  title={agingTier > 0 ? 'This card has not been touched in a while' : undefined}
+>
   {#if labels.length > 0}
     <div class="card-labels">
       {#each labels as label (label.id)}
@@ -205,6 +225,25 @@
 
   .card-item-dimmed {
     opacity: 0.25;
+  }
+
+  /* Card aging: progressively dusty as cards go untouched */
+  .card-aging-1 {
+    opacity: 0.85;
+    background: #fdfcf7;
+  }
+
+  .card-aging-2 {
+    opacity: 0.7;
+    background: #faf6e8;
+    box-shadow: none;
+  }
+
+  .card-aging-3 {
+    opacity: 0.55;
+    background: #f5eed8;
+    box-shadow: none;
+    filter: saturate(0.7);
   }
 
   .card-labels {

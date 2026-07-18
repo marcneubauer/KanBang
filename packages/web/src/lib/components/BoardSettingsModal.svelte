@@ -8,9 +8,10 @@
     isDone: boolean;
   }
 
-  let { boardId, boardName: initialBoardName, lists, onclose, onupdated }: {
+  let { boardId, boardName: initialBoardName, cardAgingDays, lists, onclose, onupdated }: {
     boardId: string;
     boardName: string;
+    cardAgingDays: number | null;
     lists: DoneListOption[];
     onclose: () => void;
     onupdated: () => void;
@@ -51,6 +52,18 @@
     await api(`/boards/${boardId}`, {
       method: 'PATCH',
       body: JSON.stringify({ name: trimmed }),
+    });
+    onupdated();
+  }
+
+  let selectedAgingDays = $state(cardAgingDays != null ? String(cardAgingDays) : '');
+
+  async function handleAgingChange(e: Event) {
+    const value = (e.target as HTMLSelectElement).value;
+    selectedAgingDays = value;
+    await api(`/boards/${boardId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ cardAgingDays: value ? parseInt(value, 10) : null }),
     });
     onupdated();
   }
@@ -107,6 +120,27 @@
         {#each lists as list (list.id)}
           <option value={list.id}>{list.name}</option>
         {/each}
+      </select>
+    </div>
+
+    <!-- Card aging section -->
+    <div class="modal-section">
+      <h3 class="section-label">Card aging</h3>
+
+      <label class="field-label" for="card-aging-select">
+        Fade cards that haven't been touched for a while
+      </label>
+      <select
+        id="card-aging-select"
+        class="field-input"
+        value={selectedAgingDays}
+        onchange={handleAgingChange}
+      >
+        <option value="">Off</option>
+        <option value="7">After 1 week</option>
+        <option value="14">After 2 weeks</option>
+        <option value="30">After 1 month</option>
+        <option value="90">After 3 months</option>
       </select>
     </div>
 

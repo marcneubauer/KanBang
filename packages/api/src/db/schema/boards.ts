@@ -7,6 +7,7 @@ export const boards = sqliteTable('boards', {
   userId: text('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
+  cardAgingDays: integer('card_aging_days'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
   archivedAt: integer('archived_at', { mode: 'timestamp' }),

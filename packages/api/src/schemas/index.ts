@@ -22,12 +22,13 @@ export const boardSchema = {
   $id: 'board',
   type: 'object',
   properties: {
-    id:         { type: 'string' },
-    name:       { type: 'string' },
-    userId:     { type: 'string' },
-    createdAt:  { type: 'string' },
-    updatedAt:  { type: 'string' },
-    archivedAt: { type: ['string', 'null'] },
+    id:            { type: 'string' },
+    name:          { type: 'string' },
+    userId:        { type: 'string' },
+    cardAgingDays: { type: ['number', 'null'] },
+    createdAt:     { type: 'string' },
+    updatedAt:     { type: 'string' },
+    archivedAt:    { type: ['string', 'null'] },
   },
 } as const;
 

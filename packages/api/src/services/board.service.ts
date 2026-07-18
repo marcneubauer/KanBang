@@ -144,9 +144,13 @@ export class BoardService {
   }
 
   async update(boardId: string, input: UpdateBoardInput) {
+    const updates: Partial<typeof boards.$inferInsert> = { updatedAt: new Date() };
+    if (input.name !== undefined) updates.name = input.name;
+    if (input.cardAgingDays !== undefined) updates.cardAgingDays = input.cardAgingDays;
+
     const [board] = await this.db
       .update(boards)
-      .set({ name: input.name, updatedAt: new Date() })
+      .set(updates)
       .where(eq(boards.id, boardId))
       .returning();
 

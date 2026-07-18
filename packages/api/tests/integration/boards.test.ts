@@ -140,6 +140,43 @@ describe('Board routes', () => {
       expect(response.statusCode).toBe(200);
       expect(body.board.name).toBe('Updated Name');
     });
+
+    it('sets and clears card aging without touching the name', async () => {
+      const { body: boardBody } = await createBoard(app, cookie, 'Aging Board');
+      const boardId = boardBody.board.id;
+
+      const setRes = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/boards/${boardId}`,
+        headers: authHeader(cookie),
+        payload: { cardAgingDays: 14 },
+      });
+      const setBody = JSON.parse(setRes.body);
+      expect(setRes.statusCode).toBe(200);
+      expect(setBody.board.cardAgingDays).toBe(14);
+      expect(setBody.board.name).toBe('Aging Board');
+
+      const clearRes = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/boards/${boardId}`,
+        headers: authHeader(cookie),
+        payload: { cardAgingDays: null },
+      });
+      expect(JSON.parse(clearRes.body).board.cardAgingDays).toBeNull();
+    });
+
+    it('rejects out-of-range card aging values', async () => {
+      const { body: boardBody } = await createBoard(app, cookie);
+      for (const cardAgingDays of [0, -5, 366, 'soon']) {
+        const res = await app.inject({
+          method: 'PATCH',
+          url: `/api/v1/boards/${boardBody.board.id}`,
+          headers: authHeader(cookie),
+          payload: { cardAgingDays },
+        });
+        expect(res.statusCode).toBe(400);
+      }
+    });
   });
 
   describe('PATCH /api/v1/boards/:boardId/archive', () => {

@@ -232,6 +232,44 @@
       tokenCopied = false;
     }
   }
+
+  // --- Trello import ---
+  interface ImportSummary {
+    boardId: string;
+    boardName: string;
+    lists: number;
+    cards: number;
+    labels: number;
+    checklists: number;
+    checklistItems: number;
+  }
+
+  let importFile = $state<FileList | null>(null);
+  let importing = $state(false);
+  let importError = $state('');
+  let importSummary = $state<ImportSummary | null>(null);
+
+  async function importTrello() {
+    const file = importFile?.[0];
+    if (!file) return;
+
+    importError = '';
+    importSummary = null;
+    importing = true;
+    try {
+      const text = await file.text();
+      const { summary } = await api<{ summary: ImportSummary }>('/import/trello', {
+        method: 'POST',
+        body: text,
+      });
+      importSummary = summary;
+      importFile = null;
+    } catch (err) {
+      importError = err instanceof ApiError ? err.message : 'Import failed — is this a Trello board JSON export?';
+    } finally {
+      importing = false;
+    }
+  }
 </script>
 
 <div class="settings-page">
@@ -409,6 +447,40 @@
   </section>
 
   <section class="section">
+    <h2>Import from Trello</h2>
+    <p class="section-desc">
+      Import a Trello board as a new KanBang board. In Trello, open the board menu →
+      "Print, export, and share" → "Export as JSON", save the file, and upload it here.
+      Lists, cards, labels, due dates, checklists, and archived items are preserved.
+      Repeat per board.
+    </p>
+
+    {#if importError}
+      <div class="error" role="alert">{importError}</div>
+    {/if}
+
+    {#if importSummary}
+      <div class="success" role="status" aria-live="polite">
+        Imported <strong>{importSummary.boardName}</strong>: {importSummary.lists} lists,
+        {importSummary.cards} cards, {importSummary.labels} labels,
+        {importSummary.checklists} checklists ({importSummary.checklistItems} items).
+        <a href={`/boards/${importSummary.boardId}`}>Open board</a>
+      </div>
+    {/if}
+
+    <div class="import-controls">
+      <input type="file" accept=".json,application/json" bind:files={importFile} />
+      <button
+        class="register-btn token-btn"
+        onclick={importTrello}
+        disabled={importing || !importFile?.length}
+      >
+        {importing ? 'Importing...' : 'Import board'}
+      </button>
+    </div>
+  </section>
+
+  <section class="section">
     <h2>Export data</h2>
     <p class="section-desc">
       Download all your boards, lists, cards, and checklists (including archived items) as a JSON file.
@@ -562,6 +634,22 @@
   .token-btn {
     width: auto;
     padding: 8px 14px;
+  }
+
+  .import-controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .import-controls input[type='file'] {
+    flex: 1;
+    font-size: 13px;
+  }
+
+  .success a {
+    color: inherit;
+    font-weight: 600;
   }
 
   h2 {

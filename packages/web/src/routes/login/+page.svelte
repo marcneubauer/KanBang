@@ -33,7 +33,11 @@
       window.location.href = '/boards';
     } catch (err) {
       if (err instanceof ApiError) {
-        error = err.message;
+        // Generic messages only — raw API errors could aid user enumeration
+        error =
+          err.status === 429
+            ? 'Too many attempts. Please wait a minute and try again.'
+            : 'Invalid email or password';
       } else {
         error = 'An unexpected error occurred';
       }

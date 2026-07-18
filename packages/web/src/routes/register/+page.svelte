@@ -20,7 +20,14 @@
       window.location.href = '/boards';
     } catch (err) {
       if (err instanceof ApiError) {
-        error = err.message;
+        // Generic messages only — raw API errors could aid user enumeration
+        if (err.status === 409) {
+          error = 'That email or username is unavailable.';
+        } else if (err.status === 429) {
+          error = 'Too many attempts. Please wait a minute and try again.';
+        } else {
+          error = 'Registration failed. Please check your details and try again.';
+        }
       } else {
         error = 'An unexpected error occurred';
       }

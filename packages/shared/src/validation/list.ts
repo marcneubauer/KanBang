@@ -7,6 +7,7 @@ export const listSchema = z.object({
   boardId: z.string(),
   position: z.string(),
   isDone: z.boolean(),
+  cardLimit: z.number().int().nullable(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
   archivedAt: z.string().datetime().nullable(),
@@ -33,7 +34,8 @@ export const createListSchema = z.object({
 });
 
 export const updateListSchema = z.object({
-  name: z.string().min(1).max(100).trim(),
+  name: z.string().min(1).max(100).trim().optional(),
+  cardLimit: z.number().int().min(1).max(999).nullable().optional(),
 });
 
 export const reorderListSchema = z.object({

@@ -22,6 +22,7 @@
     ontogglecollapse: () => void;
     onarchivelist: () => void;
     onsortlist: (by: 'name' | 'dueDate' | 'createdAt', direction: 'asc' | 'desc') => void;
+    onsetcardlimit: (limit: number | null) => void;
     onsavelistname: () => void;
     onsavecardtitle: () => void;
     onsubmitnewcard: (e: Event) => void;
@@ -52,6 +53,7 @@
     ontogglecollapse,
     onarchivelist,
     onsortlist,
+    onsetcardlimit,
     onsavelistname,
     onsavecardtitle,
     onsubmitnewcard,
@@ -71,6 +73,7 @@
   }
 
   let sortMenuOpen = $state(false);
+  let limitInput = $state('');
 
   const SORT_OPTIONS = [
     { label: 'Name (A–Z)', by: 'name', direction: 'asc' },
@@ -79,10 +82,30 @@
     { label: 'Oldest first', by: 'createdAt', direction: 'asc' },
   ] as const;
 
+  function toggleSortMenu() {
+    sortMenuOpen = !sortMenuOpen;
+    if (sortMenuOpen) limitInput = list.cardLimit != null ? String(list.cardLimit) : '';
+  }
+
   function pickSort(by: 'name' | 'dueDate' | 'createdAt', direction: 'asc' | 'desc') {
     sortMenuOpen = false;
     onsortlist(by, direction);
   }
+
+  function applyCardLimit(e: Event) {
+    e.preventDefault();
+    const parsed = parseInt(limitInput, 10);
+    if (Number.isNaN(parsed) || parsed < 1) return;
+    sortMenuOpen = false;
+    onsetcardlimit(Math.min(parsed, 999));
+  }
+
+  function clearCardLimit() {
+    sortMenuOpen = false;
+    onsetcardlimit(null);
+  }
+
+  let overLimit = $derived(list.cardLimit != null && list.cards.length > list.cardLimit);
 
   function cardLabels(card: CardWithProgress): Label[] {
     if (card.labelIds.length === 0) return [];
@@ -105,7 +128,7 @@
     {/if}
     <span class="list-collapsed-name">{list.name}</span>
     {#if list.cards.length > 0}
-      <span class="list-collapsed-count">{list.cards.length}</span>
+      <span class="list-collapsed-count" class:wip-over={list.cardLimit != null && list.cards.length > list.cardLimit}>{list.cards.length}</span>
     {/if}
   </div>
 {:else}
@@ -134,10 +157,17 @@
           {list.name}
         </h2>
       {/if}
+      {#if list.cardLimit != null}
+        <span
+          class="wip-badge"
+          class:wip-over={overLimit}
+          title={overLimit ? 'Card limit exceeded' : 'Card limit'}
+        >{list.cards.length}/{list.cardLimit}</span>
+      {/if}
       <button
         class="list-sort-btn"
-        onclick={() => { sortMenuOpen = !sortMenuOpen; }}
-        aria-label="Sort list {list.name}"
+        onclick={toggleSortMenu}
+        aria-label="List options for {list.name}"
         aria-expanded={sortMenuOpen}
       >
         <svg viewBox="0 0 14 14" width="12" height="12"
@@ -164,6 +194,22 @@
               {option.label}
             </button>
           {/each}
+          <div class="sort-menu-divider"></div>
+          <span class="sort-menu-title">Card limit</span>
+          <form class="wip-limit-row" onsubmit={applyCardLimit}>
+            <input
+              type="number"
+              min="1"
+              max="999"
+              placeholder="None"
+              bind:value={limitInput}
+              aria-label="Card limit for {list.name}"
+            />
+            <button type="submit" class="wip-limit-set">Set</button>
+            {#if list.cardLimit != null}
+              <button type="button" class="wip-limit-clear" onclick={clearCardLimit}>Clear</button>
+            {/if}
+          </form>
         </div>
       {/if}
       <button class="list-collapse-btn" onclick={ontogglecollapse} aria-label="Collapse list">
@@ -341,6 +387,64 @@
 
   .sort-menu-item:hover {
     background: rgba(0, 0, 0, 0.05);
+  }
+
+  .sort-menu-divider {
+    height: 1px;
+    background: var(--color-border);
+    margin: 4px 0;
+  }
+
+  .wip-limit-row {
+    display: flex;
+    gap: 4px;
+    padding: 4px 12px 8px;
+    align-items: center;
+  }
+
+  .wip-limit-row input {
+    width: 56px;
+    padding: 4px 6px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+  }
+
+  .wip-limit-set,
+  .wip-limit-clear {
+    background: none;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 4px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--color-text);
+  }
+
+  .wip-limit-set:hover,
+  .wip-limit-clear:hover {
+    background: rgba(0, 0, 0, 0.05);
+  }
+
+  .wip-badge {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--color-text-subtle);
+    background: rgba(0, 0, 0, 0.08);
+    border-radius: 10px;
+    padding: 2px 7px;
+    margin: 0 4px;
+    white-space: nowrap;
+  }
+
+  .wip-badge.wip-over {
+    background: #eb5a46;
+    color: white;
+  }
+
+  .list-collapsed-count.wip-over {
+    background: #eb5a46;
+    color: white;
   }
 
   .list-name {

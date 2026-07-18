@@ -1,0 +1,1 @@
+ALTER TABLE `lists` ADD `card_limit` integer;

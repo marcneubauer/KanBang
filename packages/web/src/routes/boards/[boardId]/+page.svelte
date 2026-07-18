@@ -183,6 +183,15 @@
       .map((c) => ({ ...c, position: positions.get(c.id) ?? c.position }));
   }
 
+  async function setCardLimit(listId: string, cardLimit: number | null) {
+    const { list } = await api<{ list: ListWithCardsDetail }>(`/lists/${listId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ cardLimit }),
+    });
+    const idx = lists.findIndex((l) => l.id === listId);
+    if (idx !== -1) lists[idx].cardLimit = list.cardLimit;
+  }
+
   // --- Card actions ---
   async function addCard(listId: string, title: string) {
     const { card } = await api<{ card: Card }>(`/lists/${listId}/cards`, {
@@ -533,6 +542,7 @@
         ontogglecollapse={() => toggleCollapse(list.id)}
         onarchivelist={() => archiveList(list.id)}
         onsortlist={(by, direction) => sortList(list.id, by, direction)}
+        onsetcardlimit={(limit) => setCardLimit(list.id, limit)}
         onsavelistname={saveListName}
         onsavecardtitle={saveCardTitle}
         onsubmitnewcard={(e) => submitNewCard(e, list.id)}
@@ -590,6 +600,7 @@
       ontogglecollapse={() => toggleCollapse(doneList!.id)}
       onarchivelist={() => archiveList(doneList!.id)}
       onsortlist={(by, direction) => sortList(doneList!.id, by, direction)}
+      onsetcardlimit={(limit) => setCardLimit(doneList!.id, limit)}
       onsavelistname={saveListName}
       onsavecardtitle={saveCardTitle}
       onsubmitnewcard={(e) => submitNewCard(e, doneList!.id)}

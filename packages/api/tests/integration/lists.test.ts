@@ -119,6 +119,43 @@ describe('List routes', () => {
       expect(response.statusCode).toBe(200);
       expect(body.list.name).toBe('Done');
     });
+
+    it('sets and clears the card limit (WIP limit)', async () => {
+      const { body: listBody } = await createList(app, cookie, boardId, 'To Do');
+      const listId = listBody.list.id;
+
+      const setRes = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/lists/${listId}`,
+        headers: authHeader(cookie),
+        payload: { cardLimit: 5 },
+      });
+      expect(setRes.statusCode).toBe(200);
+      expect(JSON.parse(setRes.body).list.cardLimit).toBe(5);
+      // Name untouched by a limit-only update
+      expect(JSON.parse(setRes.body).list.name).toBe('To Do');
+
+      const clearRes = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/lists/${listId}`,
+        headers: authHeader(cookie),
+        payload: { cardLimit: null },
+      });
+      expect(JSON.parse(clearRes.body).list.cardLimit).toBeNull();
+    });
+
+    it('rejects invalid card limits', async () => {
+      const { body: listBody } = await createList(app, cookie, boardId, 'To Do');
+      for (const cardLimit of [0, -1, 1.5, 'ten']) {
+        const res = await app.inject({
+          method: 'PATCH',
+          url: `/api/v1/lists/${listBody.list.id}`,
+          headers: authHeader(cookie),
+          payload: { cardLimit },
+        });
+        expect(res.statusCode).toBe(400);
+      }
+    });
   });
 
   describe('PATCH /api/v1/lists/:listId/reorder', () => {

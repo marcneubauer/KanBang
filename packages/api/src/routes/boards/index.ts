@@ -47,6 +47,7 @@ const listWithCardsSchema = {
     boardId:    { type: 'string' },
     position:   { type: 'string' },
     isDone:     { type: 'boolean' },
+    cardLimit:  { type: ['number', 'null'] },
     createdAt:  { type: 'string' },
     updatedAt:  { type: 'string' },
     archivedAt: { type: ['string', 'null'] },

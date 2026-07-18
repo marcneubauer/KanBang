@@ -36,9 +36,13 @@ export class ListService {
   }
 
   async update(listId: string, input: UpdateListInput) {
+    const updates: Partial<typeof lists.$inferInsert> = { updatedAt: new Date() };
+    if (input.name !== undefined) updates.name = input.name;
+    if (input.cardLimit !== undefined) updates.cardLimit = input.cardLimit;
+
     const [list] = await this.db
       .update(lists)
-      .set({ name: input.name, updatedAt: new Date() })
+      .set(updates)
       .where(eq(lists.id, listId))
       .returning();
 

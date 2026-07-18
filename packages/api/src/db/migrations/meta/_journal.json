@@ -57,6 +57,13 @@
       "when": 1784413484299,
       "tag": "0007_needy_bastion",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1784414186954,
+      "tag": "0008_lively_titanium_man",
+      "breakpoints": true
     }
   ]
 }

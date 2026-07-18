@@ -8,6 +8,7 @@ import {
   reorderListSchema,
   setDoneListSchema,
   sortListSchema,
+  moveListToBoardSchema,
 } from '@kanbang/shared/validation/list.js';
 import { validateBody } from '../../utils/validate.js';
 import { verifyBoardOwnership, verifyListOwnership } from '../../utils/ownership.js';
@@ -166,6 +167,53 @@ export default async function listRoutes(fastify: FastifyInstance) {
 
       const cards = await listService.sortCards(listId, data);
       return { cards };
+    },
+  );
+
+  // PATCH /api/v1/lists/:listId/move-to-board
+  fastify.patch<{ Params: { listId: string } }>(
+    '/lists/:listId/move-to-board',
+    {
+      schema: {
+        response: {
+          200: listResponse200,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { user } = request as AuthenticatedRequest;
+      const { listId } = request.params;
+
+      await verifyListOwnership(listId, user.id, listService, boardService);
+
+      const data = await validateBody(moveListToBoardSchema, request.body, reply);
+      if (!data) return;
+
+      await verifyBoardOwnership(data.boardId, user.id, boardService);
+
+      const list = await listService.moveToBoard(listId, data.boardId);
+      return { list };
+    },
+  );
+
+  // POST /api/v1/lists/:listId/copy
+  fastify.post<{ Params: { listId: string } }>(
+    '/lists/:listId/copy',
+    {
+      schema: {
+        response: {
+          201: listResponse201,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { user } = request as AuthenticatedRequest;
+      const { listId } = request.params;
+
+      await verifyListOwnership(listId, user.id, listService, boardService);
+
+      const list = await listService.copy(listId);
+      return reply.code(201).send({ list });
     },
   );
 

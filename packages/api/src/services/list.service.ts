@@ -1,7 +1,7 @@
-import { eq, asc, desc, and, ne, isNull } from 'drizzle-orm';
+import { eq, asc, desc, and, ne, isNull, inArray } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { Database } from '../db/index.js';
-import { lists, cards } from '../db/schema.js';
+import { lists, cards, cardLabels, checklists, checklistItems } from '../db/schema.js';
 import { generateKeyBetween } from '@kanbang/shared/utils/fractional-index.js';
 import type { CreateListInput, UpdateListInput, SortListInput } from '@kanbang/shared/validation/list.js';
 
@@ -171,6 +171,144 @@ export class ListService {
         result.push({ ...card, position: prev, updatedAt: now });
       }
       return result;
+    });
+  }
+
+  /** Move a list (and its cards) to another board, appended after its active lists. */
+  async moveToBoard(listId: string, targetBoardId: string) {
+    const list = await this.getById(listId);
+    if (!list) return null;
+    if (list.boardId === targetBoardId) return list;
+
+    const [lastList] = await this.db
+      .select({ position: lists.position })
+      .from(lists)
+      .where(and(eq(lists.boardId, targetBoardId), isNull(lists.archivedAt)))
+      .orderBy(desc(lists.position))
+      .limit(1);
+    const position = generateKeyBetween(lastList?.position ?? null, null);
+    const now = new Date();
+
+    return this.db.transaction((tx) => {
+      // isDone resets: the Done designation belongs to the source board
+      const [moved] = tx
+        .update(lists)
+        .set({ boardId: targetBoardId, position, isDone: false, updatedAt: now })
+        .where(eq(lists.id, listId))
+        .returning()
+        .all();
+
+      // Labels are board-scoped: drop assignments for every card in this list
+      const cardRows = tx
+        .select({ id: cards.id })
+        .from(cards)
+        .where(eq(cards.listId, listId))
+        .all();
+      if (cardRows.length > 0) {
+        tx.delete(cardLabels)
+          .where(inArray(cardLabels.cardId, cardRows.map((c) => c.id)))
+          .run();
+      }
+
+      return moved ?? null;
+    });
+  }
+
+  /** Duplicate a list and its active cards (labels + checklists included) on the same board. */
+  async copy(listId: string) {
+    const source = await this.getByIdWithCards(listId);
+    if (!source) return null;
+
+    const [lastList] = await this.db
+      .select({ position: lists.position })
+      .from(lists)
+      .where(and(eq(lists.boardId, source.boardId), isNull(lists.archivedAt)))
+      .orderBy(desc(lists.position))
+      .limit(1);
+    const position = generateKeyBetween(lastList?.position ?? null, null);
+    const now = new Date();
+
+    return this.db.transaction((tx) => {
+      const newList = {
+        id: nanoid(),
+        name: `${source.name} (copy)`.slice(0, 100),
+        boardId: source.boardId,
+        position,
+        isDone: false,
+        cardLimit: source.cardLimit,
+        createdAt: now,
+        updatedAt: now,
+      };
+      tx.insert(lists).values(newList).run();
+
+      let prevCardKey: string | null = null;
+      for (const card of source.cards) {
+        prevCardKey = generateKeyBetween(prevCardKey, null);
+        const newCardId = nanoid();
+        tx.insert(cards)
+          .values({
+            id: newCardId,
+            title: card.title,
+            description: card.description,
+            listId: newList.id,
+            position: prevCardKey,
+            completed: card.completed,
+            completedAt: card.completedAt,
+            dueDate: card.dueDate,
+            createdAt: now,
+            updatedAt: now,
+            archivedAt: null,
+          })
+          .run();
+
+        const labelRows = tx
+          .select()
+          .from(cardLabels)
+          .where(eq(cardLabels.cardId, card.id))
+          .all();
+        for (const row of labelRows) {
+          tx.insert(cardLabels).values({ cardId: newCardId, labelId: row.labelId }).run();
+        }
+
+        const sourceChecklists = tx
+          .select()
+          .from(checklists)
+          .where(eq(checklists.cardId, card.id))
+          .all();
+        for (const cl of sourceChecklists) {
+          const newChecklistId = nanoid();
+          tx.insert(checklists)
+            .values({
+              id: newChecklistId,
+              name: cl.name,
+              cardId: newCardId,
+              position: cl.position,
+              createdAt: now,
+              updatedAt: now,
+            })
+            .run();
+          const items = tx
+            .select()
+            .from(checklistItems)
+            .where(eq(checklistItems.checklistId, cl.id))
+            .all();
+          for (const item of items) {
+            tx.insert(checklistItems)
+              .values({
+                id: nanoid(),
+                title: item.title,
+                checklistId: newChecklistId,
+                position: item.position,
+                completed: item.completed,
+                createdAt: now,
+                updatedAt: now,
+              })
+              .run();
+          }
+        }
+      }
+
+      return newList;
     });
   }
 

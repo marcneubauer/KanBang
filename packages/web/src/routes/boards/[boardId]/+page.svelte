@@ -200,6 +200,31 @@
       .map((c) => ({ ...c, position: positions.get(c.id) ?? c.position }));
   }
 
+  // Other boards for the "Move to board" list menu action
+  let allBoards = $state<Array<{ id: string; name: string }>>([]);
+  $effect(() => {
+    api<{ boards: Array<{ id: string; name: string }> }>('/boards').then(({ boards }) => {
+      allBoards = boards;
+    });
+  });
+  let otherBoards = $derived(allBoards.filter((b) => b.id !== data.board.id));
+
+  async function copyList(listId: string) {
+    await api(`/lists/${listId}/copy`, { method: 'POST' });
+    await refetchBoard();
+  }
+
+  async function moveListToBoard(listId: string, targetBoardId: string) {
+    const listName = lists.find((l) => l.id === listId)?.name;
+    await api(`/lists/${listId}/move-to-board`, {
+      method: 'PATCH',
+      body: JSON.stringify({ boardId: targetBoardId }),
+    });
+    lists = lists.filter((l) => l.id !== listId);
+    const boardName = allBoards.find((b) => b.id === targetBoardId)?.name;
+    toastStore.show(`List "${listName ?? 'list'}" moved to ${boardName ?? 'board'}`);
+  }
+
   async function setCardLimit(listId: string, cardLimit: number | null) {
     const { list } = await api<{ list: ListWithCardsDetail }>(`/lists/${listId}`, {
       method: 'PATCH',
@@ -567,6 +592,9 @@
         onarchivelist={() => archiveList(list.id)}
         onsortlist={(by, direction) => sortList(list.id, by, direction)}
         onsetcardlimit={(limit) => setCardLimit(list.id, limit)}
+        {otherBoards}
+        oncopylist={() => copyList(list.id)}
+        onmovelisttoboard={(targetBoardId) => moveListToBoard(list.id, targetBoardId)}
         onsavelistname={saveListName}
         onsavecardtitle={saveCardTitle}
         onsubmitnewcard={(e) => submitNewCard(e, list.id)}
@@ -626,6 +654,9 @@
       onarchivelist={() => archiveList(doneList!.id)}
       onsortlist={(by, direction) => sortList(doneList!.id, by, direction)}
       onsetcardlimit={(limit) => setCardLimit(doneList!.id, limit)}
+      {otherBoards}
+      oncopylist={() => copyList(doneList!.id)}
+      onmovelisttoboard={(targetBoardId) => moveListToBoard(doneList!.id, targetBoardId)}
       onsavelistname={saveListName}
       onsavecardtitle={saveCardTitle}
       onsubmitnewcard={(e) => submitNewCard(e, doneList!.id)}

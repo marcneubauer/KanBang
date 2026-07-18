@@ -11,6 +11,7 @@
     flipDurationMs: number;
     boardLabels?: Label[];
     cardAgingDays?: number | null;
+    otherBoards?: Array<{ id: string; name: string }>;
     isCardDimmed?: (card: CardWithProgress) => boolean;
     editingListId?: string | null;
     editingListName?: string;
@@ -24,6 +25,8 @@
     onarchivelist: () => void;
     onsortlist: (by: 'name' | 'dueDate' | 'createdAt', direction: 'asc' | 'desc') => void;
     onsetcardlimit: (limit: number | null) => void;
+    oncopylist: () => void;
+    onmovelisttoboard: (boardId: string) => void;
     onsavelistname: () => void;
     onsavecardtitle: () => void;
     onsubmitnewcard: (e: Event) => void;
@@ -43,6 +46,7 @@
     flipDurationMs,
     boardLabels = [],
     cardAgingDays = null,
+    otherBoards = [],
     isCardDimmed = () => false,
     editingListId = $bindable(null),
     editingListName = $bindable(''),
@@ -56,6 +60,8 @@
     onarchivelist,
     onsortlist,
     onsetcardlimit,
+    oncopylist,
+    onmovelisttoboard,
     onsavelistname,
     onsavecardtitle,
     onsubmitnewcard,
@@ -105,6 +111,21 @@
   function clearCardLimit() {
     sortMenuOpen = false;
     onsetcardlimit(null);
+  }
+
+  let moveBoardTarget = $state('');
+
+  function copyList() {
+    sortMenuOpen = false;
+    oncopylist();
+  }
+
+  function moveToBoard(e: Event) {
+    e.preventDefault();
+    if (!moveBoardTarget) return;
+    sortMenuOpen = false;
+    onmovelisttoboard(moveBoardTarget);
+    moveBoardTarget = '';
   }
 
   let overLimit = $derived(list.cardLimit != null && list.cards.length > list.cardLimit);
@@ -212,6 +233,22 @@
               <button type="button" class="wip-limit-clear" onclick={clearCardLimit}>Clear</button>
             {/if}
           </form>
+          <div class="sort-menu-divider"></div>
+          <button class="sort-menu-item" role="menuitem" onclick={copyList}>
+            Copy list
+          </button>
+          {#if otherBoards.length > 0}
+            <span class="sort-menu-title">Move to board</span>
+            <form class="wip-limit-row" onsubmit={moveToBoard}>
+              <select bind:value={moveBoardTarget} aria-label="Move list {list.name} to board">
+                <option value="" disabled>Choose…</option>
+                {#each otherBoards as board (board.id)}
+                  <option value={board.id}>{board.name}</option>
+                {/each}
+              </select>
+              <button type="submit" class="wip-limit-set" disabled={!moveBoardTarget}>Move</button>
+            </form>
+          {/if}
         </div>
       {/if}
       <button class="list-collapse-btn" onclick={ontogglecollapse} aria-label="Collapse list">
@@ -411,6 +448,21 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     font-size: 13px;
+  }
+
+  .wip-limit-row select {
+    flex: 1;
+    min-width: 0;
+    padding: 4px 6px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    background: white;
+  }
+
+  .wip-limit-set:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   .wip-limit-set,

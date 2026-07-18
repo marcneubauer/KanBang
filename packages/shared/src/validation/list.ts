@@ -51,8 +51,13 @@ export const sortListSchema = z.object({
   direction: z.enum(['asc', 'desc']).default('asc'),
 });
 
+export const moveListToBoardSchema = z.object({
+  boardId: z.string().min(1),
+});
+
 export type CreateListInput = z.infer<typeof createListSchema>;
 export type UpdateListInput = z.infer<typeof updateListSchema>;
 export type ReorderListInput = z.infer<typeof reorderListSchema>;
 export type SetDoneListInput = z.infer<typeof setDoneListSchema>;
 export type SortListInput = z.infer<typeof sortListSchema>;
+export type MoveListToBoardInput = z.infer<typeof moveListToBoardSchema>;

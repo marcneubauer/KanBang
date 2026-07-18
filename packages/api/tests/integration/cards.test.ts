@@ -9,6 +9,49 @@ import {
   createCard,
 } from './helpers.js';
 
+async function addChecklistWithItem(
+  app: FastifyInstance,
+  cookie: string,
+  cardId: string,
+  name = 'Steps',
+) {
+  const clRes = await app.inject({
+    method: 'POST',
+    url: `/api/v1/cards/${cardId}/checklists`,
+    headers: authHeader(cookie),
+    payload: { name },
+  });
+  const { checklist } = JSON.parse(clRes.body);
+  await app.inject({
+    method: 'POST',
+    url: `/api/v1/checklists/${checklist.id}/items`,
+    headers: authHeader(cookie),
+    payload: { title: 'step one' },
+  });
+  return checklist;
+}
+
+async function addLabelToCard(
+  app: FastifyInstance,
+  cookie: string,
+  boardId: string,
+  cardId: string,
+) {
+  const labelRes = await app.inject({
+    method: 'POST',
+    url: `/api/v1/boards/${boardId}/labels`,
+    headers: authHeader(cookie),
+    payload: { name: 'urgent', color: '#eb5a46' },
+  });
+  const { label } = JSON.parse(labelRes.body);
+  await app.inject({
+    method: 'POST',
+    url: `/api/v1/cards/${cardId}/labels/${label.id}`,
+    headers: authHeader(cookie),
+  });
+  return label;
+}
+
 describe('Card routes', () => {
   let app: FastifyInstance;
   let cookie: string;
@@ -495,6 +538,143 @@ describe('Card routes', () => {
         headers: authHeader(cookie),
       });
       expect(response.statusCode).toBe(404);
+    });
+  });
+
+  describe('POST /api/v1/cards/:cardId/copy', () => {
+    it('copies a card with checklists and labels to another list on the same board', async () => {
+      const { body: cardBody } = await createCard(app, cookie, listId, 'Original', 'desc');
+      const cardId = cardBody.card.id;
+      await addChecklistWithItem(app, cookie, cardId);
+      await addLabelToCard(app, cookie, boardId, cardId);
+      const { body: otherList } = await createList(app, cookie, boardId, 'Doing');
+
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/v1/cards/${cardId}/copy`,
+        headers: authHeader(cookie),
+        payload: { listId: otherList.list.id },
+      });
+      expect(res.statusCode).toBe(201);
+      const { card: copy } = JSON.parse(res.body);
+      expect(copy.title).toBe('Original');
+      expect(copy.description).toBe('desc');
+      expect(copy.listId).toBe(otherList.list.id);
+      expect(copy.id).not.toBe(cardId);
+
+      // Copy has its own checklists and labels
+      const clRes = await app.inject({
+        method: 'GET',
+        url: `/api/v1/cards/${copy.id}/checklists`,
+        headers: authHeader(cookie),
+      });
+      const { checklists } = JSON.parse(clRes.body);
+      expect(checklists).toHaveLength(1);
+      expect(checklists[0].items).toHaveLength(1);
+
+      const boardRes = await app.inject({
+        method: 'GET',
+        url: `/api/v1/boards/${boardId}`,
+        headers: authHeader(cookie),
+      });
+      const board = JSON.parse(boardRes.body).board;
+      const copiedCard = board.lists
+        .flatMap((l: { cards: Array<{ id: string; labelIds: string[] }> }) => l.cards)
+        .find((c: { id: string }) => c.id === copy.id);
+      expect(copiedCard.labelIds).toHaveLength(1);
+    });
+
+    it('omits checklists when keepChecklists is false', async () => {
+      const { body: cardBody } = await createCard(app, cookie, listId, 'Original');
+      await addChecklistWithItem(app, cookie, cardBody.card.id);
+
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/v1/cards/${cardBody.card.id}/copy`,
+        headers: authHeader(cookie),
+        payload: { listId, keepChecklists: false },
+      });
+      const { card: copy } = JSON.parse(res.body);
+
+      const clRes = await app.inject({
+        method: 'GET',
+        url: `/api/v1/cards/${copy.id}/checklists`,
+        headers: authHeader(cookie),
+      });
+      expect(JSON.parse(clRes.body).checklists).toHaveLength(0);
+    });
+
+    it('copies to another board without labels (board-scoped)', async () => {
+      const { body: cardBody } = await createCard(app, cookie, listId, 'Cross-board');
+      await addLabelToCard(app, cookie, boardId, cardBody.card.id);
+
+      const { body: otherBoard } = await createBoard(app, cookie, 'Second Board');
+      const { body: otherList } = await createList(app, cookie, otherBoard.board.id, 'Inbox');
+
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/v1/cards/${cardBody.card.id}/copy`,
+        headers: authHeader(cookie),
+        payload: { listId: otherList.list.id, keepLabels: true },
+      });
+      expect(res.statusCode).toBe(201);
+      const { card: copy } = JSON.parse(res.body);
+
+      const boardRes = await app.inject({
+        method: 'GET',
+        url: `/api/v1/boards/${otherBoard.board.id}`,
+        headers: authHeader(cookie),
+      });
+      const board = JSON.parse(boardRes.body).board;
+      const copiedCard = board.lists[0].cards.find((c: { id: string }) => c.id === copy.id);
+      expect(copiedCard.labelIds).toHaveLength(0);
+    });
+
+    it("rejects copying to another user's list", async () => {
+      const { body: cardBody } = await createCard(app, cookie, listId, 'Mine');
+      const { sessionCookie: otherCookie } = await registerUser(app, {
+        email: 'other@example.com',
+        username: 'otheruser',
+      });
+      const { body: otherBoard } = await createBoard(app, otherCookie!, 'Their Board');
+      const { body: otherList } = await createList(app, otherCookie!, otherBoard.board.id);
+
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/v1/cards/${cardBody.card.id}/copy`,
+        headers: authHeader(cookie),
+        payload: { listId: otherList.list.id },
+      });
+      expect(res.statusCode).toBe(403);
+    });
+  });
+
+  describe('cross-board move', () => {
+    it('moves a card to another board and drops its label assignments', async () => {
+      const { body: cardBody } = await createCard(app, cookie, listId, 'Mover');
+      const cardId = cardBody.card.id;
+      await addLabelToCard(app, cookie, boardId, cardId);
+
+      const { body: otherBoard } = await createBoard(app, cookie, 'Second Board');
+      const { body: otherList } = await createList(app, cookie, otherBoard.board.id, 'Inbox');
+
+      const res = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/cards/${cardId}/move`,
+        headers: authHeader(cookie),
+        payload: { listId: otherList.list.id, position: 'n' },
+      });
+      expect(res.statusCode).toBe(200);
+
+      const boardRes = await app.inject({
+        method: 'GET',
+        url: `/api/v1/boards/${otherBoard.board.id}`,
+        headers: authHeader(cookie),
+      });
+      const board = JSON.parse(boardRes.body).board;
+      const moved = board.lists[0].cards.find((c: { id: string }) => c.id === cardId);
+      expect(moved).toBeDefined();
+      expect(moved.labelIds).toHaveLength(0);
     });
   });
 });

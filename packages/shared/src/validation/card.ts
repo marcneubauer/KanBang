@@ -43,6 +43,12 @@ export const moveCardSchema = z.object({
   position: z.string().min(1),
 });
 
+export const copyCardSchema = z.object({
+  listId: z.string().min(1),
+  keepChecklists: z.boolean().default(true),
+  keepLabels: z.boolean().default(true),
+});
+
 export const searchCardsSchema = z.object({
   q: z.string().max(500).optional(),
   completed: z
@@ -54,4 +60,5 @@ export const searchCardsSchema = z.object({
 export type CreateCardInput = z.infer<typeof createCardSchema>;
 export type UpdateCardInput = z.infer<typeof updateCardSchema>;
 export type MoveCardInput = z.infer<typeof moveCardSchema>;
+export type CopyCardInput = z.infer<typeof copyCardSchema>;
 export type SearchCardsInput = z.infer<typeof searchCardsSchema>;

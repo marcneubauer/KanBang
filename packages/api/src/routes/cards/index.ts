@@ -7,6 +7,7 @@ import {
   createCardSchema,
   updateCardSchema,
   moveCardSchema,
+  copyCardSchema,
 } from '@kanbang/shared/validation/card.js';
 import { validateBody } from '../../utils/validate.js';
 import { verifyListOwnership, verifyCardOwnership as verifyCardOwnershipUtil } from '../../utils/ownership.js';
@@ -122,6 +123,33 @@ export default async function cardRoutes(fastify: FastifyInstance) {
 
       const card = await cardService.move(cardId, data.listId, data.position);
       return { card };
+    },
+  );
+
+  // POST /api/v1/cards/:cardId/copy
+  fastify.post<{ Params: { cardId: string } }>(
+    '/cards/:cardId/copy',
+    {
+      schema: {
+        response: {
+          201: cardResponse201,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { user } = request as AuthenticatedRequest;
+      const { cardId } = request.params;
+
+      await verifyCardOwnership(cardId, user.id);
+
+      const data = await validateBody(copyCardSchema, request.body, reply);
+      if (!data) return;
+
+      // Verify target list ownership (may be on a different board)
+      await verifyListOwnership(data.listId, user.id, listService, boardService);
+
+      const card = await cardService.copy(cardId, data);
+      return reply.code(201).send({ card });
     },
   );
 

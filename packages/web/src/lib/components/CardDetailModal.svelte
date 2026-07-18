@@ -196,21 +196,54 @@
     return { total, completed, percent: total > 0 ? Math.round((completed / total) * 100) : 0 };
   }
 
+  // --- Move / copy targets: any board, any list ---
+  let allBoards = $state<Array<{ id: string; name: string }>>([]);
+  const boardListsCache = new Map<string, MoveTargetList[]>();
+
+  $effect(() => {
+    api<{ boards: Array<{ id: string; name: string }> }>('/boards').then(({ boards }) => {
+      allBoards = boards;
+    });
+  });
+
+  async function listsForBoard(targetBoardId: string): Promise<MoveTargetList[]> {
+    if (targetBoardId === boardId) return lists;
+    const cached = boardListsCache.get(targetBoardId);
+    if (cached) return cached;
+    const { board } = await api<{ board: { lists: MoveTargetList[] } }>(`/boards/${targetBoardId}`);
+    const result = board.lists.map((l) => ({
+      id: l.id,
+      name: l.name,
+      cards: l.cards.map((c) => ({ id: c.id, position: c.position })),
+    }));
+    boardListsCache.set(targetBoardId, result);
+    return result;
+  }
+
   // --- Move card (keyboard-accessible alternative to drag-and-drop) ---
+  let moveBoardId = $state(boardId);
+  let moveForeignLists = $state<MoveTargetList[]>([]);
+  let moveBoardLists = $derived(moveBoardId === boardId ? lists : moveForeignLists);
   let moveTargetListId = $state(listId);
   let movePosition = $state(1);
   let moving = $state(false);
 
+  async function handleMoveBoardChange() {
+    if (moveBoardId !== boardId) moveForeignLists = await listsForBoard(moveBoardId);
+    moveTargetListId = moveBoardId === boardId ? listId : (moveBoardLists[0]?.id ?? '');
+    movePosition = 1;
+  }
+
   // Positions available in the target list, not counting this card itself
   let moveSlotCount = $derived.by(() => {
-    const target = lists.find((l) => l.id === moveTargetListId);
+    const target = moveBoardLists.find((l) => l.id === moveTargetListId);
     if (!target) return 1;
     return target.cards.filter((c) => c.id !== cardId).length + 1;
   });
 
   async function moveCard(e: Event) {
     e.preventDefault();
-    const target = lists.find((l) => l.id === moveTargetListId);
+    const target = moveBoardLists.find((l) => l.id === moveTargetListId);
     if (!target) return;
 
     const others = target.cards.filter((c) => c.id !== cardId);
@@ -224,9 +257,47 @@
         method: 'PATCH',
         body: JSON.stringify({ listId: moveTargetListId, position: generateKeyBetween(before, after) }),
       });
+      boardListsCache.delete(moveBoardId);
       onupdated();
+      // Card left this board — close the modal
+      if (moveBoardId !== boardId) onclose();
     } finally {
       moving = false;
+    }
+  }
+
+  // --- Copy card ---
+  let copyBoardId = $state(boardId);
+  let copyForeignLists = $state<MoveTargetList[]>([]);
+  let copyBoardLists = $derived(copyBoardId === boardId ? lists : copyForeignLists);
+  let copyTargetListId = $state(listId);
+  let keepChecklists = $state(true);
+  let keepLabels = $state(true);
+  let copying = $state(false);
+  let copyMessage = $state('');
+
+  async function handleCopyBoardChange() {
+    if (copyBoardId !== boardId) copyForeignLists = await listsForBoard(copyBoardId);
+    copyTargetListId = copyBoardId === boardId ? listId : (copyBoardLists[0]?.id ?? '');
+  }
+
+  async function copyCard(e: Event) {
+    e.preventDefault();
+    if (!copyTargetListId) return;
+    copying = true;
+    copyMessage = '';
+    try {
+      await api(`/cards/${cardId}/copy`, {
+        method: 'POST',
+        body: JSON.stringify({ listId: copyTargetListId, keepChecklists, keepLabels }),
+      });
+      boardListsCache.delete(copyBoardId);
+      const boardName = allBoards.find((b) => b.id === copyBoardId)?.name;
+      const listName = copyBoardLists.find((l) => l.id === copyTargetListId)?.name;
+      copyMessage = `Copied to ${boardName ?? 'board'} / ${listName ?? 'list'}`;
+      onupdated();
+    } finally {
+      copying = false;
     }
   }
 
@@ -280,9 +351,17 @@
       <h3 class="section-label">Move</h3>
       <form class="move-form" onsubmit={moveCard}>
         <label class="move-field">
+          Board
+          <select bind:value={moveBoardId} onchange={handleMoveBoardChange} aria-label="Target board">
+            {#each allBoards as board (board.id)}
+              <option value={board.id}>{board.name}</option>
+            {/each}
+          </select>
+        </label>
+        <label class="move-field">
           List
           <select bind:value={moveTargetListId} aria-label="Target list">
-            {#each lists as list (list.id)}
+            {#each moveBoardLists as list (list.id)}
               <option value={list.id}>{list.name}</option>
             {/each}
           </select>
@@ -295,10 +374,49 @@
             {/each}
           </select>
         </label>
-        <button type="submit" class="move-btn" disabled={moving}>
+        <button type="submit" class="move-btn" disabled={moving || !moveTargetListId}>
           {moving ? 'Moving...' : 'Move'}
         </button>
       </form>
+    </div>
+
+    <!-- Copy card -->
+    <div class="modal-section">
+      <h3 class="section-label">Copy</h3>
+      <form class="move-form" onsubmit={copyCard}>
+        <label class="move-field">
+          Board
+          <select bind:value={copyBoardId} onchange={handleCopyBoardChange} aria-label="Copy target board">
+            {#each allBoards as board (board.id)}
+              <option value={board.id}>{board.name}</option>
+            {/each}
+          </select>
+        </label>
+        <label class="move-field">
+          List
+          <select bind:value={copyTargetListId} aria-label="Copy target list">
+            {#each copyBoardLists as list (list.id)}
+              <option value={list.id}>{list.name}</option>
+            {/each}
+          </select>
+        </label>
+        <button type="submit" class="move-btn" disabled={copying || !copyTargetListId}>
+          {copying ? 'Copying...' : 'Copy'}
+        </button>
+      </form>
+      <div class="copy-options">
+        <label class="copy-option">
+          <input type="checkbox" bind:checked={keepChecklists} />
+          Keep checklists
+        </label>
+        <label class="copy-option" class:copy-option-disabled={copyBoardId !== boardId}>
+          <input type="checkbox" bind:checked={keepLabels} disabled={copyBoardId !== boardId} />
+          Keep labels{copyBoardId !== boardId ? ' (same board only)' : ''}
+        </label>
+      </div>
+      {#if copyMessage}
+        <p class="copy-message" role="status" aria-live="polite">{copyMessage}</p>
+      {/if}
     </div>
 
     <!-- Description -->
@@ -602,6 +720,40 @@
   .move-btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+  }
+
+  .move-form {
+    flex-wrap: wrap;
+  }
+
+  .move-field select {
+    max-width: 160px;
+  }
+
+  .copy-options {
+    display: flex;
+    gap: 16px;
+    margin-top: 8px;
+  }
+
+  .copy-option {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--color-text);
+    cursor: pointer;
+  }
+
+  .copy-option-disabled {
+    color: var(--color-text-subtle);
+    cursor: default;
+  }
+
+  .copy-message {
+    margin-top: 8px;
+    font-size: 13px;
+    color: #166534;
   }
 
   .description-display {

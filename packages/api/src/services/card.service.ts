@@ -1,9 +1,9 @@
 import { eq, and, or, like, desc, asc, isNull } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { Database } from '../db/index.js';
-import { cards, lists } from '../db/schema.js';
+import { cards, lists, cardLabels, checklists, checklistItems } from '../db/schema.js';
 import { generateKeyBetween } from '@kanbang/shared/utils/fractional-index.js';
-import type { CreateCardInput, UpdateCardInput } from '@kanbang/shared/validation/card.js';
+import type { CreateCardInput, UpdateCardInput, CopyCardInput } from '@kanbang/shared/validation/card.js';
 import type { ListService } from './list.service.js';
 
 export class CardService {
@@ -93,13 +93,132 @@ export class CardService {
   }
 
   async move(cardId: string, listId: string, position: string) {
+    const current = await this.getById(cardId);
+
     const [card] = await this.db
       .update(cards)
       .set({ listId, position, updatedAt: new Date() })
       .where(eq(cards.id, cardId))
       .returning();
 
-    return card ?? null;
+    if (!card) return null;
+
+    // Labels are board-scoped: moving across boards drops label assignments
+    if (current && current.listId !== listId) {
+      const [oldBoard] = await this.db
+        .select({ boardId: lists.boardId })
+        .from(lists)
+        .where(eq(lists.id, current.listId))
+        .limit(1);
+      const [newBoard] = await this.db
+        .select({ boardId: lists.boardId })
+        .from(lists)
+        .where(eq(lists.id, listId))
+        .limit(1);
+      if (oldBoard && newBoard && oldBoard.boardId !== newBoard.boardId) {
+        await this.db.delete(cardLabels).where(eq(cardLabels.cardId, cardId));
+      }
+    }
+
+    return card;
+  }
+
+  /** Duplicate a card onto a list (same or different board), appended at the end. */
+  async copy(cardId: string, input: CopyCardInput) {
+    const source = await this.getById(cardId);
+    if (!source) return null;
+
+    const [sourceList] = await this.db
+      .select({ boardId: lists.boardId })
+      .from(lists)
+      .where(eq(lists.id, source.listId))
+      .limit(1);
+    const [targetList] = await this.db
+      .select({ boardId: lists.boardId })
+      .from(lists)
+      .where(eq(lists.id, input.listId))
+      .limit(1);
+    if (!targetList) return null;
+    const sameBoard = sourceList?.boardId === targetList.boardId;
+
+    const [lastCard] = await this.db
+      .select({ position: cards.position })
+      .from(cards)
+      .where(and(eq(cards.listId, input.listId), isNull(cards.archivedAt)))
+      .orderBy(desc(cards.position))
+      .limit(1);
+    const position = generateKeyBetween(lastCard?.position ?? null, null);
+    const now = new Date();
+
+    return this.db.transaction((tx) => {
+      const newCard = {
+        id: nanoid(),
+        title: source.title,
+        description: source.description,
+        listId: input.listId,
+        position,
+        completed: source.completed,
+        completedAt: source.completedAt,
+        dueDate: source.dueDate,
+        createdAt: now,
+        updatedAt: now,
+        archivedAt: null,
+      };
+      tx.insert(cards).values(newCard).run();
+
+      // Labels only survive a same-board copy (they're board-scoped)
+      if (input.keepLabels && sameBoard) {
+        const labelRows = tx
+          .select()
+          .from(cardLabels)
+          .where(eq(cardLabels.cardId, cardId))
+          .all();
+        for (const row of labelRows) {
+          tx.insert(cardLabels).values({ cardId: newCard.id, labelId: row.labelId }).run();
+        }
+      }
+
+      if (input.keepChecklists) {
+        const sourceChecklists = tx
+          .select()
+          .from(checklists)
+          .where(eq(checklists.cardId, cardId))
+          .all();
+        for (const cl of sourceChecklists) {
+          const newChecklistId = nanoid();
+          tx.insert(checklists)
+            .values({
+              id: newChecklistId,
+              name: cl.name,
+              cardId: newCard.id,
+              position: cl.position,
+              createdAt: now,
+              updatedAt: now,
+            })
+            .run();
+          const items = tx
+            .select()
+            .from(checklistItems)
+            .where(eq(checklistItems.checklistId, cl.id))
+            .all();
+          for (const item of items) {
+            tx.insert(checklistItems)
+              .values({
+                id: nanoid(),
+                title: item.title,
+                checklistId: newChecklistId,
+                position: item.position,
+                completed: item.completed,
+                createdAt: now,
+                updatedAt: now,
+              })
+              .run();
+          }
+        }
+      }
+
+      return newCard;
+    });
   }
 
   async archive(cardId: string) {

@@ -5,6 +5,8 @@ export const cards = sqliteTable(
   'cards',
   {
     id: text('id').primaryKey(),
+    // Board-scoped auto-incrementing number (like GitHub issues); null only for legacy rows
+    number: integer('number'),
     title: text('title').notNull(),
     description: text('description'),
     listId: text('list_id')

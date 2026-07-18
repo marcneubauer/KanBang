@@ -649,6 +649,64 @@ describe('Card routes', () => {
     });
   });
 
+  describe('card numbering', () => {
+    it('assigns sequential board-scoped numbers', async () => {
+      const { body: c1 } = await createCard(app, cookie, listId, 'One');
+      const { body: c2 } = await createCard(app, cookie, listId, 'Two');
+      expect(c1.card.number).toBe(1);
+      expect(c2.card.number).toBe(2);
+
+      // A second list on the same board continues the sequence
+      const { body: otherList } = await createList(app, cookie, boardId, 'Doing');
+      const { body: c3 } = await createCard(app, cookie, otherList.list.id, 'Three');
+      expect(c3.card.number).toBe(3);
+
+      // A different board starts at 1
+      const { body: otherBoard } = await createBoard(app, cookie, 'Board B');
+      const { body: bList } = await createList(app, cookie, otherBoard.board.id);
+      const { body: b1 } = await createCard(app, cookie, bList.list.id, 'B-One');
+      expect(b1.card.number).toBe(1);
+    });
+
+    it('numbers are not reused after archiving', async () => {
+      const { body: c1 } = await createCard(app, cookie, listId, 'One');
+      await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/cards/${c1.card.id}/archive`,
+        headers: authHeader(cookie),
+      });
+      const { body: c2 } = await createCard(app, cookie, listId, 'Two');
+      expect(c2.card.number).toBe(2);
+    });
+
+    it('a copy gets a fresh number', async () => {
+      const { body: c1 } = await createCard(app, cookie, listId, 'One');
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/v1/cards/${c1.card.id}/copy`,
+        headers: authHeader(cookie),
+        payload: { listId },
+      });
+      expect(JSON.parse(res.body).card.number).toBe(2);
+    });
+
+    it('cross-board move assigns a number from the target board', async () => {
+      const { body: c1 } = await createCard(app, cookie, listId, 'Mover');
+
+      const { body: otherBoard } = await createBoard(app, cookie, 'Board B');
+      const { body: bList } = await createList(app, cookie, otherBoard.board.id);
+      await createCard(app, cookie, bList.list.id, 'Existing');
+
+      const res = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/cards/${c1.card.id}/move`,
+        headers: authHeader(cookie),
+        payload: { listId: bList.list.id, position: 'zz' },
+      });
+      expect(JSON.parse(res.body).card.number).toBe(2);
+    });
+  });
+
   describe('cross-board move', () => {
     it('moves a card to another board and drops its label assignments', async () => {
       const { body: cardBody } = await createCard(app, cookie, listId, 'Mover');

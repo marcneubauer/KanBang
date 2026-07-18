@@ -3,6 +3,7 @@ import { nanoid } from 'nanoid';
 import type { Database } from '../db/index.js';
 import { lists, cards, cardLabels, checklists, checklistItems } from '../db/schema.js';
 import { generateKeyBetween } from '@kanbang/shared/utils/fractional-index.js';
+import { allocateCardNumbers } from '../utils/card-number.js';
 import type { CreateListInput, UpdateListInput, SortListInput } from '@kanbang/shared/validation/list.js';
 
 export class ListService {
@@ -203,11 +204,20 @@ export class ListService {
         .select({ id: cards.id })
         .from(cards)
         .where(eq(cards.listId, listId))
+        .orderBy(asc(cards.position))
         .all();
       if (cardRows.length > 0) {
         tx.delete(cardLabels)
           .where(inArray(cardLabels.cardId, cardRows.map((c) => c.id)))
           .run();
+
+        // Card numbers are board-scoped: renumber from the target board's sequence
+        const first = allocateCardNumbers(tx, targetBoardId, cardRows.length);
+        if (first !== null) {
+          cardRows.forEach((row, i) => {
+            tx.update(cards).set({ number: first + i }).where(eq(cards.id, row.id)).run();
+          });
+        }
       }
 
       return moved ?? null;
@@ -241,13 +251,16 @@ export class ListService {
       };
       tx.insert(lists).values(newList).run();
 
+      const firstNumber = allocateCardNumbers(tx, source.boardId, source.cards.length);
+
       let prevCardKey: string | null = null;
-      for (const card of source.cards) {
+      for (const [cardIndex, card] of source.cards.entries()) {
         prevCardKey = generateKeyBetween(prevCardKey, null);
         const newCardId = nanoid();
         tx.insert(cards)
           .values({
             id: newCardId,
+            number: firstNumber !== null ? firstNumber + cardIndex : null,
             title: card.title,
             description: card.description,
             listId: newList.id,

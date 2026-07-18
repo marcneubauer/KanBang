@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { Database } from '../db/index.js';
 import {
@@ -119,6 +120,7 @@ export class TrelloImportService {
           tx.insert(cards)
             .values({
               id,
+              number: importedCards + 1,
               title: trelloCard.name.slice(0, 500) || '(untitled)',
               description: trelloCard.desc ? trelloCard.desc.slice(0, 5000) : null,
               listId: listIdMap.get(trelloListId)!,
@@ -141,6 +143,11 @@ export class TrelloImportService {
           }
         }
       }
+
+      tx.update(boards)
+        .set({ nextCardNumber: importedCards + 1 })
+        .where(eq(boards.id, boardId))
+        .run();
 
       // Checklists + items, grouped per card
       let importedChecklists = 0;

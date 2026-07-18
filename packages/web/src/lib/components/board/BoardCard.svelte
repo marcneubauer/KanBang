@@ -163,6 +163,9 @@
       <line x1="8.5" y1="3.5" x2="8.8" y2="12.5"/>
     </svg>
   </button>
+  {#if card.number != null}
+    <span class="card-number">#{card.number}</span>
+  {/if}
   {#if card.dueDate}
     <span class="due-date-badge due-date-{getDueDateStatus(card.dueDate, card.completed)}">
       {formatDueDate(card.dueDate)}
@@ -217,6 +220,13 @@
 
   .card-item:active {
     cursor: grabbing;
+  }
+
+  .card-number {
+    font-size: 11px;
+    color: var(--color-text-subtle);
+    margin-top: 4px;
+    margin-right: 6px;
   }
 
   .card-item-done {

@@ -17,6 +17,7 @@ const cardWithProgressSchema = {
   type: 'object',
   properties: {
     id:          { type: 'string' },
+    number:      { type: ['number', 'null'] },
     title:       { type: 'string' },
     description: { type: ['string', 'null'] },
     listId:      { type: 'string' },
@@ -199,6 +200,7 @@ export default async function boardRoutes(fastify: FastifyInstance) {
     type: 'object',
     properties: {
       id:          { type: 'string' },
+      number:      { type: ['number', 'null'] },
       title:       { type: 'string' },
       description: { type: ['string', 'null'] },
       listId:      { type: 'string' },

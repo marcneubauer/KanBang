@@ -55,6 +55,7 @@ export const cardSchema = {
   type: 'object',
   properties: {
     id:          { type: 'string' },
+    number:      { type: ['number', 'null'] },
     title:       { type: 'string' },
     description: { type: ['string', 'null'] },
     listId:      { type: 'string' },

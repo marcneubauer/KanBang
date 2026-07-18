@@ -3,6 +3,7 @@ import { checklistProgressSchema } from './checklist.js';
 
 export const cardSchema = z.object({
   id: z.string(),
+  number: z.number().int().nullable(),
   title: z.string(),
   description: z.string().nullable(),
   listId: z.string(),

@@ -1,8 +1,9 @@
 import { eq, and, or, like, desc, asc, isNull } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { Database } from '../db/index.js';
-import { cards, lists, cardLabels, checklists, checklistItems } from '../db/schema.js';
+import { cards, lists, boards, cardLabels, checklists, checklistItems } from '../db/schema.js';
 import { generateKeyBetween } from '@kanbang/shared/utils/fractional-index.js';
+import { allocateCardNumbers } from '../utils/card-number.js';
 import type { CreateCardInput, UpdateCardInput, CopyCardInput } from '@kanbang/shared/validation/card.js';
 import type { ListService } from './list.service.js';
 
@@ -25,23 +26,33 @@ export class CardService {
       .limit(1);
 
     const position = generateKeyBetween(lastCard?.position ?? null, null);
+    const [list] = await this.db
+      .select({ boardId: lists.boardId })
+      .from(lists)
+      .where(eq(lists.id, listId))
+      .limit(1);
     const now = new Date();
 
-    const [card] = await this.db
-      .insert(cards)
-      .values({
-        id: nanoid(),
-        title: input.title,
-        description: input.description ?? null,
-        listId,
-        position,
-        dueDate: input.dueDate ?? null,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .returning();
+    return this.db.transaction((tx) => {
+      const number = list ? allocateCardNumbers(tx, list.boardId, 1) : null;
+      const [card] = tx
+        .insert(cards)
+        .values({
+          id: nanoid(),
+          number,
+          title: input.title,
+          description: input.description ?? null,
+          listId,
+          position,
+          dueDate: input.dueDate ?? null,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning()
+        .all();
 
-    return card;
+      return card;
+    });
   }
 
   async update(cardId: string, input: UpdateCardInput) {
@@ -117,6 +128,19 @@ export class CardService {
         .limit(1);
       if (oldBoard && newBoard && oldBoard.boardId !== newBoard.boardId) {
         await this.db.delete(cardLabels).where(eq(cardLabels.cardId, cardId));
+
+        // Card numbers are board-scoped too: assign one from the new board
+        const renumbered = this.db.transaction((tx) => {
+          const number = allocateCardNumbers(tx, newBoard.boardId, 1);
+          const [updated] = tx
+            .update(cards)
+            .set({ number })
+            .where(eq(cards.id, cardId))
+            .returning()
+            .all();
+          return updated;
+        });
+        return renumbered ?? card;
       }
     }
 
@@ -153,6 +177,7 @@ export class CardService {
     return this.db.transaction((tx) => {
       const newCard = {
         id: nanoid(),
+        number: allocateCardNumbers(tx, targetList.boardId, 1),
         title: source.title,
         description: source.description,
         listId: input.listId,
@@ -271,6 +296,7 @@ export class CardService {
     const results = await this.db
       .select({
         id: cards.id,
+        number: cards.number,
         title: cards.title,
         description: cards.description,
         listId: cards.listId,

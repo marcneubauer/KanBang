@@ -8,6 +8,7 @@ export const boards = sqliteTable('boards', {
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   cardAgingDays: integer('card_aging_days'),
+  nextCardNumber: integer('next_card_number').notNull().default(1),
   backgroundType: text('background_type', { enum: ['color', 'gradient'] }),
   backgroundValue: text('background_value'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),

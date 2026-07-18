@@ -5,6 +5,7 @@ import { cardMatchesFilter, isFilterActive, type CardFilter } from './card-filte
 function makeCard(overrides: Partial<CardWithProgress> = {}): CardWithProgress {
   return {
     id: 'c1',
+    number: null,
     title: 'Fix login bug',
     description: 'Users get a 500 error',
     listId: 'l1',

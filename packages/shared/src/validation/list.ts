@@ -44,7 +44,13 @@ export const setDoneListSchema = z.object({
   isDone: z.boolean(),
 });
 
+export const sortListSchema = z.object({
+  by: z.enum(['name', 'dueDate', 'createdAt']),
+  direction: z.enum(['asc', 'desc']).default('asc'),
+});
+
 export type CreateListInput = z.infer<typeof createListSchema>;
 export type UpdateListInput = z.infer<typeof updateListSchema>;
 export type ReorderListInput = z.infer<typeof reorderListSchema>;
 export type SetDoneListInput = z.infer<typeof setDoneListSchema>;
+export type SortListInput = z.infer<typeof sortListSchema>;

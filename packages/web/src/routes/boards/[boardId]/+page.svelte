@@ -168,6 +168,21 @@
     });
   }
 
+  async function sortList(listId: string, by: 'name' | 'dueDate' | 'createdAt', direction: 'asc' | 'desc') {
+    const { cards } = await api<{ cards: Card[] }>(`/lists/${listId}/sort`, {
+      method: 'PATCH',
+      body: JSON.stringify({ by, direction }),
+    });
+    const listIndex = lists.findIndex((l) => l.id === listId);
+    if (listIndex === -1) return;
+    // Reorder the existing rich card objects; only positions changed server-side
+    const order = new Map(cards.map((c, i) => [c.id, i]));
+    const positions = new Map(cards.map((c) => [c.id, c.position]));
+    lists[listIndex].cards = [...lists[listIndex].cards]
+      .sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0))
+      .map((c) => ({ ...c, position: positions.get(c.id) ?? c.position }));
+  }
+
   // --- Card actions ---
   async function addCard(listId: string, title: string) {
     const { card } = await api<{ card: Card }>(`/lists/${listId}/cards`, {
@@ -517,6 +532,7 @@
         bind:quickEditCardId
         ontogglecollapse={() => toggleCollapse(list.id)}
         onarchivelist={() => archiveList(list.id)}
+        onsortlist={(by, direction) => sortList(list.id, by, direction)}
         onsavelistname={saveListName}
         onsavecardtitle={saveCardTitle}
         onsubmitnewcard={(e) => submitNewCard(e, list.id)}
@@ -573,6 +589,7 @@
       bind:quickEditCardId
       ontogglecollapse={() => toggleCollapse(doneList!.id)}
       onarchivelist={() => archiveList(doneList!.id)}
+      onsortlist={(by, direction) => sortList(doneList!.id, by, direction)}
       onsavelistname={saveListName}
       onsavecardtitle={saveCardTitle}
       onsubmitnewcard={(e) => submitNewCard(e, doneList!.id)}

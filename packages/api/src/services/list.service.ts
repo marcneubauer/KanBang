@@ -3,7 +3,7 @@ import { nanoid } from 'nanoid';
 import type { Database } from '../db/index.js';
 import { lists, cards } from '../db/schema.js';
 import { generateKeyBetween } from '@kanbang/shared/utils/fractional-index.js';
-import type { CreateListInput, UpdateListInput } from '@kanbang/shared/validation/list.js';
+import type { CreateListInput, UpdateListInput, SortListInput } from '@kanbang/shared/validation/list.js';
 
 export class ListService {
   constructor(private db: Database) {}
@@ -129,6 +129,45 @@ export class ListService {
       .returning();
 
     return updated ?? null;
+  }
+
+  /** Sort a list's active cards by name/dueDate/createdAt, rewriting their fractional positions. */
+  async sortCards(listId: string, input: SortListInput) {
+    const listCards = await this.db
+      .select()
+      .from(cards)
+      .where(and(eq(cards.listId, listId), isNull(cards.archivedAt)))
+      .orderBy(asc(cards.position));
+
+    const dir = input.direction === 'desc' ? -1 : 1;
+    const sorted = [...listCards].sort((a, b) => {
+      if (input.by === 'name') {
+        return dir * a.title.localeCompare(b.title, undefined, { sensitivity: 'base' });
+      }
+      if (input.by === 'dueDate') {
+        // Cards without a due date always sink to the bottom
+        if (!a.dueDate && !b.dueDate) return 0;
+        if (!a.dueDate) return 1;
+        if (!b.dueDate) return -1;
+        return dir * (a.dueDate.getTime() - b.dueDate.getTime());
+      }
+      return dir * (a.createdAt.getTime() - b.createdAt.getTime());
+    });
+
+    const now = new Date();
+    return this.db.transaction((tx) => {
+      let prev: string | null = null;
+      const result = [];
+      for (const card of sorted) {
+        prev = generateKeyBetween(prev, null);
+        tx.update(cards)
+          .set({ position: prev, updatedAt: now })
+          .where(eq(cards.id, card.id))
+          .run();
+        result.push({ ...card, position: prev, updatedAt: now });
+      }
+      return result;
+    });
   }
 
   async getDoneList(boardId: string) {

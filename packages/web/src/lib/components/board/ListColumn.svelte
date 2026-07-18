@@ -21,6 +21,7 @@
     quickEditCardId?: string | null;
     ontogglecollapse: () => void;
     onarchivelist: () => void;
+    onsortlist: (by: 'name' | 'dueDate' | 'createdAt', direction: 'asc' | 'desc') => void;
     onsavelistname: () => void;
     onsavecardtitle: () => void;
     onsubmitnewcard: (e: Event) => void;
@@ -50,6 +51,7 @@
     quickEditCardId = $bindable(null),
     ontogglecollapse,
     onarchivelist,
+    onsortlist,
     onsavelistname,
     onsavecardtitle,
     onsubmitnewcard,
@@ -66,6 +68,20 @@
   function startEditList() {
     editingListId = list.id;
     editingListName = list.name;
+  }
+
+  let sortMenuOpen = $state(false);
+
+  const SORT_OPTIONS = [
+    { label: 'Name (A–Z)', by: 'name', direction: 'asc' },
+    { label: 'Due date', by: 'dueDate', direction: 'asc' },
+    { label: 'Newest first', by: 'createdAt', direction: 'desc' },
+    { label: 'Oldest first', by: 'createdAt', direction: 'asc' },
+  ] as const;
+
+  function pickSort(by: 'name' | 'dueDate' | 'createdAt', direction: 'asc' | 'desc') {
+    sortMenuOpen = false;
+    onsortlist(by, direction);
   }
 
   function cardLabels(card: CardWithProgress): Label[] {
@@ -117,6 +133,38 @@
           {/if}
           {list.name}
         </h2>
+      {/if}
+      <button
+        class="list-sort-btn"
+        onclick={() => { sortMenuOpen = !sortMenuOpen; }}
+        aria-label="Sort list {list.name}"
+        aria-expanded={sortMenuOpen}
+      >
+        <svg viewBox="0 0 14 14" width="12" height="12"
+          fill="none" stroke="currentColor" stroke-width="1.5"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 2v10M4 12L2 9.5M4 12l2-2.5"/>
+          <path d="M10 12V2M10 2L8 4.5M10 2l2 2.5"/>
+        </svg>
+      </button>
+      {#if sortMenuOpen}
+        <button
+          class="sort-menu-backdrop"
+          onclick={() => { sortMenuOpen = false; }}
+          aria-label="Close sort menu"
+        ></button>
+        <div class="sort-menu" role="menu">
+          <span class="sort-menu-title">Sort by</span>
+          {#each SORT_OPTIONS as option (option.label)}
+            <button
+              class="sort-menu-item"
+              role="menuitem"
+              onclick={() => pickSort(option.by, option.direction)}
+            >
+              {option.label}
+            </button>
+          {/each}
+        </div>
       {/if}
       <button class="list-collapse-btn" onclick={ontogglecollapse} aria-label="Collapse list">
         <svg viewBox="0 0 14 14" width="12" height="12"
@@ -247,6 +295,52 @@
     align-items: center;
     justify-content: space-between;
     padding: 4px 4px 8px;
+    position: relative;
+  }
+
+  .sort-menu-backdrop {
+    position: fixed;
+    inset: 0;
+    background: transparent;
+    border: none;
+    cursor: default;
+    z-index: 10;
+  }
+
+  .sort-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: 11;
+    background: white;
+    border-radius: var(--radius-sm);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    padding: 4px 0;
+    min-width: 140px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sort-menu-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--color-text-subtle);
+    padding: 4px 12px;
+  }
+
+  .sort-menu-item {
+    background: none;
+    border: none;
+    text-align: left;
+    padding: 6px 12px;
+    font-size: 13px;
+    color: var(--color-text);
+    cursor: pointer;
+  }
+
+  .sort-menu-item:hover {
+    background: rgba(0, 0, 0, 0.05);
   }
 
   .list-name {
@@ -267,6 +361,7 @@
   }
 
   .list-collapse-btn,
+  .list-sort-btn,
   .list-archive {
     background: none;
     border: none;
@@ -280,11 +375,14 @@
   }
 
   .list-header:hover .list-collapse-btn,
-  .list-header:hover .list-archive {
+  .list-header:hover .list-sort-btn,
+  .list-header:hover .list-archive,
+  .list-sort-btn[aria-expanded='true'] {
     opacity: 1;
   }
 
   .list-collapse-btn:hover,
+  .list-sort-btn:hover,
   .list-archive:hover {
     color: var(--color-text);
   }

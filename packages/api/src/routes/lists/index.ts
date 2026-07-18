@@ -7,6 +7,7 @@ import {
   updateListSchema,
   reorderListSchema,
   setDoneListSchema,
+  sortListSchema,
 } from '@kanbang/shared/validation/list.js';
 import { validateBody } from '../../utils/validate.js';
 import { verifyBoardOwnership, verifyListOwnership } from '../../utils/ownership.js';
@@ -135,6 +136,35 @@ export default async function listRoutes(fastify: FastifyInstance) {
 
       const list = await listService.reorder(listId, data.position);
       return { list };
+    },
+  );
+
+  // PATCH /api/v1/lists/:listId/sort
+  fastify.patch<{ Params: { listId: string } }>(
+    '/lists/:listId/sort',
+    {
+      schema: {
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              cards: { type: 'array', items: { $ref: 'card#' } },
+            },
+          } as const,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { user } = request as AuthenticatedRequest;
+      const { listId } = request.params;
+
+      await verifyListOwnership(listId, user.id, listService, boardService);
+
+      const data = await validateBody(sortListSchema, request.body, reply);
+      if (!data) return;
+
+      const cards = await listService.sortCards(listId, data);
+      return { cards };
     },
   );
 

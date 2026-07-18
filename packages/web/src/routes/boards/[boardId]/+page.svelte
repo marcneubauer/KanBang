@@ -3,7 +3,7 @@
   import { invalidateAll } from '$app/navigation';
   import { SvelteSet } from 'svelte/reactivity';
   import { dndzone } from 'svelte-dnd-action';
-  import { generateKeyBetween, resolveBoardBackground, type BackgroundType } from '@kanbang/shared';
+  import { generateKeyBetween, resolveBoardBackground, resolveBoardAccent, type BackgroundType } from '@kanbang/shared';
   import type { Card, CardWithProgress, Label, ListWithCardsDetail } from '@kanbang/shared';
   import { cardMatchesFilter, isFilterActive, type CardFilter, type DueFilter } from '$lib/utils/card-filter';
   import { toastStore } from '$lib/toastStore.svelte';
@@ -27,6 +27,7 @@
   });
 
   let backgroundCss = $derived(resolveBoardBackground(boardBackground.type, boardBackground.value));
+  let accentColor = $derived(resolveBoardAccent(boardBackground.type, boardBackground.value));
 
   const flipDurationMs = 200;
 
@@ -462,7 +463,13 @@
   );
 </script>
 
-<div class="board-page" class:board-page-bg={!!backgroundCss} style:background={backgroundCss || undefined}>
+<div
+  class="board-page"
+  class:board-page-bg={!!backgroundCss}
+  style:background={backgroundCss || undefined}
+  style:--color-primary={accentColor || undefined}
+  style:--color-primary-hover={accentColor ? `color-mix(in srgb, ${accentColor} 82%, black)` : undefined}
+>
   {#if boardError}
     <div class="board-error" role="alert">
       {boardError}
@@ -643,6 +650,7 @@
       cardDescription={modalCard.description}
       listId={modalCard.listId}
       boardId={data.board.id}
+      defaultLabelColor={accentColor || undefined}
       {boardLabels}
       cardLabelIds={modalCardLabelIds}
       {lists}

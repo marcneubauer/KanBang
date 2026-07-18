@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { BACKGROUND_GRADIENT_PRESETS, resolveBoardBackground } from './background-presets.js';
+import {
+  BACKGROUND_GRADIENT_PRESETS,
+  resolveBoardBackground,
+  resolveBoardAccent,
+} from './background-presets.js';
 
 describe('BACKGROUND_GRADIENT_PRESETS', () => {
   it('has 10 presets with unique ids', () => {
@@ -8,10 +12,11 @@ describe('BACKGROUND_GRADIENT_PRESETS', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('every preset has a name and a linear-gradient css value', () => {
+  it('every preset has a name, a linear-gradient css value, and a hex accent', () => {
     for (const preset of BACKGROUND_GRADIENT_PRESETS) {
       expect(preset.name.length).toBeGreaterThan(0);
       expect(preset.css).toMatch(/^linear-gradient\(/);
+      expect(preset.accent).toMatch(/^#[0-9a-f]{6}$/i);
     }
   });
 
@@ -44,5 +49,20 @@ describe('resolveBoardBackground', () => {
     expect(resolveBoardBackground(null, null)).toBe('');
     expect(resolveBoardBackground('gradient', 'nope')).toBe('');
     expect(resolveBoardBackground('color', null)).toBe('');
+  });
+});
+
+describe('resolveBoardAccent', () => {
+  it('uses the color itself for color backgrounds', () => {
+    expect(resolveBoardAccent('color', '#123abc')).toBe('#123abc');
+  });
+
+  it('uses the preset accent for gradients', () => {
+    expect(resolveBoardAccent('gradient', 'ocean')).toBe('#0079bf');
+  });
+
+  it('returns empty string when unset or unknown', () => {
+    expect(resolveBoardAccent(null, null)).toBe('');
+    expect(resolveBoardAccent('gradient', 'nope')).toBe('');
   });
 });

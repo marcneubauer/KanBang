@@ -7,20 +7,27 @@
     boardId: string;
     labels: Label[];
     labelIds: string[];
+    defaultLabelColor?: string;
     onchanged: () => void;
   }
 
-  let { cardId, boardId, labels, labelIds, onchanged }: Props = $props();
+  let { cardId, boardId, labels, labelIds, defaultLabelColor, onchanged }: Props = $props();
+
+  // New labels default to the board's accent color when it's in the palette
+  const initialColor =
+    defaultLabelColor && (LABEL_COLORS as readonly string[]).includes(defaultLabelColor)
+      ? defaultLabelColor
+      : LABEL_COLORS[0];
 
   // null = closed, 'new' = creating, otherwise the label id being edited
   let editorTarget = $state<string | null>(null);
   let editorName = $state('');
-  let editorColor = $state<string>(LABEL_COLORS[0]);
+  let editorColor = $state<string>(initialColor);
 
   function openCreate() {
     editorTarget = 'new';
     editorName = '';
-    editorColor = LABEL_COLORS[0];
+    editorColor = initialColor;
   }
 
   function openEdit(label: Label) {

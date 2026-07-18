@@ -8,6 +8,7 @@ export { generateKeyBetween } from './utils/fractional-index.js';
 export {
   BACKGROUND_GRADIENT_PRESETS,
   resolveBoardBackground,
+  resolveBoardAccent,
   type BackgroundGradientId,
   type BackgroundType,
 } from './background-presets.js';

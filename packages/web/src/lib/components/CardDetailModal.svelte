@@ -26,7 +26,7 @@
     items: ChecklistItemData[];
   }
 
-  let { cardId, cardTitle, cardDescription, listId, boardId, boardLabels, cardLabelIds, lists, onclose, onupdated }: {
+  let { cardId, cardTitle, cardDescription, listId, boardId, boardLabels, cardLabelIds, lists, defaultLabelColor, onclose, onupdated }: {
     cardId: string;
     cardTitle: string;
     cardDescription: string | null;
@@ -35,6 +35,7 @@
     boardLabels: Label[];
     cardLabelIds: string[];
     lists: MoveTargetList[];
+    defaultLabelColor?: string;
     onclose: () => void;
     onupdated: () => void;
   } = $props();
@@ -269,6 +270,7 @@
         {boardId}
         labels={boardLabels}
         labelIds={cardLabelIds}
+        {defaultLabelColor}
         onchanged={onupdated}
       />
     </div>

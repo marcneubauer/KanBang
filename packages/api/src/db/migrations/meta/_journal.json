@@ -50,6 +50,13 @@
       "when": 1784047824791,
       "tag": "0006_hot_lucky_pierre",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1784413484299,
+      "tag": "0007_needy_bastion",
+      "breakpoints": true
     }
   ]
 }

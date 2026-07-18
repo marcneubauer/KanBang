@@ -8,3 +8,4 @@ export { checklists } from './schema/checklists.js';
 export { checklistItems } from './schema/checklist-items.js';
 export { labels } from './schema/labels.js';
 export { cardLabels } from './schema/card-labels.js';
+export { apiTokens } from './schema/api-tokens.js';

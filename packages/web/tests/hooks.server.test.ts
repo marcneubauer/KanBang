@@ -50,7 +50,7 @@ beforeEach(() => {
 });
 
 describe('API proxy header allowlist', () => {
-  it('forwards cookie and content-type but drops x-forwarded-for and authorization', async () => {
+  it('forwards cookie, content-type, and authorization but drops x-forwarded-for and host', async () => {
     const fetchMock = vi.fn<typeof fetch>(async () => apiResponse());
     vi.stubGlobal('fetch', fetchMock);
     const handle = await loadHandle();
@@ -62,7 +62,7 @@ describe('API proxy header allowlist', () => {
           cookie: 'kanbang_session=abc',
           'content-type': 'application/json',
           'x-forwarded-for': '1.2.3.4',
-          authorization: 'Bearer evil',
+          authorization: 'Bearer kb_shortcut-token',
           host: 'attacker.example',
         },
       }),
@@ -75,7 +75,8 @@ describe('API proxy header allowlist', () => {
     expect(sent.get('cookie')).toBe('kanbang_session=abc');
     expect(sent.get('content-type')).toBe('application/json');
     expect(sent.get('x-forwarded-for')).toBeNull();
-    expect(sent.get('authorization')).toBeNull();
+    // Authorization must pass through so bearer-token endpoints (quick-add) work via the proxy
+    expect(sent.get('authorization')).toBe('Bearer kb_shortcut-token');
     expect(sent.get('host')).toBeNull();
   });
 

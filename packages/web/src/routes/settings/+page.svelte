@@ -124,6 +124,114 @@
       changingPassword = false;
     }
   }
+
+  // --- Quick add (Shortcuts / Apple Watch) ---
+  interface QuickAddList {
+    listId: string;
+    listName: string;
+    boardId: string;
+    boardName: string;
+  }
+  interface QuickAddToken {
+    createdAt: string;
+    lastUsedAt: string | null;
+  }
+
+  let quickAddList = $state<QuickAddList | null>(data.quickAdd.list);
+  let quickAddToken = $state<QuickAddToken | null>(data.quickAdd.token);
+  let boards = $state(data.boards as Array<{ id: string; name: string }>);
+
+  let selectedBoardId = $state<string>(data.quickAdd.list?.boardId ?? '');
+  let selectedListId = $state<string>(data.quickAdd.list?.listId ?? '');
+  let boardLists = $state<Array<{ id: string; name: string }>>([]);
+  let quickAddError = $state('');
+  let quickAddSuccess = $state('');
+  let savingQuickAdd = $state(false);
+  let newToken = $state('');
+  let tokenCopied = $state(false);
+
+  $effect(() => {
+    if (selectedBoardId) void loadBoardLists(selectedBoardId);
+  });
+
+  async function loadBoardLists(boardId: string) {
+    try {
+      const { board } = await api<{ board: { lists: Array<{ id: string; name: string }> } }>(
+        `/boards/${encodeURIComponent(boardId)}`,
+      );
+      boardLists = board.lists;
+      if (!boardLists.some((l) => l.id === selectedListId)) {
+        selectedListId = boardLists[0]?.id ?? '';
+      }
+    } catch {
+      boardLists = [];
+    }
+  }
+
+  async function saveQuickAddConfig() {
+    quickAddError = '';
+    quickAddSuccess = '';
+    if (!selectedListId) {
+      quickAddError = 'Choose a list first';
+      return;
+    }
+    savingQuickAdd = true;
+    try {
+      await api('/quick-add/config', {
+        method: 'PUT',
+        body: JSON.stringify({ listId: selectedListId }),
+      });
+      const board = boards.find((b) => b.id === selectedBoardId);
+      const list = boardLists.find((l) => l.id === selectedListId);
+      quickAddList = {
+        listId: selectedListId,
+        listName: list?.name ?? '',
+        boardId: selectedBoardId,
+        boardName: board?.name ?? '',
+      };
+      quickAddSuccess = 'Default list saved';
+    } catch (err) {
+      quickAddError = err instanceof ApiError ? err.message : 'Failed to save quick-add settings';
+    } finally {
+      savingQuickAdd = false;
+    }
+  }
+
+  async function generateToken() {
+    quickAddError = '';
+    quickAddSuccess = '';
+    tokenCopied = false;
+    try {
+      const { token } = await api<{ token: string }>('/quick-add/token', { method: 'POST' });
+      newToken = token;
+      quickAddToken = { createdAt: new Date().toISOString(), lastUsedAt: null };
+    } catch (err) {
+      quickAddError = err instanceof ApiError ? err.message : 'Failed to generate token';
+    }
+  }
+
+  async function revokeToken() {
+    if (!confirm('Revoke the quick-add token? Shortcuts using it will stop working.')) return;
+    quickAddError = '';
+    quickAddSuccess = '';
+    try {
+      await api('/quick-add/token', { method: 'DELETE' });
+      quickAddToken = null;
+      newToken = '';
+      quickAddSuccess = 'Token revoked';
+    } catch (err) {
+      quickAddError = err instanceof ApiError ? err.message : 'Failed to revoke token';
+    }
+  }
+
+  async function copyToken() {
+    try {
+      await navigator.clipboard.writeText(newToken);
+      tokenCopied = true;
+    } catch {
+      tokenCopied = false;
+    }
+  }
 </script>
 
 <div class="settings-page">
@@ -215,6 +323,92 @@
   </section>
 
   <section class="section">
+    <h2>Quick add</h2>
+    <p class="section-desc">
+      Add cards from the iOS/watchOS Shortcuts app (e.g. by dictation). Pick a default list,
+      generate a token, and have your Shortcut POST to
+      <code>/api/v1/quick-add</code> with body <code>{'{'}"text": "…"{'}'}</code> and header
+      <code>Authorization: Bearer &lt;token&gt;</code>. Prefix the text with a board name and a
+      colon ("Groceries: buy milk") to target that board's first list instead.
+    </p>
+
+    {#if quickAddError}
+      <div class="error" role="alert">{quickAddError}</div>
+    {/if}
+
+    {#if quickAddSuccess}
+      <div class="success" role="status" aria-live="polite">{quickAddSuccess}</div>
+    {/if}
+
+    <div class="quick-add-config">
+      <div class="quick-add-pickers">
+        <label>
+          Board
+          <select bind:value={selectedBoardId}>
+            <option value="" disabled>Select a board…</option>
+            {#each boards as board (board.id)}
+              <option value={board.id}>{board.name}</option>
+            {/each}
+          </select>
+        </label>
+        <label>
+          Default list
+          <select bind:value={selectedListId} disabled={!selectedBoardId}>
+            {#each boardLists as list (list.id)}
+              <option value={list.id}>{list.name}</option>
+            {/each}
+          </select>
+        </label>
+      </div>
+      <button
+        class="register-btn"
+        onclick={saveQuickAddConfig}
+        disabled={savingQuickAdd || !selectedListId}
+      >
+        {savingQuickAdd ? 'Saving...' : 'Save default list'}
+      </button>
+      {#if quickAddList}
+        <p class="quick-add-current">
+          Currently adding to <strong>{quickAddList.boardName}</strong> /
+          <strong>{quickAddList.listName}</strong>
+        </p>
+      {:else}
+        <p class="quick-add-current">No default list configured yet.</p>
+      {/if}
+    </div>
+
+    <div class="quick-add-token">
+      <h3>API token</h3>
+      {#if newToken}
+        <div class="token-reveal">
+          <input type="text" readonly value={newToken} onfocus={(e) => (e.target as HTMLInputElement).select()} />
+          <button class="copy-btn" onclick={copyToken}>{tokenCopied ? 'Copied!' : 'Copy'}</button>
+        </div>
+        <p class="token-warning">Copy this token now — it won't be shown again.</p>
+      {:else if quickAddToken}
+        <p class="quick-add-current">
+          Token created {formatDate(quickAddToken.createdAt)}
+          {#if quickAddToken.lastUsedAt}
+            &middot; last used {formatDate(quickAddToken.lastUsedAt)}
+          {:else}
+            &middot; never used
+          {/if}
+        </p>
+      {:else}
+        <p class="quick-add-current">No token yet.</p>
+      {/if}
+      <div class="token-actions">
+        <button class="register-btn token-btn" onclick={generateToken}>
+          {quickAddToken || newToken ? 'Regenerate token' : 'Generate token'}
+        </button>
+        {#if quickAddToken || newToken}
+          <button class="delete-btn" onclick={revokeToken}>Revoke</button>
+        {/if}
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
     <h2>Export data</h2>
     <p class="section-desc">
       Download all your boards, lists, cards, and checklists (including archived items) as a JSON file.
@@ -279,6 +473,95 @@
     text-align: center;
     text-decoration: none;
     box-sizing: border-box;
+  }
+
+  .section-desc code {
+    font-size: 12px;
+    background: var(--color-bg, #f4f5f7);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+
+  .quick-add-pickers {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .quick-add-pickers label {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13px;
+    color: var(--color-text-subtle);
+  }
+
+  .quick-add-pickers select {
+    padding: 8px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    background: white;
+  }
+
+  .quick-add-current {
+    font-size: 13px;
+    color: var(--color-text-subtle);
+    margin-top: 12px;
+  }
+
+  .quick-add-token {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .quick-add-token h3 {
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+
+  .token-reveal {
+    display: flex;
+    gap: 8px;
+  }
+
+  .token-reveal input {
+    flex: 1;
+    padding: 8px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    font-family: monospace;
+  }
+
+  .copy-btn {
+    padding: 8px 14px;
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .token-warning {
+    font-size: 12px;
+    color: var(--color-danger);
+    margin-top: 6px;
+  }
+
+  .token-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 12px;
+  }
+
+  .token-btn {
+    width: auto;
+    padding: 8px 14px;
   }
 
   h2 {

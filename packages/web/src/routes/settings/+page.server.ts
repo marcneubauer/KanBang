@@ -7,9 +7,17 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
   if (!locals.user) redirect(302, '/login');
 
   const sessionCookie = cookies.get('kanbang_session');
-  const res = await fetch(`${API_URL}/api/v1/passkeys`, {
-    headers: { cookie: `kanbang_session=${sessionCookie}` },
-  });
-  const { passkeys } = await res.json();
-  return { passkeys };
+  const headers = { cookie: `kanbang_session=${sessionCookie}` };
+
+  const [passkeysRes, quickAddRes, boardsRes] = await Promise.all([
+    fetch(`${API_URL}/api/v1/passkeys`, { headers }),
+    fetch(`${API_URL}/api/v1/quick-add/config`, { headers }),
+    fetch(`${API_URL}/api/v1/boards`, { headers }),
+  ]);
+
+  const { passkeys } = await passkeysRes.json();
+  const quickAdd = await quickAddRes.json();
+  const { boards } = await boardsRes.json();
+
+  return { passkeys, quickAdd, boards };
 };

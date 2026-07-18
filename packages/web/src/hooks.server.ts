@@ -2,7 +2,7 @@ import type { Handle, RequestEvent } from '@sveltejs/kit';
 
 const API_URL = process.env.API_URL || 'http://localhost:3001';
 
-const PROXY_HEADER_ALLOWLIST = ['cookie', 'content-type', 'accept', 'accept-language'];
+const PROXY_HEADER_ALLOWLIST = ['cookie', 'content-type', 'accept', 'accept-language', 'authorization'];
 
 const AUTH_CACHE_TTL_MS = 30_000;
 const AUTH_CACHE_MAX_ENTRIES = 500;

@@ -5,3 +5,9 @@ export * from './types/auth.js';
 export * from './types/checklist.js';
 export * from './types/label.js';
 export { generateKeyBetween } from './utils/fractional-index.js';
+export {
+  BACKGROUND_GRADIENT_PRESETS,
+  resolveBoardBackground,
+  type BackgroundGradientId,
+  type BackgroundType,
+} from './background-presets.js';

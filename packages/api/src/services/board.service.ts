@@ -147,6 +147,8 @@ export class BoardService {
     const updates: Partial<typeof boards.$inferInsert> = { updatedAt: new Date() };
     if (input.name !== undefined) updates.name = input.name;
     if (input.cardAgingDays !== undefined) updates.cardAgingDays = input.cardAgingDays;
+    if (input.backgroundType !== undefined) updates.backgroundType = input.backgroundType;
+    if (input.backgroundValue !== undefined) updates.backgroundValue = input.backgroundValue;
 
     const [board] = await this.db
       .update(boards)

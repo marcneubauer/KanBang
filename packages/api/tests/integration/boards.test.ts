@@ -165,6 +165,63 @@ describe('Board routes', () => {
       expect(JSON.parse(clearRes.body).board.cardAgingDays).toBeNull();
     });
 
+    it('sets a color background', async () => {
+      const { body: boardBody } = await createBoard(app, cookie);
+      const res = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/boards/${boardBody.board.id}`,
+        headers: authHeader(cookie),
+        payload: { backgroundType: 'color', backgroundValue: '#0079bf' },
+      });
+      const body = JSON.parse(res.body);
+      expect(res.statusCode).toBe(200);
+      expect(body.board.backgroundType).toBe('color');
+      expect(body.board.backgroundValue).toBe('#0079bf');
+    });
+
+    it('sets a gradient background and clears it with nulls', async () => {
+      const { body: boardBody } = await createBoard(app, cookie);
+      const setRes = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/boards/${boardBody.board.id}`,
+        headers: authHeader(cookie),
+        payload: { backgroundType: 'gradient', backgroundValue: 'ocean' },
+      });
+      expect(JSON.parse(setRes.body).board.backgroundValue).toBe('ocean');
+
+      const clearRes = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/boards/${boardBody.board.id}`,
+        headers: authHeader(cookie),
+        payload: { backgroundType: null, backgroundValue: null },
+      });
+      const cleared = JSON.parse(clearRes.body).board;
+      expect(cleared.backgroundType).toBeNull();
+      expect(cleared.backgroundValue).toBeNull();
+    });
+
+    it('rejects invalid backgrounds', async () => {
+      const { body: boardBody } = await createBoard(app, cookie);
+      const invalidPayloads = [
+        { backgroundType: 'color', backgroundValue: 'not-a-hex' },
+        { backgroundType: 'color', backgroundValue: '#12345' },
+        { backgroundType: 'gradient', backgroundValue: 'unknown-preset' },
+        { backgroundType: 'stripes', backgroundValue: '#0079bf' },
+        { backgroundType: 'color' },
+        { backgroundValue: '#0079bf' },
+        { backgroundType: null, backgroundValue: 'ocean' },
+      ];
+      for (const payload of invalidPayloads) {
+        const res = await app.inject({
+          method: 'PATCH',
+          url: `/api/v1/boards/${boardBody.board.id}`,
+          headers: authHeader(cookie),
+          payload,
+        });
+        expect(res.statusCode).toBe(400);
+      }
+    });
+
     it('rejects out-of-range card aging values', async () => {
       const { body: boardBody } = await createBoard(app, cookie);
       for (const cardAgingDays of [0, -5, 366, 'soon']) {

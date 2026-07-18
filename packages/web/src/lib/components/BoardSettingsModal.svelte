@@ -1,6 +1,7 @@
 <script lang="ts">
   import { api } from '$lib/api';
   import { goto } from '$app/navigation';
+  import { BACKGROUND_GRADIENT_PRESETS, type BackgroundType } from '@kanbang/shared';
 
   interface DoneListOption {
     id: string;
@@ -8,10 +9,11 @@
     isDone: boolean;
   }
 
-  let { boardId, boardName: initialBoardName, cardAgingDays, lists, onclose, onupdated }: {
+  let { boardId, boardName: initialBoardName, cardAgingDays, background, lists, onclose, onupdated }: {
     boardId: string;
     boardName: string;
     cardAgingDays: number | null;
+    background: { type: BackgroundType | null; value: string | null };
     lists: DoneListOption[];
     onclose: () => void;
     onupdated: () => void;
@@ -64,6 +66,20 @@
     await api(`/boards/${boardId}`, {
       method: 'PATCH',
       body: JSON.stringify({ cardAgingDays: value ? parseInt(value, 10) : null }),
+    });
+    onupdated();
+  }
+
+  // --- Background picker ---
+  let backgroundTab = $state<'color' | 'gradient'>(background.type === 'color' ? 'color' : 'gradient');
+  let currentBackground = $state(background);
+  let colorValue = $state(background.type === 'color' && background.value ? background.value : '#0079bf');
+
+  async function setBackground(type: BackgroundType | null, value: string | null) {
+    currentBackground = { type, value };
+    await api(`/boards/${boardId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ backgroundType: type, backgroundValue: value }),
     });
     onupdated();
   }
@@ -121,6 +137,63 @@
           <option value={list.id}>{list.name}</option>
         {/each}
       </select>
+    </div>
+
+    <!-- Background section -->
+    <div class="modal-section">
+      <h3 class="section-label">Background</h3>
+
+      <div class="bg-tabs" role="tablist">
+        <button
+          class="bg-tab"
+          class:bg-tab-active={backgroundTab === 'gradient'}
+          role="tab"
+          aria-selected={backgroundTab === 'gradient'}
+          onclick={() => { backgroundTab = 'gradient'; }}
+        >Gradient</button>
+        <button
+          class="bg-tab"
+          class:bg-tab-active={backgroundTab === 'color'}
+          role="tab"
+          aria-selected={backgroundTab === 'color'}
+          onclick={() => { backgroundTab = 'color'; }}
+        >Color</button>
+      </div>
+
+      {#if backgroundTab === 'gradient'}
+        <div class="gradient-grid">
+          {#each BACKGROUND_GRADIENT_PRESETS as preset (preset.id)}
+            <button
+              class="gradient-swatch"
+              style="background: {preset.css}"
+              title={preset.name}
+              aria-label="Gradient {preset.name}"
+              aria-pressed={currentBackground.type === 'gradient' && currentBackground.value === preset.id}
+              onclick={() => setBackground('gradient', preset.id)}
+            >
+              {#if currentBackground.type === 'gradient' && currentBackground.value === preset.id}
+                <span class="swatch-check">✓</span>
+              {/if}
+            </button>
+          {/each}
+        </div>
+      {:else}
+        <div class="color-row">
+          <input
+            type="color"
+            bind:value={colorValue}
+            onchange={() => setBackground('color', colorValue)}
+            aria-label="Board background color"
+          />
+          <span class="color-value">{currentBackground.type === 'color' ? currentBackground.value : 'No color set'}</span>
+        </div>
+      {/if}
+
+      {#if currentBackground.type != null}
+        <button class="bg-reset" onclick={() => setBackground(null, null)}>
+          Remove background
+        </button>
+      {/if}
     </div>
 
     <!-- Card aging section -->
@@ -183,6 +256,92 @@
     padding: 24px;
     position: relative;
     margin-bottom: 60px;
+  }
+
+  .bg-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 10px;
+  }
+
+  .bg-tab {
+    padding: 5px 12px;
+    background: none;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--color-text);
+  }
+
+  .bg-tab-active {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: white;
+  }
+
+  .gradient-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+  }
+
+  .gradient-swatch {
+    height: 48px;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .gradient-swatch:hover {
+    filter: brightness(1.08);
+  }
+
+  .swatch-check {
+    color: white;
+    font-weight: 700;
+    font-size: 16px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  }
+
+  .color-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .color-row input[type='color'] {
+    width: 56px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+  }
+
+  .color-value {
+    font-size: 13px;
+    color: var(--color-text-subtle);
+    font-family: monospace;
+  }
+
+  .bg-reset {
+    margin-top: 10px;
+    background: none;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 5px 10px;
+    font-size: 12px;
+    color: var(--color-text-subtle);
+    cursor: pointer;
+  }
+
+  .bg-reset:hover {
+    color: var(--color-text);
+    background: rgba(0, 0, 0, 0.04);
   }
 
   .modal-close {

@@ -3,7 +3,7 @@
   import { invalidateAll } from '$app/navigation';
   import { SvelteSet } from 'svelte/reactivity';
   import { dndzone } from 'svelte-dnd-action';
-  import { generateKeyBetween } from '@kanbang/shared';
+  import { generateKeyBetween, resolveBoardBackground, type BackgroundType } from '@kanbang/shared';
   import type { Card, CardWithProgress, Label, ListWithCardsDetail } from '@kanbang/shared';
   import { cardMatchesFilter, isFilterActive, type CardFilter, type DueFilter } from '$lib/utils/card-filter';
   import { toastStore } from '$lib/toastStore.svelte';
@@ -21,16 +21,30 @@
 
   let boardLabels: Label[] = $state(data.board.labels);
   let cardAgingDays = $state<number | null>(data.board.cardAgingDays ?? null);
+  let boardBackground = $state<{ type: BackgroundType | null; value: string | null }>({
+    type: data.board.backgroundType ?? null,
+    value: data.board.backgroundValue ?? null,
+  });
+
+  let backgroundCss = $derived(resolveBoardBackground(boardBackground.type, boardBackground.value));
 
   const flipDurationMs = 200;
 
+  interface BoardResponse {
+    name: string;
+    lists: ListWithCardsDetail[];
+    labels: Label[];
+    cardAgingDays: number | null;
+    backgroundType: BackgroundType | null;
+    backgroundValue: string | null;
+  }
+
   async function refetchBoard() {
-    const { board } = await api<{ board: { name: string; lists: ListWithCardsDetail[]; labels: Label[]; cardAgingDays: number | null } }>(
-      `/boards/${data.board.id}`,
-    );
+    const { board } = await api<{ board: BoardResponse }>(`/boards/${data.board.id}`);
     lists = board.lists.map((l) => ({ ...l, cards: l.cards.map((c) => ({ ...c })) }));
     boardLabels = board.labels;
     cardAgingDays = board.cardAgingDays;
+    boardBackground = { type: board.backgroundType, value: board.backgroundValue };
     return board;
   }
 
@@ -448,7 +462,7 @@
   );
 </script>
 
-<div class="board-page">
+<div class="board-page" class:board-page-bg={!!backgroundCss} style:background={backgroundCss || undefined}>
   {#if boardError}
     <div class="board-error" role="alert">
       {boardError}
@@ -642,6 +656,7 @@
       boardId={data.board.id}
       boardName={boardName}
       {cardAgingDays}
+      background={boardBackground}
       lists={lists.map((l) => ({ id: l.id, name: l.name, isDone: l.isDone }))}
       onclose={() => { showSettings = false; }}
       onupdated={async () => {
@@ -659,6 +674,20 @@
     flex-direction: column;
     height: 100%;
     overflow: hidden;
+  }
+
+  /* With a custom background, columns get a translucent frosted treatment
+     and the header text switches to white for contrast */
+  .board-page-bg :global(.list-column),
+  .board-page-bg :global(.list-collapsed) {
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(4px);
+  }
+
+  .board-page-bg .board-name,
+  .board-page-bg .board-header-btn {
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   }
 
   .board-error {

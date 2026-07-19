@@ -9,10 +9,11 @@
     isDone: boolean;
   }
 
-  let { boardId, boardName: initialBoardName, cardAgingDays, background, lists, onclose, onupdated }: {
+  let { boardId, boardName: initialBoardName, cardAgingDays, coversEnabled: initialCoversEnabled, background, lists, onclose, onupdated }: {
     boardId: string;
     boardName: string;
     cardAgingDays: number | null;
+    coversEnabled: boolean;
     background: { type: BackgroundType | null; value: string | null };
     lists: DoneListOption[];
     onclose: () => void;
@@ -59,6 +60,17 @@
   }
 
   let selectedAgingDays = $state(cardAgingDays != null ? String(cardAgingDays) : '');
+  let coversEnabled = $state(initialCoversEnabled);
+
+  async function toggleCovers(e: Event) {
+    const checked = (e.target as HTMLInputElement).checked;
+    coversEnabled = checked;
+    await api(`/boards/${boardId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ coversEnabled: checked }),
+    });
+    onupdated();
+  }
 
   async function handleAgingChange(e: Event) {
     const value = (e.target as HTMLSelectElement).value;
@@ -196,6 +208,15 @@
       {/if}
     </div>
 
+    <!-- Card covers section -->
+    <div class="modal-section">
+      <h3 class="section-label">Card covers</h3>
+      <label class="covers-toggle">
+        <input type="checkbox" checked={coversEnabled} onchange={toggleCovers} />
+        Show card covers on the board
+      </label>
+    </div>
+
     <!-- Card aging section -->
     <div class="modal-section">
       <h3 class="section-label">Card aging</h3>
@@ -256,6 +277,15 @@
     padding: 24px;
     position: relative;
     margin-bottom: 60px;
+  }
+
+  .covers-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--color-text);
+    cursor: pointer;
   }
 
   .bg-tabs {

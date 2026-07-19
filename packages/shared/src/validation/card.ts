@@ -10,6 +10,8 @@ export const cardSchema = z.object({
   position: z.string(),
   completed: z.boolean(),
   isTemplate: z.boolean(),
+  coverType: z.enum(['color', 'image']).nullable(),
+  coverValue: z.string().nullable(),
   completedAt: z.string().datetime().nullable(),
   dueDate: z.string().datetime().nullable(),
   createdAt: z.string().datetime(),
@@ -34,13 +36,59 @@ export const createCardSchema = z.object({
   dueDate: z.coerce.date().nullable().optional(),
 });
 
-export const updateCardSchema = z.object({
-  title: z.string().min(1).max(500).trim().optional(),
-  description: z.string().max(5000).nullable().optional(),
-  completed: z.boolean().optional(),
-  isTemplate: z.boolean().optional(),
-  dueDate: z.coerce.date().nullable().optional(),
-});
+const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
+const HTTP_URL_RE = /^https?:\/\/.+/;
+
+export const updateCardSchema = z
+  .object({
+    title: z.string().min(1).max(500).trim().optional(),
+    description: z.string().max(5000).nullable().optional(),
+    completed: z.boolean().optional(),
+    isTemplate: z.boolean().optional(),
+    dueDate: z.coerce.date().nullable().optional(),
+    coverType: z.enum(['color', 'image']).nullable().optional(),
+    coverValue: z.string().max(2000).nullable().optional(),
+  })
+  .superRefine((data, ctx) => {
+    const typeSet = data.coverType !== undefined;
+    const valueSet = data.coverValue !== undefined;
+    if (!typeSet && !valueSet) return;
+
+    if (typeSet !== valueSet) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'coverType and coverValue must be provided together',
+        path: ['coverType'],
+      });
+      return;
+    }
+
+    if (data.coverType === null) {
+      if (data.coverValue !== null) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'coverValue must be null when coverType is null',
+          path: ['coverValue'],
+        });
+      }
+    } else if (data.coverType === 'color') {
+      if (!HEX_COLOR_RE.test(data.coverValue ?? '')) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'coverValue must be a hex color like #0079bf',
+          path: ['coverValue'],
+        });
+      }
+    } else if (data.coverType === 'image') {
+      if (!HTTP_URL_RE.test(data.coverValue ?? '')) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'coverValue must be an http(s) image URL',
+          path: ['coverValue'],
+        });
+      }
+    }
+  });
 
 export const moveCardSchema = z.object({
   listId: z.string().min(1),

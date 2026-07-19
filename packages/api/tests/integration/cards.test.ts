@@ -649,6 +649,103 @@ describe('Card routes', () => {
     });
   });
 
+  describe('card covers', () => {
+    it('sets a color cover and clears it', async () => {
+      const { body: cardBody } = await createCard(app, cookie, listId, 'Covered');
+
+      const setRes = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/cards/${cardBody.card.id}`,
+        headers: authHeader(cookie),
+        payload: { coverType: 'color', coverValue: '#eb5a46' },
+      });
+      const { card } = JSON.parse(setRes.body);
+      expect(setRes.statusCode).toBe(200);
+      expect(card.coverType).toBe('color');
+      expect(card.coverValue).toBe('#eb5a46');
+
+      const clearRes = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/cards/${cardBody.card.id}`,
+        headers: authHeader(cookie),
+        payload: { coverType: null, coverValue: null },
+      });
+      const cleared = JSON.parse(clearRes.body).card;
+      expect(cleared.coverType).toBeNull();
+      expect(cleared.coverValue).toBeNull();
+    });
+
+    it('sets an image cover from an http(s) URL', async () => {
+      const { body: cardBody } = await createCard(app, cookie, listId, 'Covered');
+      const res = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/cards/${cardBody.card.id}`,
+        headers: authHeader(cookie),
+        payload: { coverType: 'image', coverValue: 'https://example.com/pic.jpg' },
+      });
+      expect(JSON.parse(res.body).card.coverValue).toBe('https://example.com/pic.jpg');
+    });
+
+    it('rejects invalid covers', async () => {
+      const { body: cardBody } = await createCard(app, cookie, listId, 'Covered');
+      const invalidPayloads = [
+        { coverType: 'color', coverValue: 'red' },
+        { coverType: 'image', coverValue: 'not-a-url' },
+        { coverType: 'image', coverValue: 'javascript:alert(1)' },
+        { coverType: 'stripes', coverValue: '#eb5a46' },
+        { coverType: 'color' },
+        { coverValue: '#eb5a46' },
+        { coverType: null, coverValue: '#eb5a46' },
+      ];
+      for (const payload of invalidPayloads) {
+        const res = await app.inject({
+          method: 'PATCH',
+          url: `/api/v1/cards/${cardBody.card.id}`,
+          headers: authHeader(cookie),
+          payload,
+        });
+        expect(res.statusCode).toBe(400);
+      }
+    });
+
+    it('covers survive card copy', async () => {
+      const { body: cardBody } = await createCard(app, cookie, listId, 'Covered');
+      await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/cards/${cardBody.card.id}`,
+        headers: authHeader(cookie),
+        payload: { coverType: 'color', coverValue: '#0079bf' },
+      });
+
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/v1/cards/${cardBody.card.id}/copy`,
+        headers: authHeader(cookie),
+        payload: { listId },
+      });
+      const { card: copy } = JSON.parse(res.body);
+      expect(copy.coverType).toBe('color');
+      expect(copy.coverValue).toBe('#0079bf');
+    });
+
+    it('board coversEnabled toggle round-trips', async () => {
+      const res = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/boards/${boardId}`,
+        headers: authHeader(cookie),
+        payload: { coversEnabled: false },
+      });
+      expect(JSON.parse(res.body).board.coversEnabled).toBe(false);
+
+      const boardRes = await app.inject({
+        method: 'GET',
+        url: `/api/v1/boards/${boardId}`,
+        headers: authHeader(cookie),
+      });
+      expect(JSON.parse(boardRes.body).board.coversEnabled).toBe(false);
+    });
+  });
+
   describe('card templates', () => {
     it('toggles the template flag via PATCH', async () => {
       const { body: cardBody } = await createCard(app, cookie, listId, 'Weekly review');

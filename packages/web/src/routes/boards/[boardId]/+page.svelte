@@ -21,6 +21,7 @@
 
   let boardLabels: Label[] = $state(data.board.labels);
   let cardAgingDays = $state<number | null>(data.board.cardAgingDays ?? null);
+  let coversEnabled = $state<boolean>(data.board.coversEnabled ?? true);
   let boardBackground = $state<{ type: BackgroundType | null; value: string | null }>({
     type: data.board.backgroundType ?? null,
     value: data.board.backgroundValue ?? null,
@@ -36,6 +37,7 @@
     lists: ListWithCardsDetail[];
     labels: Label[];
     cardAgingDays: number | null;
+    coversEnabled: boolean;
     backgroundType: BackgroundType | null;
     backgroundValue: string | null;
   }
@@ -45,6 +47,7 @@
     lists = board.lists.map((l) => ({ ...l, cards: l.cards.map((c) => ({ ...c })) }));
     boardLabels = board.labels;
     cardAgingDays = board.cardAgingDays;
+    coversEnabled = board.coversEnabled;
     boardBackground = { type: board.backgroundType, value: board.backgroundValue };
     return board;
   }
@@ -422,7 +425,15 @@
   }
 
   // --- Card detail modal ---
-  let modalCard = $state<{ id: string; title: string; description: string | null; listId: string; isTemplate: boolean } | null>(null);
+  let modalCard = $state<{
+    id: string;
+    title: string;
+    description: string | null;
+    listId: string;
+    isTemplate: boolean;
+    coverType: 'color' | 'image' | null;
+    coverValue: string | null;
+  } | null>(null);
   let clickTimer: ReturnType<typeof setTimeout> | null = null;
 
   function handleCardClick(card: CardWithProgress, listId: string) {
@@ -433,7 +444,7 @@
     } else {
       clickTimer = setTimeout(() => {
         clickTimer = null;
-        modalCard = { id: card.id, title: card.title, description: card.description, listId, isTemplate: card.isTemplate };
+        modalCard = { id: card.id, title: card.title, description: card.description, listId, isTemplate: card.isTemplate, coverType: card.coverType, coverValue: card.coverValue };
       }, 250);
     }
   }
@@ -444,7 +455,7 @@
       for (const list of lists) {
         const card = list.cards.find((c) => c.id === modalCard!.id);
         if (card) {
-          modalCard = { id: card.id, title: card.title, description: card.description, listId: list.id, isTemplate: card.isTemplate };
+          modalCard = { id: card.id, title: card.title, description: card.description, listId: list.id, isTemplate: card.isTemplate, coverType: card.coverType, coverValue: card.coverValue };
           break;
         }
       }
@@ -587,6 +598,7 @@
         {flipDurationMs}
         {boardLabels}
         {cardAgingDays}
+        showCovers={coversEnabled}
         {isCardDimmed}
         bind:editingListId
         bind:editingListName
@@ -650,6 +662,7 @@
       {flipDurationMs}
       {boardLabels}
       {cardAgingDays}
+      showCovers={coversEnabled}
       {isCardDimmed}
       bind:editingListId
       bind:editingListName
@@ -690,6 +703,8 @@
       cardTitle={modalCard.title}
       cardDescription={modalCard.description}
       cardIsTemplate={modalCard.isTemplate}
+      cardCoverType={modalCard.coverType}
+      cardCoverValue={modalCard.coverValue}
       listId={modalCard.listId}
       boardId={data.board.id}
       defaultLabelColor={accentColor || undefined}
@@ -706,6 +721,7 @@
       boardId={data.board.id}
       boardName={boardName}
       {cardAgingDays}
+      {coversEnabled}
       background={boardBackground}
       lists={lists.map((l) => ({ id: l.id, name: l.name, isDone: l.isDone }))}
       onclose={() => { showSettings = false; }}

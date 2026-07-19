@@ -61,6 +61,8 @@ export class CardService {
     if (input.description !== undefined) updates.description = input.description;
     if (input.isTemplate !== undefined) updates.isTemplate = input.isTemplate;
     if (input.dueDate !== undefined) updates.dueDate = input.dueDate;
+    if (input.coverType !== undefined) updates.coverType = input.coverType;
+    if (input.coverValue !== undefined) updates.coverValue = input.coverValue;
 
     if (input.completed !== undefined) {
       updates.completed = input.completed;
@@ -185,6 +187,8 @@ export class CardService {
         position,
         // Copies are working cards, even when the source is a template
         isTemplate: false,
+        coverType: source.coverType,
+        coverValue: source.coverValue,
         completed: source.completed,
         completedAt: source.completedAt,
         dueDate: source.dueDate,

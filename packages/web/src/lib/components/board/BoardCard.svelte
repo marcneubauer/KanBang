@@ -11,6 +11,7 @@
     dimmed?: boolean;
     isDone?: boolean;
     agingDays?: number | null;
+    showCovers?: boolean;
     editingCardId?: string | null;
     editingCardTitle?: string;
     datePickerCardId?: string | null;
@@ -31,6 +32,7 @@
     dimmed = false,
     isDone = false,
     agingDays = null,
+    showCovers = true,
     editingCardId = $bindable(null),
     editingCardTitle = $bindable(''),
     datePickerCardId = $bindable(null),
@@ -64,6 +66,15 @@
   class:card-aging-3={agingTier === 3}
   title={agingTier > 0 ? 'This card has not been touched in a while' : undefined}
 >
+  {#if showCovers && card.coverType && card.coverValue}
+    <div
+      class="card-cover"
+      class:card-cover-image={card.coverType === 'image'}
+      style={card.coverType === 'color'
+        ? `background: ${card.coverValue}`
+        : `background-image: url(${card.coverValue})`}
+    ></div>
+  {/if}
   {#if labels.length > 0}
     <div class="card-labels">
       {#each labels as label (label.id)}
@@ -233,6 +244,19 @@
 
   .card-item:active {
     cursor: grabbing;
+  }
+
+  .card-cover {
+    width: calc(100% + 16px);
+    margin: -8px -8px 8px;
+    height: 32px;
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  }
+
+  .card-cover-image {
+    height: 120px;
+    background-size: cover;
+    background-position: center;
   }
 
   .card-number {

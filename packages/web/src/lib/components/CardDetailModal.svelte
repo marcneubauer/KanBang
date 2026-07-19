@@ -1,6 +1,6 @@
 <script lang="ts">
   import { api } from '$lib/api';
-  import { generateKeyBetween, type Label } from '@kanbang/shared';
+  import { generateKeyBetween, LABEL_COLORS, type Label } from '@kanbang/shared';
   import { renderMarkdown } from '$lib/utils/markdown';
   import CardLabelsSection from './board/CardLabelsSection.svelte';
 
@@ -26,11 +26,13 @@
     items: ChecklistItemData[];
   }
 
-  let { cardId, cardTitle, cardDescription, cardIsTemplate = false, listId, boardId, boardLabels, cardLabelIds, lists, defaultLabelColor, onclose, onupdated }: {
+  let { cardId, cardTitle, cardDescription, cardIsTemplate = false, cardCoverType = null, cardCoverValue = null, listId, boardId, boardLabels, cardLabelIds, lists, defaultLabelColor, onclose, onupdated }: {
     cardId: string;
     cardTitle: string;
     cardDescription: string | null;
     cardIsTemplate?: boolean;
+    cardCoverType?: 'color' | 'image' | null;
+    cardCoverValue?: string | null;
     listId: string;
     boardId: string;
     boardLabels: Label[];
@@ -302,6 +304,28 @@
     }
   }
 
+  // --- Cover ---
+  let coverType = $state<'color' | 'image' | null>(cardCoverType);
+  let coverValue = $state<string | null>(cardCoverValue);
+  let coverUrlInput = $state(cardCoverType === 'image' ? (cardCoverValue ?? '') : '');
+
+  async function setCover(type: 'color' | 'image' | null, value: string | null) {
+    coverType = type;
+    coverValue = value;
+    await api(`/cards/${cardId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ coverType: type, coverValue: value }),
+    });
+    onupdated();
+  }
+
+  function applyCoverImage(e: Event) {
+    e.preventDefault();
+    const url = coverUrlInput.trim();
+    if (!url) return;
+    void setCover('image', url);
+  }
+
   // --- Template flag ---
   let isTemplate = $state(cardIsTemplate);
 
@@ -420,6 +444,35 @@
         {defaultLabelColor}
         onchanged={onupdated}
       />
+    </div>
+
+    <!-- Cover -->
+    <div class="modal-section">
+      <h3 class="section-label">Cover</h3>
+      <div class="cover-swatches">
+        {#each LABEL_COLORS as color (color)}
+          <button
+            class="cover-swatch"
+            class:cover-swatch-selected={coverType === 'color' && coverValue === color}
+            style="background: {color}"
+            aria-label="Cover color {color}"
+            aria-pressed={coverType === 'color' && coverValue === color}
+            onclick={() => setCover('color', color)}
+          ></button>
+        {/each}
+      </div>
+      <form class="cover-url-row" onsubmit={applyCoverImage}>
+        <input
+          type="url"
+          placeholder="Or paste an image URL..."
+          bind:value={coverUrlInput}
+          aria-label="Cover image URL"
+        />
+        <button type="submit" class="move-btn" disabled={!coverUrlInput.trim()}>Set image</button>
+      </form>
+      {#if coverType != null}
+        <button class="cover-remove" onclick={() => setCover(null, null)}>Remove cover</button>
+      {/if}
     </div>
 
     <!-- Move card -->
@@ -885,6 +938,53 @@
     margin-top: 10px;
     font-size: 12px;
     color: var(--color-text-subtle);
+  }
+
+  .cover-swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+
+  .cover-swatch {
+    width: 40px;
+    height: 26px;
+    border: 2px solid transparent;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+  }
+
+  .cover-swatch-selected {
+    border-color: var(--color-text);
+  }
+
+  .cover-url-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .cover-url-row input {
+    flex: 1;
+    padding: 6px 8px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+  }
+
+  .cover-remove {
+    margin-top: 8px;
+    background: none;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 4px 10px;
+    font-size: 12px;
+    color: var(--color-text-subtle);
+    cursor: pointer;
+  }
+
+  .cover-remove:hover {
+    color: var(--color-text);
   }
 
   .comment-form {

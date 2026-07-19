@@ -11,6 +11,7 @@
     flipDurationMs: number;
     boardLabels?: Label[];
     cardAgingDays?: number | null;
+    showCovers?: boolean;
     otherBoards?: Array<{ id: string; name: string }>;
     isCardDimmed?: (card: CardWithProgress) => boolean;
     editingListId?: string | null;
@@ -47,6 +48,7 @@
     flipDurationMs,
     boardLabels = [],
     cardAgingDays = null,
+    showCovers = true,
     otherBoards = [],
     isCardDimmed = () => false,
     editingListId = $bindable(null),
@@ -289,6 +291,7 @@
           dimmed={isCardDimmed(card)}
           isDone={list.isDone}
           agingDays={cardAgingDays}
+          {showCovers}
           bind:editingCardId
           bind:editingCardTitle
           bind:datePickerCardId

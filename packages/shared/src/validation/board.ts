@@ -13,6 +13,7 @@ export const updateBoardSchema = z
   .object({
     name: z.string().min(1).max(100).trim().optional(),
     cardAgingDays: z.number().int().min(1).max(365).nullable().optional(),
+    coversEnabled: z.boolean().optional(),
     backgroundType: z.enum(['color', 'gradient']).nullable().optional(),
     backgroundValue: z.string().max(100).nullable().optional(),
   })
@@ -65,6 +66,7 @@ export const boardSchema = z.object({
   name: z.string(),
   userId: z.string(),
   cardAgingDays: z.number().int().nullable(),
+  coversEnabled: z.boolean(),
   backgroundType: z.enum(['color', 'gradient']).nullable(),
   backgroundValue: z.string().nullable(),
   createdAt: z.string().datetime(),

@@ -266,6 +266,8 @@ export class ListService {
             listId: newList.id,
             position: prevCardKey,
             isTemplate: card.isTemplate,
+            coverType: card.coverType,
+            coverValue: card.coverValue,
             completed: card.completed,
             completedAt: card.completedAt,
             dueDate: card.dueDate,

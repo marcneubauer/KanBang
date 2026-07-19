@@ -12,6 +12,8 @@ function makeCard(overrides: Partial<CardWithProgress> = {}): CardWithProgress {
     position: 'a0',
     completed: false,
     isTemplate: false,
+    coverType: null,
+    coverValue: null,
     completedAt: null,
     dueDate: null,
     createdAt: '2026-01-01T00:00:00.000Z',

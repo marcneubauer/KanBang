@@ -10,6 +10,7 @@ export const boards = sqliteTable('boards', {
   cardAgingDays: integer('card_aging_days'),
   nextCardNumber: integer('next_card_number').notNull().default(1),
   coversEnabled: integer('covers_enabled', { mode: 'boolean' }).notNull().default(true),
+  isTemplate: integer('is_template', { mode: 'boolean' }).notNull().default(false),
   backgroundType: text('background_type', { enum: ['color', 'gradient'] }),
   backgroundValue: text('background_value'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),

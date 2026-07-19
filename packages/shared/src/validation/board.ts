@@ -14,6 +14,7 @@ export const updateBoardSchema = z
     name: z.string().min(1).max(100).trim().optional(),
     cardAgingDays: z.number().int().min(1).max(365).nullable().optional(),
     coversEnabled: z.boolean().optional(),
+    isTemplate: z.boolean().optional(),
     backgroundType: z.enum(['color', 'gradient']).nullable().optional(),
     backgroundValue: z.string().max(100).nullable().optional(),
   })
@@ -58,8 +59,13 @@ export const updateBoardSchema = z
     }
   });
 
+export const duplicateBoardSchema = z.object({
+  name: z.string().min(1).max(100).trim().optional(),
+});
+
 export type CreateBoardInput = z.infer<typeof createBoardSchema>;
 export type UpdateBoardInput = z.infer<typeof updateBoardSchema>;
+export type DuplicateBoardInput = z.infer<typeof duplicateBoardSchema>;
 
 export const boardSchema = z.object({
   id: z.string(),
@@ -67,6 +73,7 @@ export const boardSchema = z.object({
   userId: z.string(),
   cardAgingDays: z.number().int().nullable(),
   coversEnabled: z.boolean(),
+  isTemplate: z.boolean(),
   backgroundType: z.enum(['color', 'gradient']).nullable(),
   backgroundValue: z.string().nullable(),
   createdAt: z.string().datetime(),

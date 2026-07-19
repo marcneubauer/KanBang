@@ -148,6 +148,7 @@ export default async function boardRoutes(fastify: FastifyInstance) {
                 userId:          { type: 'string' },
                 cardAgingDays:   { type: ['number', 'null'] },
                 coversEnabled:   { type: 'boolean' },
+                isTemplate:      { type: 'boolean' },
                 backgroundType:  { type: ['string', 'null'] },
                 backgroundValue: { type: ['string', 'null'] },
                 createdAt:       { type: 'string' },

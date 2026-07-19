@@ -51,4 +51,6 @@ Housekeeping: `54793d6` committed the prior session's dex state + log; `db8c0ee`
 
 ## State at Session End
 
-All 319 tests pass; `pnpm typecheck` clean. Remaining top backlog: GH-27 (board templates), GH-51 (activity log, then GH-23 export), GH-34/36/42 (views), multi-user track untouched. Nothing pushed to the remote yet this session.
+All 319 tests pass; `pnpm typecheck` clean. Session paused on user request mid-GH-27 (board templates): commit `c4c258e` lands the groundwork only — `is_template` column + migration 0015, update-schema validation, response serialization. **Still to do for GH-27** (left open in dex): `BoardService.duplicate` (copy lists/cards/labels/checklists/settings with fresh numbering), `POST /boards/:id/duplicate` route, "Template board" checkbox in board settings, and a Templates section with "Use template" on the boards page.
+
+Remaining top backlog after GH-27: GH-51 (activity log, then GH-23 export), GH-34/36/42 (views), multi-user track untouched. Nothing pushed to the remote this session — a `git push` (16 commits) is due.

@@ -1,6 +1,6 @@
 import { asc, eq, inArray } from 'drizzle-orm';
 import type { Database } from '../db/index.js';
-import { boards, lists, cards, checklists, checklistItems, labels, cardLabels } from '../db/schema.js';
+import { boards, lists, cards, checklists, checklistItems, labels, cardLabels, comments } from '../db/schema.js';
 
 export class ExportService {
   constructor(private db: Database) {}
@@ -64,6 +64,14 @@ export class ExportService {
         .where(inArray(cardLabels.cardId, cardIds))
       : [];
 
+    const userComments = cardIds.length
+      ? await this.db
+        .select()
+        .from(comments)
+        .where(inArray(comments.cardId, cardIds))
+        .orderBy(asc(comments.createdAt))
+      : [];
+
     return userBoards.map((board) => ({
       ...board,
       labels: userLabels.filter((label) => label.boardId === board.id),
@@ -78,6 +86,7 @@ export class ExportService {
               labelIds: userCardLabels
                 .filter((cl) => cl.cardId === card.id)
                 .map((cl) => cl.labelId),
+              comments: userComments.filter((comment) => comment.cardId === card.id),
               checklists: userChecklists
                 .filter((checklist) => checklist.cardId === card.id)
                 .map((checklist) => ({

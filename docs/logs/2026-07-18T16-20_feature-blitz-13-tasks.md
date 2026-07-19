@@ -49,6 +49,18 @@ Housekeeping: `54793d6` committed the prior session's dex state + log; `db8c0ee`
 - **Copies are working cards**: copying a template produces a normal card; duplicating a list preserves template status.
 - E2E test additions were deferred throughout (unit + integration only); suite grew 264 → 314 tests, all green, typecheck clean at every commit.
 
+## Prompt 3: Documentation pass
+
+After pushing, the user asked whether the features/API are documented for people and agents to discover (e.g. the quick-add endpoint), and to spend remaining time on external-facing docs, plus a standing instruction to keep docs updated.
+
+**Actions:**
+
+- `docs/specs/03-rest-api.md` — brought current: new "Object Field Reference" section (canonical board/list/card/label/comment fields), bearer-auth exception note, expanded PATCH bodies (board settings, list cardLimit, card template/cover), and new sections for change-password, list sort/copy/move-to-board, card copy, Labels, Comments, Quick Add, Trello Import, and Export.
+- `docs/FEATURES.md` — new user/agent-facing feature guide: every feature with UI location and backing endpoints, plus a "For agents" section (auth modes, key read endpoints, fractional-index rule).
+- `README.md` — features section rewritten as highlights + links to both docs.
+- `CLAUDE.md` — new Documentation section listing the three docs and a standing rule: **update FEATURES.md + the API spec (and README highlights) in the same change as any feature addition or modification.**
+- Fixed a real gap found while documenting: `GET /api/v1/export` was missing comments (added today) — `ExportService` now includes per-card `comments`, with test coverage.
+
 ## State at Session End
 
 All 319 tests pass; `pnpm typecheck` clean. Session paused on user request mid-GH-27 (board templates): commit `c4c258e` lands the groundwork only — `is_template` column + migration 0015, update-schema validation, response serialization. **Still to do for GH-27** (left open in dex): `BoardService.duplicate` (copy lists/cards/labels/checklists/settings with fresh numbering), `POST /boards/:id/duplicate` route, "Template board" checkbox in board settings, and a Templates section with "Use template" on the boards page.

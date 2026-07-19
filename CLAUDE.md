@@ -26,6 +26,14 @@ Tasks live in `.dex/` (committed) and sync to GitHub Issues automatically.
 - Always pass `--commit <sha>` (or `--no-commit`) to `dex complete` so issues close cleanly on push.
 - The pre-dex docs/plans and docs/logs folders are archived under docs/archive/.
 
+## Documentation
+
+- `docs/FEATURES.md` — user/agent-facing feature guide (what each feature does, UI location, backing endpoints)
+- `docs/specs/03-rest-api.md` — complete REST API reference, including the Object Field Reference section
+- `README.md` — feature highlights + links to the above
+
+**Keep docs current: whenever a feature is added or changed, update `docs/FEATURES.md` and `docs/specs/03-rest-api.md` (and the README highlights if user-visible) in the same change.** New endpoints, new request/response fields, and new UI surfaces all count as changes.
+
 ## Monorepo Structure
 
 ```

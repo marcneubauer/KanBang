@@ -53,6 +53,13 @@ describe('Export route', () => {
       payload: { title: 'Step one' },
     });
 
+    await app.inject({
+      method: 'POST',
+      url: `/api/v1/cards/${card.id}/comments`,
+      headers: authHeader(sessionCookie),
+      payload: { body: 'A comment' },
+    });
+
     return { board, list, card, checklist };
   }
 
@@ -84,6 +91,8 @@ describe('Export route', () => {
     expect(data.boards[0].lists[0].cards[0].checklists[0].id).toBe(checklist.id);
     expect(data.boards[0].lists[0].cards[0].checklists[0].items).toHaveLength(1);
     expect(data.boards[0].lists[0].cards[0].checklists[0].items[0].title).toBe('Step one');
+    expect(data.boards[0].lists[0].cards[0].comments).toHaveLength(1);
+    expect(data.boards[0].lists[0].cards[0].comments[0].body).toBe('A comment');
   });
 
   it('includes archived items', async () => {

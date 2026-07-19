@@ -6,13 +6,17 @@ A self-hosted personal Trello clone — kanban boards with drag-and-drop, built 
 
 ## Features
 
-- Boards, lists, and cards with full CRUD
-- Drag-and-drop reordering (lists and cards, including cross-list moves)
-- Fractional indexing for efficient position updates
-- Password authentication (argon2id)
-- Passkey/WebAuthn authentication (register passkeys, passwordless login)
-- Cookie-based sessions with sliding expiry
-- Responsive UI
+See **[docs/FEATURES.md](docs/FEATURES.md)** for the full feature guide (what each feature does, where it lives in the UI, and the API behind it) and **[docs/specs/03-rest-api.md](docs/specs/03-rest-api.md)** for the complete REST API reference.
+
+Highlights:
+
+- Boards, lists, and cards with drag-and-drop (fractional indexing), archive/undo, and board-scoped card numbers (#1, #2…)
+- Cards: due dates, markdown descriptions, checklists, labels, comments, covers (color/image), templates, copy/move across boards, quick edit
+- Lists: sort, WIP limits, collapse, copy, move to another board, Done list with auto-move and auto-archive
+- Boards: color/gradient backgrounds with derived accent theming, card aging, search and filters
+- Quick-add REST endpoint with bearer-token auth for iOS/watchOS Shortcuts (dictate a task from an Apple Watch)
+- Trello board import (JSON export) and full JSON data export
+- Auth: password (argon2id) + passkeys/WebAuthn, cookie sessions with sliding expiry, rate limiting
 
 ## Tech Stack
 

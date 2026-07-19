@@ -10,6 +10,22 @@
 
 All endpoints except auth registration/login require a valid session cookie (`kanbang_session`). Unauthenticated requests receive `401 Unauthorized`.
 
+**Exception:** `POST /api/v1/quick-add` authenticates with a per-user bearer token (`Authorization: Bearer kb_...`) instead of a cookie, so it can be called from iOS/watchOS Shortcuts and other scripts. See [Quick Add](#quick-add).
+
+## Object Field Reference
+
+Canonical field lists for the core objects. (Older JSON samples below may omit newer fields; the serialized responses always include all of them.)
+
+**Board** — `id`, `name`, `userId`, `cardAgingDays` (int days or null; cards untouched this long render faded), `coversEnabled` (bool, default true), `isTemplate` (bool), `backgroundType` (`"color"` | `"gradient"` | null), `backgroundValue` (hex color or gradient preset id), `createdAt`, `updatedAt`, `archivedAt`.
+
+**List** — `id`, `name`, `boardId`, `position` (fractional-index string), `isDone` (bool; completed cards auto-move here), `cardLimit` (int WIP limit or null; advisory), `createdAt`, `updatedAt`, `archivedAt`.
+
+**Card** — `id`, `number` (board-scoped auto-increment like GitHub issues; null only for pre-migration rows), `title`, `description`, `listId`, `position`, `completed`, `isTemplate` (bool), `coverType` (`"color"` | `"image"` | null), `coverValue` (hex color or http(s) image URL), `completedAt`, `dueDate`, `createdAt`, `updatedAt`, `archivedAt`. Cards inside the board-detail response additionally carry `checklistProgress` (`{total, completed}`), `labelIds` (string array), and `commentCount` (int).
+
+**Label** — `id`, `name`, `color` (hex), `boardId`, `createdAt`, `updatedAt`.
+
+**Comment** — `id`, `body` (markdown), `cardId`, `createdAt`, `updatedAt`.
+
 ## Error Response Format
 
 All error responses follow this shape:
@@ -102,6 +118,17 @@ Destroys the current session. Requires authentication.
 ```json
 { "ok": true }
 ```
+
+### POST /api/v1/auth/change-password
+
+Change the authenticated user's password after verifying the current one. Invalidates all other sessions. Rate limited.
+
+**Request:**
+```json
+{ "currentPassword": "old-password", "newPassword": "new-password-12chars+" }
+```
+
+**Response (200):** `{ "ok": true }` — `400 INVALID_PASSWORD` when the current password is wrong
 
 ### GET /api/v1/auth/me
 
@@ -285,12 +312,27 @@ Only active lists (not archived) and active cards (not archived) are included.
 
 ### PATCH /api/v1/boards/:boardId
 
-Update a board's name.
+Update a board's name and/or settings. All fields optional.
 
 **Request:**
 ```json
-{ "name": "Updated Board Name" }
+{
+  "name": "Updated Board Name",
+  "cardAgingDays": 14,
+  "coversEnabled": true,
+  "isTemplate": false,
+  "backgroundType": "gradient",
+  "backgroundValue": "ocean"
+}
 ```
+
+**Validation:**
+
+- `name`: 1-100 chars, trimmed
+- `cardAgingDays`: integer 1-365 or `null` (off)
+- `coversEnabled`: boolean — hide/show all card covers on this board
+- `isTemplate`: boolean
+- `backgroundType` + `backgroundValue` must be sent together: `"color"` requires a `#rrggbb` hex value; `"gradient"` requires a preset id (`ocean`, `sunset`, `forest`, `lavender`, `flamingo`, `midnight`, `aqua`, `citrus`, `mint`, `slate`); `null`/`null` clears the background
 
 **Response (200):** Updated board object (same shape as POST response)
 
@@ -465,14 +507,50 @@ Only active cards (not archived) are included.
 
 ### PATCH /api/v1/lists/:listId
 
-Update a list's name.
+Update a list's name and/or WIP card limit. Both fields optional.
 
 **Request:**
 ```json
-{ "name": "In Progress" }
+{ "name": "In Progress", "cardLimit": 5 }
 ```
 
+**Validation:** `name`: 1-100 chars, trimmed; `cardLimit`: integer 1-999 or `null` to clear. The limit is advisory — the UI turns the count red when exceeded but card creation is never blocked.
+
 **Response (200):** Updated list object
+
+### PATCH /api/v1/lists/:listId/sort
+
+Sort a list's active cards, rewriting their fractional positions in one transaction.
+
+**Request:**
+```json
+{ "by": "dueDate", "direction": "asc" }
+```
+
+**Validation:** `by`: `"name"` | `"dueDate"` | `"createdAt"`; `direction`: `"asc"` (default) | `"desc"`. On due-date sort, cards without a due date always sink to the bottom.
+
+**Response (200):** `{ "cards": [...] }` — the sorted cards with their new positions
+
+### POST /api/v1/lists/:listId/copy
+
+Duplicate a list in place on the same board, appended after its active lists. Copies active cards with their labels and checklists; copied cards get fresh board-scoped numbers. The copy is named `"<name> (copy)"` and is never the Done list.
+
+**Request:** empty body
+
+**Response (201):** `{ "list": {...} }` — the new list (fetch the board for its cards)
+
+### PATCH /api/v1/lists/:listId/move-to-board
+
+Move a list (with its cards) to another owned board, appended after that board's active lists. Label assignments are dropped (labels are board-scoped), cards are renumbered from the target board's sequence, and the Done designation resets.
+
+**Request:**
+```json
+{ "boardId": "board2" }
+```
+
+**Response (200):** `{ "list": {...} }` — the moved list
+
+**Errors:** `404 NOT_FOUND`, `403 FORBIDDEN` (list or target board not owned)
 
 ### PATCH /api/v1/lists/:listId/reorder
 
@@ -593,7 +671,7 @@ Get a single card by ID.
 
 ### PATCH /api/v1/cards/:cardId
 
-Update a card's title, description, completed status, and/or due date.
+Update a card's title, description, completed status, due date, template flag, and/or cover.
 
 When `completed` is set to `true`, the server sets `completedAt` to the current time. If a Done list exists for the card's board, the card is automatically moved to it (the response will reflect the new `listId` and `position`). When `completed` is set to `false`, `completedAt` is cleared; the card is **not** auto-moved back.
 
@@ -615,8 +693,25 @@ All fields are optional. At least one must be provided.
 - `description`: max 5000 chars, nullable (optional)
 - `completed`: boolean (optional)
 - `dueDate`: ISO 8601 date string, nullable (optional; send `null` to clear)
+- `isTemplate`: boolean (optional) — template cards appear as "From template" options in the add-card UI
+- `coverType` + `coverValue` (optional, must be sent together): `"color"` requires a `#rrggbb` hex; `"image"` requires an http(s) image URL (max 2000 chars); `null`/`null` removes the cover
 
 **Response (200):** Updated card object
+
+### POST /api/v1/cards/:cardId/copy
+
+Duplicate a card onto any owned list (same or different board), appended at the end. The copy gets a fresh board-scoped number and is always a normal card (`isTemplate: false`), even when the source is a template — this is also the "create from template" mechanism. Covers are preserved.
+
+**Request:**
+```json
+{ "listId": "list2", "keepChecklists": true, "keepLabels": true }
+```
+
+**Validation:** `listId`: required; `keepChecklists`/`keepLabels`: booleans, default `true`. Labels only survive same-board copies (they're board-scoped) — `keepLabels` is ignored across boards.
+
+**Response (201):** `{ "card": {...} }` — the new card
+
+**Errors:** `404 NOT_FOUND`, `403 FORBIDDEN` (card or target list not owned)
 
 ### PATCH /api/v1/cards/:cardId/move
 
@@ -630,8 +725,10 @@ Move or reorder a card. Handles both within-list reordering and cross-list moves
 }
 ```
 
-- `listId`: target list (same list = reorder, different list = move)
+- `listId`: target list (same list = reorder, different list = move; may be on a different owned board)
 - `position`: new fractional index position
+
+Cross-board moves drop the card's label assignments (labels are board-scoped) and assign it a fresh number from the target board's sequence.
 
 **Response (200):** Updated card object
 
@@ -827,3 +924,131 @@ Convert a checklist item into a new card. Creates a card in the specified list u
 ```
 
 **Errors:** `404 NOT_FOUND`, `403 FORBIDDEN`
+
+---
+
+## Label Endpoints
+
+Labels are board-scoped colored tags assignable to cards.
+
+### GET /api/v1/boards/:boardId/labels
+
+List a board's labels. **Response (200):** `{ "labels": [...] }`
+
+### POST /api/v1/boards/:boardId/labels
+
+Create a label. **Request:** `{ "name": "urgent", "color": "#eb5a46" }` — `name`: max 50 chars (may be empty); `color`: `#rrggbb` hex. **Response (201):** `{ "label": {...} }`
+
+### PATCH /api/v1/labels/:labelId
+
+Update a label's name and/or color (same validation). **Response (200):** `{ "label": {...} }`
+
+### DELETE /api/v1/labels/:labelId
+
+Delete a label and all its card assignments. **Response (200):** `{ "ok": true }`
+
+### POST /api/v1/cards/:cardId/labels/:labelId
+
+Assign a label to a card (label must belong to the card's board). **Response (201):** `{ "ok": true }`
+
+### DELETE /api/v1/cards/:cardId/labels/:labelId
+
+Unassign a label from a card. **Response (200):** `{ "ok": true }`
+
+---
+
+## Comment Endpoints
+
+Markdown-capable comments on cards.
+
+### GET /api/v1/cards/:cardId/comments
+
+List a card's comments, newest first. **Response (200):** `{ "comments": [...] }`
+
+### POST /api/v1/cards/:cardId/comments
+
+Add a comment. **Request:** `{ "body": "Looks **done** to me" }` — 1-5000 chars, trimmed. **Response (201):** `{ "comment": {...} }`
+
+### PATCH /api/v1/comments/:commentId
+
+Edit a comment's body (same validation). **Response (200):** `{ "comment": {...} }`
+
+### DELETE /api/v1/comments/:commentId
+
+Delete a comment. **Response (200):** `{ "ok": true }`
+
+---
+
+## Quick Add
+
+Create cards from external clients (iOS/watchOS Shortcuts, scripts) without a browser session. `POST /api/v1/quick-add` uses a per-user **bearer token**; the four management endpoints use the normal session cookie.
+
+### POST /api/v1/quick-add
+
+Create a card from a text line. Rate limited (default 30/min).
+
+**Headers:** `Authorization: Bearer kb_<token>`
+
+**Request:**
+```json
+{ "text": "Groceries: buy oat milk" }
+```
+
+**Validation:** `text`: 1-500 chars, trimmed.
+
+**Routing:** if the text contains a colon and the prefix case-insensitively matches one of the user's active board names, the card is created on that board's first (leftmost, non-Done) list with the remainder as the title. Otherwise the full text becomes a card on the configured default list.
+
+**Response (201):**
+```json
+{ "card": { "...": "..." }, "board": "Groceries", "list": "To Buy" }
+```
+
+**Errors:** `401 UNAUTHORIZED` (missing/invalid token), `409 QUICK_ADD_NOT_CONFIGURED` (no valid default list and no board-prefix match)
+
+### GET /api/v1/quick-add/config
+
+Current quick-add configuration. **Response (200):** `{ "list": { "listId", "listName", "boardId", "boardName" } | null, "token": { "createdAt", "lastUsedAt" } | null }` — `list` is null when unset or when the configured list was archived/deleted.
+
+### PUT /api/v1/quick-add/config
+
+Set the default target list. **Request:** `{ "listId": "list1" }` (or `null` to clear). Must be an owned list. **Response (200):** `{ "ok": true }`
+
+### POST /api/v1/quick-add/token
+
+Generate (or rotate) the quick-add token. The plaintext is returned **only here** — only a sha256 hash is stored, and any previous token stops working. **Response (201):** `{ "token": "kb_..." }`
+
+### DELETE /api/v1/quick-add/token
+
+Revoke the token. **Response (200):** `{ "ok": true }`
+
+---
+
+## Import
+
+### POST /api/v1/import/trello
+
+Import a Trello per-board JSON export (Trello board menu → "Print, export, and share" → "Export as JSON") as a new board. Body limit 25 MB. Runs in a single transaction.
+
+**Request:** the raw Trello export JSON as the body.
+
+Mapping: lists/cards keep names, descriptions, and `pos` ordering (converted to fractional keys); `closed` items become archived; `due`/`dueComplete` map to due date and completed; checklists and items are preserved; label colors map onto the KanBang palette (`_dark`/`_light` variants collapse to their base); unnamed unused labels are skipped; cards get numbers 1..N.
+
+**Response (201):**
+```json
+{
+  "summary": {
+    "boardId": "…", "boardName": "My Trello Board",
+    "lists": 5, "cards": 123, "labels": 4, "checklists": 7, "checklistItems": 31
+  }
+}
+```
+
+**Errors:** `400 INVALID_TRELLO_EXPORT`
+
+---
+
+## Export
+
+### GET /api/v1/export
+
+Download all of the authenticated user's boards, lists, cards, checklists, labels, and comments (including archived items) as a JSON file (`Content-Disposition: attachment`). Shape: `{ exportedAt, user, boards: [ { ...board, labels, lists: [ { ...list, cards: [ { ...card, labelIds, comments, checklists: [ { ...checklist, items } ] } ] } ] } ] }`.

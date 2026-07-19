@@ -166,10 +166,28 @@ Since passkey login does not require an existing session, the challenge is store
 
 ---
 
+## API Bearer Tokens (Quick Add)
+
+Besides cookie sessions, each user can hold one **API token** used exclusively by `POST /api/v1/quick-add`, so non-browser clients (iOS/watchOS Shortcuts, scripts) can create cards without the cookie login flow.
+
+- **Format**: `kb_` + 32 random bytes base64url (`crypto.randomBytes`)
+- **Storage**: only a sha256 hex hash in the `api_tokens` table; the plaintext is returned once at generation
+- **Lifecycle**: generate/rotate (`POST /quick-add/token` — invalidates the previous token), revoke (`DELETE /quick-add/token`); `last_used_at` updates on each successful use
+- **Scope**: quick-add only — the token grants no access to any other endpoint
+- **Transport**: `Authorization: Bearer kb_...`; the SvelteKit proxy forwards the `Authorization` header to the API
+- **Rate limiting**: quick-add is rate limited (default 30/min)
+
+## Change Password
+
+`POST /api/v1/auth/change-password` (session-authed, rate limited) verifies the current password, re-hashes the new one, and deletes **all other sessions** for the user, keeping only the current one.
+
 ## Security Considerations
 
-1. **No user enumeration**: Login errors use generic messages. Registration checks for existing email/username return the same error shape.
+1. **No user enumeration**: Login/register errors are mapped client-side to generic messages by status code; the login endpoint itself returns a generic 401.
 2. **Password hashing**: argon2id with strong defaults. Password is never stored in plaintext or logged.
 3. **Session cookie security**: HttpOnly prevents XSS access. SameSite=Lax prevents CSRF for state-changing requests.
 4. **WebAuthn origin validation**: The server verifies that the origin in the WebAuthn response matches `config.rp.origin`.
 5. **Credential counter**: Updated on each passkey authentication to detect cloned authenticators.
+6. **API tokens**: hashed at rest (sha256), single-purpose (quick-add only), shown once, rotate-on-generate.
+7. **Rate limiting**: register/login/change-password (default 10/min) and quick-add (default 30/min) via `RATE_LIMIT_MAX`.
+8. **Proxy header allowlist**: the web proxy forwards only `cookie`, `content-type`, `accept`, `accept-language`, and `authorization` to the API.

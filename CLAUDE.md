@@ -91,16 +91,17 @@ pnpm db:migrate                  # Drizzle-kit apply migration
 
 ### Database
 
-- **Fractional indexing** for list/card positions: string-based lexicographic keys, only 1 row update per reorder
-- **6 tables**: users, credentials, sessions, boards, lists, cards
-- **Cascade deletes**: boards → lists → cards
-- **IDs**: nanoid text primary keys
+- **Fractional indexing** for list/card/checklist positions: string-based lexicographic keys, only 1 row update per reorder
+- **12 tables**: users, credentials, sessions, api_tokens, boards, lists, cards, checklists, checklist_items, labels, card_labels, comments
+- **Cascade deletes**: boards → lists → cards → checklists/comments; labels and card numbers are board-scoped (never survive cross-board moves)
+- **IDs**: nanoid text primary keys; cards also carry a board-scoped auto-increment `number`
 
 ### Auth
 
 - Cookie-based sessions (`kanbang_session`, HttpOnly, 30-day sliding expiry)
 - argon2id password hashing
 - Session stored in DB, validated on each request
+- `POST /api/v1/quick-add` uses per-user bearer tokens (sha256-hashed in api_tokens) instead of cookies
 
 ## Testing Conventions
 

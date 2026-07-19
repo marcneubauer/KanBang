@@ -61,6 +61,21 @@ After pushing, the user asked whether the features/API are documented for people
 - `CLAUDE.md` — new Documentation section listing the three docs and a standing rule: **update FEATURES.md + the API spec (and README highlights) in the same change as any feature addition or modification.**
 - Fixed a real gap found while documenting: `GET /api/v1/export` was missing comments (added today) — `ExportService` now includes per-card `comments`, with test coverage.
 
+## Prompt 4: Full documentation audit
+
+The user asked for a pass over the whole codebase for out-of-date, deletable, or missing documentation. Findings and fixes:
+
+- **CLAUDE.md** claimed "6 tables" → corrected to 12; added bearer-token auth note.
+- **00-project-overview.md** listed labels, comments, and board backgrounds as *non-goals* → added a "Scope (v3 — shipped 2026-07)" section, trimmed non-goals to what's genuinely out of scope, pointed to FEATURES.md as source of truth.
+- **02-database-schema.md** was missing 4 tables (labels, card_labels, comments, api_tokens) and ~12 columns → all added with ERD update; also fixed a **false claim** that Done-list auto-archive is "a background job that runs hourly" (it runs lazily on board fetch), and the deletable-content list.
+- **04-authentication.md** → new sections for quick-add bearer tokens and change-password; security considerations extended (token hashing, rate limits, proxy header allowlist).
+- **05-frontend-components.md** → new maintained "Current Component Inventory" table mapping actual files to responsibilities; original tree marked as design sketch.
+- **06-drag-and-drop.md** falsely claimed svelte-dnd-action has built-in keyboard support → corrected: mouse/touch only, modal Move section is the keyboard path.
+- **07-testing-strategy.md** "CI Pipeline (future)" → marked implemented (GH Actions), current suite noted (25 files / 319 tests).
+- **README.md** → removed stale hardcoded test counts ("70 tests"), added db:generate/migrate commands, completed the env-var table (API_PORT/HOST, COOKIE_SECURE, RATE_LIMIT_MAX, LOG_LEVEL), fixed the project-structure tree (docs/plans/ no longer exists).
+- **docs/dex-migration-plan.md** (completed one-time migration) → moved to docs/archive/.
+- 01-architecture.md and 06's remaining content checked — still accurate.
+
 ## State at Session End
 
 All 319 tests pass; `pnpm typecheck` clean. Session paused on user request mid-GH-27 (board templates): commit `c4c258e` lands the groundwork only — `is_template` column + migration 0015, update-schema validation, response serialization. **Still to do for GH-27** (left open in dex): `BoardService.duplicate` (copy lists/cards/labels/checklists/settings with fresh numbering), `POST /boards/:id/duplicate` route, "Template board" checkbox in board settings, and a Templates section with "Use template" on the boards page.

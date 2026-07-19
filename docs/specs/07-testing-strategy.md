@@ -393,10 +393,8 @@ Coverage is measured by Vitest's built-in c8/istanbul integration. E2E tests are
 
 ---
 
-## CI Pipeline (future)
+## CI Pipeline (implemented)
 
-```
-lint → typecheck → test:unit → test:integration → build → test:e2e
-```
+GitHub Actions (`.github/workflows/ci.yml`) runs on push/PR: lint → typecheck → Vitest suite → build → Playwright E2E.
 
-Each stage must pass before the next runs. E2E tests run last because they are slowest and require a full build.
+As of 2026-07 the Vitest suite is 25 files / 319 tests (integration tests cover every route group, including quick-add, Trello import, comments, sort, copy/move, numbering, covers). E2E tests run against a production build with a file-based test DB. Historic test counts elsewhere in this document are point-in-time snapshots — check `pnpm test` output for current numbers.

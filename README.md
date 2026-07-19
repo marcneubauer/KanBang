@@ -72,7 +72,9 @@ kanbang/
 ├── e2e/           # Playwright E2E tests
 ├── docs/
 │   ├── specs/     # Specification documents
-│   └── plans/     # Planning documents
+│   ├── FEATURES.md # Feature guide (users + agents)
+│   ├── logs/      # Session logs
+│   └── archive/   # Retired plans and pre-dex tracking
 ├── docker-compose.yml
 ├── Dockerfile.api
 └── Dockerfile.web
@@ -83,11 +85,13 @@ kanbang/
 ```bash
 pnpm dev          # Start API + Web in parallel
 pnpm build        # Build all packages
-pnpm test         # Run Vitest tests (70 tests)
-pnpm test:e2e     # Run Playwright E2E tests (20 tests)
+pnpm test         # Run Vitest tests (unit + integration)
+pnpm test:e2e     # Run Playwright E2E tests
 pnpm typecheck    # TypeScript type checking
 pnpm lint         # ESLint
 pnpm format       # Prettier
+pnpm db:generate  # Generate a Drizzle migration from schema changes
+pnpm db:migrate   # Apply migrations
 ```
 
 ## Environment Variables
@@ -98,10 +102,14 @@ See [.env.example](.env.example) for all available configuration options.
 |----------|---------|-------------|
 | `DATABASE_URL` | `./kanbang.db` | SQLite database file path |
 | `SESSION_SECRET` | — | Secret for session management (min 32 chars) |
+| `API_PORT` / `API_HOST` | `3001` / `0.0.0.0` | API listen address |
+| `COOKIE_SECURE` | `false` | Set `true` behind HTTPS so session cookies are Secure |
 | `RP_ID` | `localhost` | WebAuthn Relying Party ID (your domain) |
 | `RP_ORIGIN` | `http://localhost:3000` | WebAuthn origin URL |
 | `CORS_ORIGIN` | `http://localhost:5173` | Allowed CORS origin |
 | `API_URL` | `http://localhost:3001` | Backend URL (used by SvelteKit server) |
+| `RATE_LIMIT_MAX` | `10` (auth) / `30` (quick-add) | Requests per minute on rate-limited endpoints |
+| `LOG_LEVEL` | `info` | API log level |
 
 ## License
 

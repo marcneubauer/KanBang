@@ -228,11 +228,4 @@ async function handleCardFinalize(listId: string, event: CustomEvent) {
 
 ## Keyboard Accessibility
 
-`svelte-dnd-action` provides built-in keyboard support:
-- **Tab** to focus a draggable item
-- **Space/Enter** to pick up the focused item
-- **Arrow keys** to move the item
-- **Space/Enter** again to drop
-- **Escape** to cancel
-
-The library announces actions via an ARIA live region for screen readers.
+**Correction (2026-07):** in practice `svelte-dnd-action` drag interactions are mouse/touch-only in this app. The keyboard-accessible alternative for moving cards is the card detail modal's **Move** section (board + list + position selects, `PATCH /cards/:id/move` with a computed fractional key). List reordering currently has no keyboard path.

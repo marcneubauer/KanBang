@@ -27,7 +27,29 @@ The nav bar is shown on all authenticated pages. Login and register pages have n
 
 ---
 
-## Component Tree
+## Current Component Inventory (maintained)
+
+The trees below this section are the **original design sketch** and use design-time names. The actual implementation as of 2026-07:
+
+| File | Responsibility |
+|------|----------------|
+| `routes/boards/+page.svelte` | Boards grid, create form, archived-boards drawer |
+| `routes/boards/[boardId]/+page.svelte` | Board page orchestrator: state, filters, dnd handlers, background/accent theming |
+| `lib/components/board/ListColumn.svelte` | One list column: header (WIP badge, sort/limit/copy/move menu), dnd card zone, add-card form with template chips, collapsed strip |
+| `lib/components/board/BoardCard.svelte` | Card face: cover, labels, checkbox, title, #number, badges (due, checklist, comments, template), aging tiers, quick actions |
+| `lib/components/board/QuickEditPopover.svelte` | Inline title/labels/due-date editing without the modal |
+| `lib/components/board/CardLabelsSection.svelte` | Label list/editor inside the card modal (accent-aware default color) |
+| `lib/components/board/ArchivedPanel.svelte` | Archived lists/cards drawer with restore |
+| `lib/components/CardDetailModal.svelte` | Card modal: title, labels, cover picker, move/copy (cross-board), template toggle, markdown description, comments, checklists |
+| `lib/components/BoardSettingsModal.svelte` | Board name, Done list, covers toggle, background picker, card aging, archive |
+| `lib/components/DatePicker.svelte` | Due-date popover |
+| `lib/components/ErrorIndicator.svelte`, `Toaster.svelte` | Global error badge; toast notifications with undo actions |
+| `routes/settings/+page.svelte` | Passkeys, change password, quick-add config/token, Trello import, JSON export |
+| `lib/api.ts` | Typed fetch wrapper (pushes failures to the error store) |
+| `lib/errorStore.svelte.ts`, `lib/toastStore.svelte.ts` | Rune-based global stores |
+| `lib/utils/card-filter.ts`, `due-date.ts`, `markdown.ts` | Filter predicate, due-date status, sanitized markdown rendering |
+
+## Component Tree (original design sketch)
 
 ### Board List Page (`/boards`)
 

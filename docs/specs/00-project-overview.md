@@ -17,15 +17,24 @@ KanBang is a personal, self-hosted Trello clone for managing tasks using a kanba
 - **Checklists**: Multiple checklists per card with ordered checkable items. Card face shows progress summary. Card detail modal for editing.
 - **Done column**: Per-board "Done" list that completed cards auto-move into, with auto-archive after 3 days
 
+## Scope (v3 — shipped 2026-07)
+
+- **Labels** (board-scoped colored tags) with board-header filtering and search
+- **Comments** (markdown) with count badges
+- **Card extras**: covers (color / image URL), templates, board-scoped numbering (#N), copy/move across boards, quick edit, markdown descriptions
+- **List extras**: sort, WIP limits, collapse, copy, move to another board
+- **Board appearance**: color/gradient backgrounds with derived accent theming, card aging
+- **Integrations**: Trello board import, full JSON export, quick-add REST endpoint with bearer-token auth (Apple Watch / Shortcuts)
+- **Account**: change password, generic auth errors (anti-enumeration)
+
+The complete current feature list lives in [../FEATURES.md](../FEATURES.md) — treat that as the source of truth.
+
 ## Non-Goals (current)
 
-- Real-time collaboration / multi-user editing
-- File attachments or image uploads
-- Labels, tags, or color coding
-- Calendar view or calendar integration
-- Comments or activity log
-- Board backgrounds or themes
-- Email notifications
+- Real-time collaboration / multi-user editing (member roles, assignments, invites remain open backlog ideas)
+- File attachments or image **uploads** (card cover images are external URLs only)
+- Calendar / table / dashboard views
+- Email notifications or reminders
 - Mobile app (responsive web only)
 
 ## Technology Stack

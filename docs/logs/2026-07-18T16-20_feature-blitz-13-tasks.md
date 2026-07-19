@@ -12,7 +12,7 @@ Prioritize the open dex feature backlog and work down the list autonomously, com
 
 **Prioritization chosen:** the two freshest user requests first (GH-63 quick-add, GH-62 Trello import), then small security/usability wins (GH-3, GH-28, GH-5, GH-25), then the pre-planned GH-14 with its follow-on GH-4, then card/list power features (GH-17, GH-8, GH-48, GH-29, GH-6). Multi-user features (members, invites, guest access, watching, voting) and big views (table/calendar/dashboard) deprioritized as ill-fitting for a personal instance until basics are done.
 
-## Tasks Completed (13 + housekeeping)
+## Tasks Completed (15 + housekeeping)
 
 | Task | Commit | Summary |
 |------|--------|---------|
@@ -29,6 +29,7 @@ Prioritize the open dex feature backlog and work down the list autonomously, com
 | GH-48 Card numbering | `308f7ee` | Board-scoped auto-increment `number` + `next_card_number` counter; backfill migration; allocation across create/copy/import/cross-board moves; #N on card face |
 | GH-29 Comments | `37359c8` | `comments` table + CRUD routes; markdown-rendered modal section with edit/delete; comment-count badge via set-based aggregation |
 | GH-6 Card templates | `5525f3e` | `is_template` flag + modal toggle; template badge; "From template" chips in add-card flow reusing the copy endpoint |
+| GH-2 + GH-12 Card covers | `8f8fb91` | `cover_type/cover_value` (hex color or http(s) image URL, background-style cross-validation); modal Cover picker; covers survive copies; board-level `covers_enabled` toggle |
 
 Housekeeping: `54793d6` committed the prior session's dex state + log; `db8c0ee` dex state sync.
 
@@ -50,4 +51,4 @@ Housekeeping: `54793d6` committed the prior session's dex state + log; `db8c0ee`
 
 ## State at Session End
 
-All 314 tests pass; `pnpm typecheck` clean. Remaining top backlog: GH-2/GH-12 (card covers), GH-27 (board templates), GH-51 (activity log), GH-34/36/42 (views), multi-user track untouched.
+All 319 tests pass; `pnpm typecheck` clean. Remaining top backlog: GH-27 (board templates), GH-51 (activity log, then GH-23 export), GH-34/36/42 (views), multi-user track untouched. Nothing pushed to the remote yet this session.

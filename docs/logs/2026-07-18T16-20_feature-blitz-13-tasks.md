@@ -80,4 +80,4 @@ The user asked for a pass over the whole codebase for out-of-date, deletable, or
 
 All 319 tests pass; `pnpm typecheck` clean. Session paused on user request mid-GH-27 (board templates): commit `c4c258e` lands the groundwork only — `is_template` column + migration 0015, update-schema validation, response serialization. **Still to do for GH-27** (left open in dex): `BoardService.duplicate` (copy lists/cards/labels/checklists/settings with fresh numbering), `POST /boards/:id/duplicate` route, "Template board" checkbox in board settings, and a Templates section with "Use template" on the boards page.
 
-Remaining top backlog after GH-27: GH-51 (activity log, then GH-23 export), GH-34/36/42 (views), multi-user track untouched. Nothing pushed to the remote this session — a `git push` (16 commits) is due.
+Remaining top backlog after GH-27: GH-51 (activity log, then GH-23 export), GH-34/36/42 (views), multi-user track untouched. All commits pushed to origin/main (through the documentation audit, `f253b5a`); completed dex tasks synced/closed on GitHub.

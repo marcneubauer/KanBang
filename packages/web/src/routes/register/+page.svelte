@@ -87,7 +87,7 @@
     padding: 32px;
     background: var(--color-surface);
     border-radius: var(--radius);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-md);
   }
 
   h1 {
@@ -147,7 +147,7 @@
   .error {
     padding: 8px 12px;
     margin-bottom: 16px;
-    background: #fdf2f2;
+    background: var(--color-danger-soft);
     color: var(--color-danger);
     border-radius: var(--radius-sm);
     font-size: 13px;

@@ -121,7 +121,7 @@
     color: var(--color-text);
     border: 1px solid var(--color-border);
     border-radius: var(--radius);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    box-shadow: var(--shadow-lg);
     z-index: 100;
     overflow: hidden;
   }

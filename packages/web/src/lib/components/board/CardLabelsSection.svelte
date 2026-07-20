@@ -188,14 +188,14 @@
   }
 
   .label-edit-btn:hover {
-    background: rgba(0, 0, 0, 0.08);
+    background: var(--color-hover-strong);
     color: var(--color-text);
   }
 
   .add-label-btn {
     width: 100%;
     padding: 6px 10px;
-    background: rgba(0, 0, 0, 0.05);
+    background: var(--color-hover);
     border: none;
     border-radius: var(--radius-sm);
     color: var(--color-text-subtle);
@@ -205,11 +205,11 @@
   }
 
   .add-label-btn:hover {
-    background: rgba(0, 0, 0, 0.1);
+    background: var(--color-hover-strong);
   }
 
   .label-editor {
-    background: rgba(0, 0, 0, 0.03);
+    background: var(--color-hover);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     padding: 8px;
@@ -276,7 +276,7 @@
   }
 
   .btn-danger-sm:hover {
-    background: #fdf2f2;
+    background: var(--color-danger-soft);
   }
 
   .btn-close {

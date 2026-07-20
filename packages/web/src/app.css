@@ -1,12 +1,41 @@
 :root {
+  color-scheme: light;
   --color-bg: #f5f6f8;
   --color-surface: #ffffff;
+  --color-surface-raised: #ffffff; /* modals, popovers, menus */
+  --color-input-bg: #ffffff;
+  --color-column: #ebecf0; /* list columns without a board background */
+  --color-frost: rgba(255, 255, 255, 0.88); /* list columns over a board background */
+  --color-hover: rgba(0, 0, 0, 0.04);
+  --color-hover-strong: rgba(0, 0, 0, 0.08);
+  --color-overlay: rgba(0, 0, 0, 0.5); /* modal backdrop */
   --color-primary: #0079bf;
   --color-primary-hover: #026aa7;
   --color-text: #172b4d;
   --color-text-subtle: #5e6c84;
+  --color-text-inverse: #ffffff; /* text on primary/accent surfaces */
   --color-border: #dfe1e6;
   --color-danger: #eb5a46;
+  --color-muted: #f0f0f0; /* neutral badges/chips */
+  --color-muted-text: #555555;
+  --color-success: #22c55e;
+  --color-success-bg: #dcfce7;
+  --color-success-text: #166534;
+  --color-success-soft: #f0fdf4;
+  --color-warning-bg: #fef3c7;
+  --color-warning-text: #92400e;
+  --color-danger-bg: #fee2e2;
+  --color-danger-text: #991b1b;
+  --color-danger-soft: #fdf2f2;
+  --color-template-bg: #efeaf7;
+  --color-template-text: #6b5b95;
+  /* Card aging: progressively dusty as cards go untouched */
+  --color-aging-1: #fdfcf7;
+  --color-aging-2: #faf6e8;
+  --color-aging-3: #f5eed8;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
   --radius: 8px;
   --radius-sm: 4px;
 }

@@ -38,7 +38,7 @@
     background: #2b2f36;
     color: white;
     border-radius: var(--radius-sm);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    box-shadow: var(--shadow-md);
     padding: 10px 12px;
     font-size: 13px;
     max-width: 360px;

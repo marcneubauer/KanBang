@@ -336,7 +336,7 @@
   .modal-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--color-overlay);
     display: flex;
     align-items: flex-start;
     justify-content: center;
@@ -346,7 +346,7 @@
   }
 
   .modal {
-    background: white;
+    background: var(--color-surface-raised);
     border-radius: 8px;
     width: 100%;
     max-width: 480px;
@@ -447,7 +447,7 @@
 
   .bg-reset:hover {
     color: var(--color-text);
-    background: rgba(0, 0, 0, 0.04);
+    background: var(--color-hover);
   }
 
   .bg-image-panel {
@@ -550,7 +550,7 @@
   .field-input:focus {
     outline: none;
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 2px rgba(0, 121, 191, 0.2);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 20%, transparent);
   }
 
   .btn-danger-outline {

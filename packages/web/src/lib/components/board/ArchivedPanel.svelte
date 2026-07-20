@@ -112,7 +112,7 @@
     flex-shrink: 0;
     border-top: 1px solid var(--color-border);
     padding: 8px 16px;
-    background: var(--color-bg, white);
+    background: var(--color-bg);
   }
 
   .archived-toggle {
@@ -155,7 +155,7 @@
     align-items: center;
     gap: 8px;
     padding: 6px 8px;
-    background: var(--color-surface, #f5f5f5);
+    background: var(--color-surface);
     border-radius: var(--radius-sm);
     border: 1px solid var(--color-border);
   }
@@ -189,7 +189,7 @@
   }
 
   .btn-unarchive:hover {
-    background: white;
+    background: var(--color-surface);
     color: var(--color-text);
   }
 

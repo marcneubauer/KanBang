@@ -928,7 +928,7 @@
   .modal-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--color-overlay);
     display: flex;
     align-items: flex-start;
     justify-content: center;
@@ -938,7 +938,7 @@
   }
 
   .modal {
-    background: white;
+    background: var(--color-surface-raised);
     border-radius: 8px;
     width: 100%;
     max-width: 600px;
@@ -996,7 +996,7 @@
   .description-textarea {
     width: 100%;
     padding: 8px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     font-size: 14px;
     font-family: inherit;
@@ -1022,7 +1022,7 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     font-size: 13px;
-    background: white;
+    background: var(--color-surface);
     color: var(--color-text);
     cursor: pointer;
   }
@@ -1073,7 +1073,7 @@
   .copy-message {
     margin-top: 8px;
     font-size: 13px;
-    color: #166534;
+    color: var(--color-success-text);
   }
 
   .template-toggle {
@@ -1151,7 +1151,7 @@
     border-radius: var(--radius-sm);
     overflow: hidden;
     border: 1px solid var(--color-border);
-    background: #f0f0f0;
+    background: var(--color-muted);
   }
 
   .attachment-thumb img {
@@ -1211,7 +1211,7 @@
 
   .attachment-drop-active {
     border-color: var(--color-primary);
-    background: rgba(0, 121, 191, 0.06);
+    background: color-mix(in srgb, var(--color-primary) 6%, transparent);
   }
 
   .attachment-hint {
@@ -1293,7 +1293,7 @@
     font-size: 14px;
     color: var(--color-text-subtle);
     padding: 8px;
-    background: #f5f5f5;
+    background: var(--color-muted);
     border-radius: var(--radius-sm);
     cursor: pointer;
     min-height: 40px;
@@ -1332,14 +1332,14 @@
   }
 
   .description-markdown :global(code) {
-    background: rgba(0, 0, 0, 0.07);
+    background: var(--color-hover-strong);
     border-radius: 3px;
     padding: 1px 4px;
     font-size: 13px;
   }
 
   .description-markdown :global(pre) {
-    background: rgba(0, 0, 0, 0.07);
+    background: var(--color-hover-strong);
     border-radius: var(--radius-sm);
     padding: 8px;
     overflow-x: auto;
@@ -1369,9 +1369,9 @@
   .checklist {
     margin-bottom: 16px;
     padding: 12px;
-    background: #fafafa;
+    background: var(--color-bg);
     border-radius: var(--radius-sm);
-    border: 1px solid #eee;
+    border: 1px solid var(--color-border);
   }
 
   .checklist-header {
@@ -1414,7 +1414,7 @@
   }
 
   .checklist-delete:hover {
-    color: var(--color-danger, #dc2626);
+    color: var(--color-danger);
   }
 
   /* Progress */
@@ -1435,20 +1435,20 @@
   .progress-bar {
     flex: 1;
     height: 6px;
-    background: #e0e0e0;
+    background: var(--color-border);
     border-radius: 3px;
     overflow: hidden;
   }
 
   .progress-fill {
     height: 100%;
-    background: var(--color-primary, #3b82f6);
+    background: var(--color-primary);
     border-radius: 3px;
     transition: width 200ms;
   }
 
   .progress-complete {
-    background: #22c55e;
+    background: var(--color-success);
   }
 
   /* Checklist items */
@@ -1467,7 +1467,7 @@
   }
 
   .checklist-item:hover {
-    background: rgba(0, 0, 0, 0.04);
+    background: var(--color-hover);
   }
 
   .item-checkbox {
@@ -1548,7 +1548,7 @@
   .add-item-input {
     width: 100%;
     padding: 6px 8px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     font-size: 13px;
   }
@@ -1564,7 +1564,7 @@
   /* Add checklist */
   .add-checklist-btn {
     background: none;
-    border: 1px solid #ddd;
+    border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     color: var(--color-text-subtle);
     cursor: pointer;
@@ -1575,7 +1575,7 @@
   }
 
   .add-checklist-btn:hover {
-    background: #f5f5f5;
+    background: var(--color-muted);
     color: var(--color-text);
   }
 
@@ -1586,7 +1586,7 @@
   .add-checklist-input {
     width: 100%;
     padding: 8px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     font-size: 14px;
   }

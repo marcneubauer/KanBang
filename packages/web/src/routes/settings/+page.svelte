@@ -507,7 +507,7 @@
     background: var(--color-surface);
     border-radius: var(--radius);
     padding: 20px;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    box-shadow: var(--shadow-sm);
   }
 
   .section + .section {
@@ -549,7 +549,7 @@
 
   .section-desc code {
     font-size: 12px;
-    background: var(--color-bg, #f4f5f7);
+    background: var(--color-bg);
     padding: 1px 4px;
     border-radius: 3px;
   }
@@ -574,7 +574,7 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     font-size: 14px;
-    background: white;
+    background: var(--color-surface);
   }
 
   .quick-add-current {
@@ -666,7 +666,7 @@
   .error {
     padding: 8px 12px;
     margin-bottom: 12px;
-    background: #fdf2f2;
+    background: var(--color-danger-soft);
     color: var(--color-danger);
     border-radius: var(--radius-sm);
     font-size: 13px;
@@ -675,8 +675,8 @@
   .success {
     padding: 8px 12px;
     margin-bottom: 12px;
-    background: #f0fdf4;
-    color: #166534;
+    background: var(--color-success-soft);
+    color: var(--color-success-text);
     border-radius: var(--radius-sm);
     font-size: 13px;
   }
@@ -726,7 +726,7 @@
   }
 
   .delete-btn:hover {
-    background: #fdf2f2;
+    background: var(--color-danger-soft);
   }
 
   .register-btn {

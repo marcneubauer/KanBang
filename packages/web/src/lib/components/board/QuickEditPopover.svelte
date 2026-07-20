@@ -98,9 +98,9 @@
     left: 0;
     z-index: 20;
     width: 256px;
-    background: white;
+    background: var(--color-surface-raised);
     border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--shadow-md);
     padding: 8px;
     cursor: default;
   }

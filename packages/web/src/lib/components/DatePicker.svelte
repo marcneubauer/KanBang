@@ -53,9 +53,9 @@
     top: 100%;
     left: 0;
     z-index: 10;
-    background: white;
+    background: var(--color-surface-raised);
     border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: var(--shadow-md);
     padding: 8px;
     display: flex;
     flex-direction: column;
@@ -66,7 +66,7 @@
   .date-picker input[type='date'] {
     font-size: 13px;
     padding: 4px 6px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--color-border);
     border-radius: 4px;
   }
 
@@ -74,14 +74,14 @@
     font-size: 12px;
     padding: 4px 8px;
     background: none;
-    border: 1px solid #ccc;
+    border: 1px solid var(--color-border);
     border-radius: 4px;
     cursor: pointer;
-    color: #666;
+    color: var(--color-text-subtle);
   }
 
   .remove-btn:hover {
-    background: #f5f5f5;
-    color: #333;
+    background: var(--color-muted);
+    color: var(--color-text);
   }
 </style>

@@ -272,7 +272,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 12px 14px;
-    background: var(--color-surface, #f5f5f5);
+    background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius);
     opacity: 0.7;
@@ -296,7 +296,7 @@
   }
 
   .btn-unarchive:hover {
-    background: var(--color-surface, #f0f0f0);
+    background: var(--color-surface);
     color: var(--color-text);
   }
 </style>

@@ -248,9 +248,9 @@
     flex-wrap: wrap;
     position: relative;
     padding: 8px 8px;
-    background: white;
+    background: var(--color-surface);
     border-radius: var(--radius-sm);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-sm);
     cursor: grab;
   }
 
@@ -283,8 +283,8 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.03em;
-    color: #6b5b95;
-    background: #efeaf7;
+    color: var(--color-template-text);
+    background: var(--color-template-bg);
     border-radius: 3px;
     padding: 2px 6px;
     margin-top: 4px;
@@ -302,18 +302,18 @@
   /* Card aging: progressively dusty as cards go untouched */
   .card-aging-1 {
     opacity: 0.85;
-    background: #fdfcf7;
+    background: var(--color-aging-1);
   }
 
   .card-aging-2 {
     opacity: 0.7;
-    background: #faf6e8;
+    background: var(--color-aging-2);
     box-shadow: none;
   }
 
   .card-aging-3 {
     opacity: 0.55;
-    background: #f5eed8;
+    background: var(--color-aging-3);
     box-shadow: none;
     filter: saturate(0.7);
   }
@@ -437,23 +437,23 @@
   }
 
   .due-date-neutral {
-    background: #f0f0f0;
-    color: #555;
+    background: var(--color-muted);
+    color: var(--color-muted-text);
   }
 
   .due-date-soon {
-    background: #fef3c7;
-    color: #92400e;
+    background: var(--color-warning-bg);
+    color: var(--color-warning-text);
   }
 
   .due-date-overdue {
-    background: #fee2e2;
-    color: #991b1b;
+    background: var(--color-danger-bg);
+    color: var(--color-danger-text);
   }
 
   .due-date-complete {
-    background: #dcfce7;
-    color: #166534;
+    background: var(--color-success-bg);
+    color: var(--color-success-text);
   }
 
   .checklist-badge {
@@ -463,8 +463,8 @@
     font-size: 11px;
     padding: 2px 6px;
     border-radius: 3px;
-    background: #f0f0f0;
-    color: #555;
+    background: var(--color-muted);
+    color: var(--color-muted-text);
     width: auto;
     margin-top: 4px;
   }
@@ -476,15 +476,15 @@
     font-size: 11px;
     padding: 2px 6px;
     border-radius: 3px;
-    background: #f0f0f0;
-    color: #555;
+    background: var(--color-muted);
+    color: var(--color-muted-text);
     width: auto;
     margin-top: 4px;
     margin-right: 4px;
   }
 
   .checklist-badge-complete {
-    background: #dcfce7;
-    color: #166534;
+    background: var(--color-success-bg);
+    color: var(--color-success-text);
   }
 </style>

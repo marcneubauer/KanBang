@@ -350,7 +350,7 @@
     max-height: 100%;
     display: flex;
     flex-direction: column;
-    background: #ebecf0;
+    background: var(--color-column);
     border-radius: var(--radius);
     padding: 8px;
   }
@@ -359,7 +359,7 @@
     flex-shrink: 0;
     width: 40px;
     max-height: 100%;
-    background: #ebecf0;
+    background: var(--color-column);
     border-radius: var(--radius);
     padding: 8px 4px;
     display: flex;
@@ -370,7 +370,7 @@
   }
 
   .list-collapsed:hover {
-    background: #dfe1e6;
+    background: var(--color-border);
   }
 
   .list-collapsed-name {
@@ -388,7 +388,7 @@
   .list-collapsed-count {
     margin-top: 8px;
     font-size: 11px;
-    background: rgba(0, 0, 0, 0.1);
+    background: var(--color-hover-strong);
     color: var(--color-text-subtle);
     border-radius: 10px;
     padding: 2px 6px;
@@ -418,9 +418,9 @@
     top: 100%;
     right: 0;
     z-index: 11;
-    background: white;
+    background: var(--color-surface-raised);
     border-radius: var(--radius-sm);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--shadow-md);
     padding: 4px 0;
     min-width: 140px;
     display: flex;
@@ -446,7 +446,7 @@
   }
 
   .sort-menu-item:hover {
-    background: rgba(0, 0, 0, 0.05);
+    background: var(--color-hover);
   }
 
   .sort-menu-divider {
@@ -477,7 +477,7 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     font-size: 13px;
-    background: white;
+    background: var(--color-input-bg);
   }
 
   .wip-limit-set:disabled {
@@ -498,14 +498,14 @@
 
   .wip-limit-set:hover,
   .wip-limit-clear:hover {
-    background: rgba(0, 0, 0, 0.05);
+    background: var(--color-hover);
   }
 
   .wip-badge {
     font-size: 11px;
     font-weight: 600;
     color: var(--color-text-subtle);
-    background: rgba(0, 0, 0, 0.08);
+    background: var(--color-hover-strong);
     border-radius: 10px;
     padding: 2px 7px;
     margin: 0 4px;
@@ -590,7 +590,7 @@
   }
 
   .add-card-btn:hover {
-    background: rgba(0, 0, 0, 0.05);
+    background: var(--color-hover);
   }
 
   .add-card-form {
@@ -605,7 +605,7 @@
     font-size: 14px;
     font-family: inherit;
     resize: none;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-sm);
   }
 
   .add-card-actions {
@@ -650,8 +650,8 @@
   .template-chip {
     font-size: 12px;
     padding: 2px 8px;
-    background: #efeaf7;
-    color: #6b5b95;
+    background: var(--color-template-bg);
+    color: var(--color-template-text);
     border: none;
     border-radius: 10px;
     cursor: pointer;
@@ -674,13 +674,13 @@
   }
 
   .done-check {
-    color: #22c55e;
+    color: var(--color-success);
     font-weight: 700;
     margin-right: 4px;
   }
 
   .done-check-collapsed {
-    color: #22c55e;
+    color: var(--color-success);
     font-weight: 700;
     font-size: 14px;
     margin-bottom: 4px;

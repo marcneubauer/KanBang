@@ -22,6 +22,7 @@ function makeCard(overrides: Partial<CardWithProgress> = {}): CardWithProgress {
     checklistProgress: { total: 0, completed: 0 },
     labelIds: [],
     commentCount: 0,
+    attachmentCount: 0,
     ...overrides,
   };
 }

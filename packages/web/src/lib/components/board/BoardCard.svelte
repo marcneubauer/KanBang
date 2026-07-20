@@ -69,10 +69,12 @@
   {#if showCovers && card.coverType && card.coverValue}
     <div
       class="card-cover"
-      class:card-cover-image={card.coverType === 'image'}
+      class:card-cover-image={card.coverType !== 'color'}
       style={card.coverType === 'color'
         ? `background: ${card.coverValue}`
-        : `background-image: url(${card.coverValue})`}
+        : card.coverType === 'attachment'
+          ? `background-image: url(/api/v1/files/${card.coverValue}/thumb)`
+          : `background-image: url(${card.coverValue})`}
     ></div>
   {/if}
   {#if labels.length > 0}
@@ -210,6 +212,16 @@
         <path d="M14 10.5a1.5 1.5 0 01-1.5 1.5H5l-3 3V3.5A1.5 1.5 0 013.5 2h9A1.5 1.5 0 0114 3.5z"/>
       </svg>
       {card.commentCount}
+    </span>
+  {/if}
+  {#if card.attachmentCount > 0}
+    <span class="comment-badge" title="{card.attachmentCount} attachments">
+      <svg viewBox="0 0 16 16" width="12" height="12"
+        fill="none" stroke="currentColor" stroke-width="1.2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <path d="M13.5 7.5l-5.8 5.8a3.3 3.3 0 01-4.7-4.7L8.8 2.8a2.2 2.2 0 013.1 3.1L6.4 11.4a1.1 1.1 0 01-1.6-1.6l5.1-5.1"/>
+      </svg>
+      {card.attachmentCount}
     </span>
   {/if}
   {#if card.checklistProgress && card.checklistProgress.total > 0}

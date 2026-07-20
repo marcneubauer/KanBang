@@ -31,7 +31,7 @@
     cardTitle: string;
     cardDescription: string | null;
     cardIsTemplate?: boolean;
-    cardCoverType?: 'color' | 'image' | null;
+    cardCoverType?: 'color' | 'image' | 'attachment' | null;
     cardCoverValue?: string | null;
     listId: string;
     boardId: string;
@@ -305,11 +305,11 @@
   }
 
   // --- Cover ---
-  let coverType = $state<'color' | 'image' | null>(cardCoverType);
+  let coverType = $state<'color' | 'image' | 'attachment' | null>(cardCoverType);
   let coverValue = $state<string | null>(cardCoverValue);
   let coverUrlInput = $state(cardCoverType === 'image' ? (cardCoverValue ?? '') : '');
 
-  async function setCover(type: 'color' | 'image' | null, value: string | null) {
+  async function setCover(type: 'color' | 'image' | 'attachment' | null, value: string | null) {
     coverType = type;
     coverValue = value;
     await api(`/cards/${cardId}`, {
@@ -324,6 +324,69 @@
     const url = coverUrlInput.trim();
     if (!url) return;
     void setCover('image', url);
+  }
+
+  // --- Attachments ---
+  interface AttachmentData {
+    id: string;
+    cardId: string | null;
+    filename: string;
+    mimeType: string;
+    sizeBytes: number;
+    width: number | null;
+    height: number | null;
+    createdAt: string;
+  }
+
+  let attachments = $state<AttachmentData[]>([]);
+  let uploadingAttachment = $state(false);
+  let attachmentError = $state<string | null>(null);
+  let attachmentDragOver = $state(false);
+  let attachmentFileInput = $state<HTMLInputElement | undefined>();
+
+  $effect(() => {
+    api<{ attachments: AttachmentData[] }>(`/cards/${cardId}/attachments`).then((result) => {
+      attachments = result.attachments;
+    });
+  });
+
+  async function uploadAttachments(files: FileList | File[]) {
+    attachmentError = null;
+    uploadingAttachment = true;
+    try {
+      for (const file of Array.from(files)) {
+        const form = new FormData();
+        form.append('file', file);
+        const { attachment } = await api<{ attachment: AttachmentData }>(
+          `/cards/${cardId}/attachments`,
+          { method: 'POST', body: form },
+        );
+        attachments = [attachment, ...attachments];
+      }
+      onupdated();
+    } catch (err) {
+      attachmentError = err instanceof Error ? err.message : 'Upload failed';
+    } finally {
+      uploadingAttachment = false;
+    }
+  }
+
+  async function deleteAttachment(att: AttachmentData) {
+    if (!confirm(`Delete attachment "${att.filename}"?`)) return;
+    await api(`/attachments/${att.id}`, { method: 'DELETE' });
+    attachments = attachments.filter((a) => a.id !== att.id);
+    // The server clears covers pointing at the deleted attachment
+    if (coverType === 'attachment' && coverValue === att.id) {
+      coverType = null;
+      coverValue = null;
+    }
+    onupdated();
+  }
+
+  function formatSize(bytes: number) {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
   // --- Template flag ---
@@ -472,6 +535,85 @@
       </form>
       {#if coverType != null}
         <button class="cover-remove" onclick={() => setCover(null, null)}>Remove cover</button>
+      {/if}
+    </div>
+
+    <!-- Attachments -->
+    <div class="modal-section">
+      <h3 class="section-label">Attachments</h3>
+      {#if attachments.length > 0}
+        <ul class="attachment-list">
+          {#each attachments as att (att.id)}
+            <li class="attachment-row">
+              <a
+                class="attachment-thumb"
+                href="/api/v1/files/{att.id}"
+                target="_blank"
+                rel="noopener"
+                title="Open {att.filename}"
+              >
+                <img src="/api/v1/files/{att.id}/thumb" alt={att.filename} loading="lazy" />
+              </a>
+              <div class="attachment-meta">
+                <span class="attachment-name" title={att.filename}>{att.filename}</span>
+                <span class="attachment-info">
+                  {formatSize(att.sizeBytes)}{att.width && att.height
+                    ? ` · ${att.width}×${att.height}`
+                    : ''} · {formatCommentDate(att.createdAt)}
+                </span>
+                <div class="attachment-actions">
+                  {#if coverType === 'attachment' && coverValue === att.id}
+                    <button onclick={() => setCover(null, null)}>Remove cover</button>
+                  {:else}
+                    <button onclick={() => setCover('attachment', att.id)}>Make cover</button>
+                  {/if}
+                  <button class="attachment-delete" onclick={() => deleteAttachment(att)}>
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+      <div
+        class="attachment-drop"
+        class:attachment-drop-active={attachmentDragOver}
+        ondragover={(e) => { e.preventDefault(); attachmentDragOver = true; }}
+        ondragleave={() => { attachmentDragOver = false; }}
+        ondrop={(e) => {
+          e.preventDefault();
+          attachmentDragOver = false;
+          if (e.dataTransfer?.files?.length) void uploadAttachments(e.dataTransfer.files);
+        }}
+        role="group"
+        aria-label="Upload attachments"
+      >
+        <input
+          bind:this={attachmentFileInput}
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
+          multiple
+          hidden
+          onchange={(e) => {
+            const input = e.target as HTMLInputElement;
+            if (input.files?.length) {
+              void uploadAttachments(input.files);
+              input.value = '';
+            }
+          }}
+        />
+        <button
+          class="move-btn"
+          onclick={() => attachmentFileInput?.click()}
+          disabled={uploadingAttachment}
+        >
+          {uploadingAttachment ? 'Uploading…' : 'Add image'}
+        </button>
+        <span class="attachment-hint">or drop images here</span>
+      </div>
+      {#if attachmentError}
+        <p class="attachment-error">{attachmentError}</p>
       {/if}
     </div>
 
@@ -985,6 +1127,102 @@
 
   .cover-remove:hover {
     color: var(--color-text);
+  }
+
+  .attachment-list {
+    list-style: none;
+    margin: 0 0 10px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .attachment-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .attachment-thumb {
+    flex-shrink: 0;
+    width: 64px;
+    height: 48px;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    background: #f0f0f0;
+  }
+
+  .attachment-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .attachment-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .attachment-name {
+    font-size: 13px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .attachment-info {
+    font-size: 11px;
+    color: var(--color-text-subtle);
+  }
+
+  .attachment-actions {
+    display: flex;
+    gap: 10px;
+  }
+
+  .attachment-actions button {
+    background: none;
+    border: none;
+    font-size: 11px;
+    color: var(--color-text-subtle);
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+  }
+
+  .attachment-delete:hover {
+    color: var(--color-danger);
+  }
+
+  .attachment-drop {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-sm);
+  }
+
+  .attachment-drop-active {
+    border-color: var(--color-primary);
+    background: rgba(0, 121, 191, 0.06);
+  }
+
+  .attachment-hint {
+    font-size: 12px;
+    color: var(--color-text-subtle);
+  }
+
+  .attachment-error {
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--color-danger);
   }
 
   .comment-form {

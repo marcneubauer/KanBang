@@ -10,7 +10,7 @@ export const cardSchema = z.object({
   position: z.string(),
   completed: z.boolean(),
   isTemplate: z.boolean(),
-  coverType: z.enum(['color', 'image']).nullable(),
+  coverType: z.enum(['color', 'image', 'attachment']).nullable(),
   coverValue: z.string().nullable(),
   completedAt: z.string().datetime().nullable(),
   dueDate: z.string().datetime().nullable(),
@@ -27,6 +27,7 @@ export const cardWithProgressSchema = cardSchema.extend({
   checklistProgress: checklistProgressSchema,
   labelIds: z.array(z.string()),
   commentCount: z.number(),
+  attachmentCount: z.number(),
 });
 export type CardWithProgress = z.infer<typeof cardWithProgressSchema>;
 
@@ -46,7 +47,7 @@ export const updateCardSchema = z
     completed: z.boolean().optional(),
     isTemplate: z.boolean().optional(),
     dueDate: z.coerce.date().nullable().optional(),
-    coverType: z.enum(['color', 'image']).nullable().optional(),
+    coverType: z.enum(['color', 'image', 'attachment']).nullable().optional(),
     coverValue: z.string().max(2000).nullable().optional(),
   })
   .superRefine((data, ctx) => {
@@ -84,6 +85,15 @@ export const updateCardSchema = z
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: 'coverValue must be an http(s) image URL',
+          path: ['coverValue'],
+        });
+      }
+    } else if (data.coverType === 'attachment') {
+      // Existence/ownership of the attachment id is checked server-side
+      if (!data.coverValue) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'coverValue must be an attachment id',
           path: ['coverValue'],
         });
       }

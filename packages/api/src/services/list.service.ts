@@ -266,8 +266,9 @@ export class ListService {
             listId: newList.id,
             position: prevCardKey,
             isTemplate: card.isTemplate,
-            coverType: card.coverType,
-            coverValue: card.coverValue,
+            // Attachments aren't copied, so attachment covers can't survive a copy
+            coverType: card.coverType === 'attachment' ? null : card.coverType,
+            coverValue: card.coverType === 'attachment' ? null : card.coverValue,
             completed: card.completed,
             completedAt: card.completedAt,
             dueDate: card.dueDate,

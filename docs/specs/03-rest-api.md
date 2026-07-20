@@ -20,7 +20,7 @@ Canonical field lists for the core objects. (Older JSON samples below may omit n
 
 **List** — `id`, `name`, `boardId`, `position` (fractional-index string), `isDone` (bool; completed cards auto-move here), `cardLimit` (int WIP limit or null; advisory), `createdAt`, `updatedAt`, `archivedAt`.
 
-**Card** — `id`, `number` (board-scoped auto-increment like GitHub issues; null only for pre-migration rows), `title`, `description`, `listId`, `position`, `completed`, `isTemplate` (bool), `coverType` (`"color"` | `"image"` | null), `coverValue` (hex color or http(s) image URL), `completedAt`, `dueDate`, `createdAt`, `updatedAt`, `archivedAt`. Cards inside the board-detail response additionally carry `checklistProgress` (`{total, completed}`), `labelIds` (string array), and `commentCount` (int).
+**Card** — `id`, `number` (board-scoped auto-increment like GitHub issues; null only for pre-migration rows), `title`, `description`, `listId`, `position`, `completed`, `isTemplate` (bool), `coverType` (`"color"` | `"image"` | `"attachment"` | null), `coverValue` (hex color, http(s) image URL, or attachment id — the attachment must be on the same card), `completedAt`, `dueDate`, `createdAt`, `updatedAt`, `archivedAt`. Cards inside the board-detail response additionally carry `checklistProgress` (`{total, completed}`), `labelIds` (string array), `commentCount` (int), and `attachmentCount` (int). Copies drop attachment covers (attachments are not copied).
 
 **Label** — `id`, `name`, `color` (hex), `boardId`, `createdAt`, `updatedAt`.
 
@@ -696,7 +696,7 @@ All fields are optional. At least one must be provided.
 - `completed`: boolean (optional)
 - `dueDate`: ISO 8601 date string, nullable (optional; send `null` to clear)
 - `isTemplate`: boolean (optional) — template cards appear as "From template" options in the add-card UI
-- `coverType` + `coverValue` (optional, must be sent together): `"color"` requires a `#rrggbb` hex; `"image"` requires an http(s) image URL (max 2000 chars); `null`/`null` removes the cover
+- `coverType` + `coverValue` (optional, must be sent together): `"color"` requires a `#rrggbb` hex; `"image"` requires an http(s) image URL (max 2000 chars); `"attachment"` requires the id of an attachment on this card (else `400 INVALID_COVER`); `null`/`null` removes the cover
 
 **Response (200):** Updated card object
 

@@ -254,7 +254,7 @@
     const listIndex = lists.findIndex((l) => l.id === listId);
     lists[listIndex].cards = [
       ...lists[listIndex].cards,
-      { ...card, checklistProgress: { total: 0, completed: 0 }, labelIds: [], commentCount: 0 },
+      { ...card, checklistProgress: { total: 0, completed: 0 }, labelIds: [], commentCount: 0, attachmentCount: 0 },
     ];
   }
 
@@ -291,7 +291,7 @@
       if (newListIdx !== -1) {
         lists[newListIdx].cards = [
           ...lists[newListIdx].cards,
-          { ...updatedCard, checklistProgress: { total: 0, completed: 0 }, labelIds: [], commentCount: 0 },
+          { ...updatedCard, checklistProgress: { total: 0, completed: 0 }, labelIds: [], commentCount: 0, attachmentCount: 0 },
         ];
       }
     } else {
@@ -431,7 +431,7 @@
     description: string | null;
     listId: string;
     isTemplate: boolean;
-    coverType: 'color' | 'image' | null;
+    coverType: 'color' | 'image' | 'attachment' | null;
     coverValue: string | null;
   } | null>(null);
   let clickTimer: ReturnType<typeof setTimeout> | null = null;

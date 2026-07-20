@@ -220,6 +220,81 @@ describe('Attachment routes', () => {
     expect(JSON.parse(listRes.body).attachments).toHaveLength(0);
   });
 
+  it('sets an attachment cover via PATCH and rejects foreign attachment ids', async () => {
+    const { body } = await upload(await makePng(50, 50));
+    const attId = body.attachment.id;
+
+    const ok = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/cards/${cardId}`,
+      headers: authHeader(cookie),
+      payload: { coverType: 'attachment', coverValue: attId },
+    });
+    expect(ok.statusCode).toBe(200);
+    expect(JSON.parse(ok.body).card.coverType).toBe('attachment');
+    expect(JSON.parse(ok.body).card.coverValue).toBe(attId);
+
+    const bad = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/cards/${cardId}`,
+      headers: authHeader(cookie),
+      payload: { coverType: 'attachment', coverValue: 'not-a-real-attachment' },
+    });
+    expect(bad.statusCode).toBe(400);
+    expect(JSON.parse(bad.body).code).toBe('INVALID_COVER');
+  });
+
+  it('board GET serializes attachmentCount on cards', async () => {
+    await upload(await makePng(50, 50));
+    await upload(await makePng(50, 50));
+
+    const boardsRes = await app.inject({
+      method: 'GET',
+      url: '/api/v1/boards',
+      headers: authHeader(cookie),
+    });
+    const boardId = JSON.parse(boardsRes.body).boards[0].id;
+
+    const res = await app.inject({
+      method: 'GET',
+      url: `/api/v1/boards/${boardId}`,
+      headers: authHeader(cookie),
+    });
+    const { board } = JSON.parse(res.body);
+    const card = board.lists[0].cards.find((c: { id: string }) => c.id === cardId);
+    expect(card.attachmentCount).toBe(2);
+  });
+
+  it('copying a card drops its attachment cover (attachments are not copied)', async () => {
+    const { body } = await upload(await makePng(50, 50));
+    await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/cards/${cardId}`,
+      headers: authHeader(cookie),
+      payload: { coverType: 'attachment', coverValue: body.attachment.id },
+    });
+
+    const listId = (await (async () => {
+      const res = await app.inject({
+        method: 'GET',
+        url: `/api/v1/cards/${cardId}`,
+        headers: authHeader(cookie),
+      });
+      return JSON.parse(res.body).card.listId;
+    })());
+
+    const copyRes = await app.inject({
+      method: 'POST',
+      url: `/api/v1/cards/${cardId}/copy`,
+      headers: authHeader(cookie),
+      payload: { listId },
+    });
+    expect(copyRes.statusCode).toBe(201);
+    const { card: copy } = JSON.parse(copyRes.body);
+    expect(copy.coverType).toBeNull();
+    expect(copy.coverValue).toBeNull();
+  });
+
   it('gc removes stale orphans but keeps valid and fresh files', async () => {
     const { body } = await upload(await makePng(50, 50));
     const validId = body.attachment.id;

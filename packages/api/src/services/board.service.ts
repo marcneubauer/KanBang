@@ -1,7 +1,7 @@
 import { eq, and, asc, isNull, isNotNull, lte, count, sql, inArray } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { Database } from '../db/index.js';
-import { boards, lists, cards, checklists, checklistItems, labels, cardLabels, comments } from '../db/schema.js';
+import { boards, lists, cards, checklists, checklistItems, labels, cardLabels, comments, attachments } from '../db/schema.js';
 import type { CreateBoardInput, UpdateBoardInput } from '@kanbang/shared/validation/board.js';
 
 export class BoardService {
@@ -85,6 +85,15 @@ export class BoardService {
       : [];
     const commentCountByCard = new Map(commentRows.map((r) => [r.cardId, r.total]));
 
+    const attachmentRows = cardIds.length
+      ? await this.db
+        .select({ cardId: attachments.cardId, total: count() })
+        .from(attachments)
+        .where(inArray(attachments.cardId, cardIds))
+        .groupBy(attachments.cardId)
+      : [];
+    const attachmentCountByCard = new Map(attachmentRows.map((r) => [r.cardId, r.total]));
+
     const boardLabels = await this.db
       .select()
       .from(labels)
@@ -122,6 +131,7 @@ export class BoardService {
             },
             labelIds: labelIdsByCard.get(card.id) ?? [],
             commentCount: commentCountByCard.get(card.id) ?? 0,
+            attachmentCount: attachmentCountByCard.get(card.id) ?? 0,
           };
         }),
     }));

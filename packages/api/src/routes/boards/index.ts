@@ -40,6 +40,7 @@ const cardWithProgressSchema = {
     },
     labelIds: { type: 'array', items: { type: 'string' } },
     commentCount: { type: 'number' },
+    attachmentCount: { type: 'number' },
   },
 } as const;
 

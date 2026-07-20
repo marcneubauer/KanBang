@@ -187,8 +187,9 @@ export class CardService {
         position,
         // Copies are working cards, even when the source is a template
         isTemplate: false,
-        coverType: source.coverType,
-        coverValue: source.coverValue,
+        // Attachments aren't copied, so attachment covers can't survive a copy
+        coverType: source.coverType === 'attachment' ? null : source.coverType,
+        coverValue: source.coverType === 'attachment' ? null : source.coverValue,
         completed: source.completed,
         completedAt: source.completedAt,
         dueDate: source.dueDate,

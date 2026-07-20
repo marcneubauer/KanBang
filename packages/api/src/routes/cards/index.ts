@@ -3,6 +3,7 @@ import type { AuthenticatedRequest } from '../../plugins/auth.js';
 import { CardService } from '../../services/card.service.js';
 import { ListService } from '../../services/list.service.js';
 import { BoardService } from '../../services/board.service.js';
+import { AttachmentService } from '../../services/attachment.service.js';
 import {
   createCardSchema,
   updateCardSchema,
@@ -31,6 +32,7 @@ export default async function cardRoutes(fastify: FastifyInstance) {
   const cardService = new CardService(fastify.db);
   const listService = new ListService(fastify.db);
   const boardService = new BoardService(fastify.db);
+  const attachmentService = new AttachmentService(fastify.db);
   cardService.setListService(listService);
 
   fastify.addHook('preHandler', fastify.requireAuth);
@@ -94,6 +96,17 @@ export default async function cardRoutes(fastify: FastifyInstance) {
 
     const data = await validateBody(updateCardSchema, request.body, reply);
     if (!data) return;
+
+    // Attachment covers must point at an attachment on this card
+    if (data.coverType === 'attachment') {
+      const attachment = await attachmentService.get(data.coverValue!);
+      if (!attachment || attachment.cardId !== cardId) {
+        return reply.code(400).send({
+          error: 'coverValue must be the id of an attachment on this card',
+          code: 'INVALID_COVER',
+        });
+      }
+    }
 
     const card = await cardService.update(cardId, data);
     return { card };

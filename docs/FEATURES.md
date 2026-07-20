@@ -22,10 +22,10 @@ What KanBang can do, where each feature lives in the UI, and the API behind it. 
 - **Checklists** — card modal; progress badge on the card face; items can convert to cards. `/cards/:id/checklists`, `/checklists/...`, `POST /checklist-items/:id/convert-to-card`.
 - **Labels** — board-scoped colored tags; managed in the card modal, filterable from the board header. `/boards/:id/labels`, `/cards/:id/labels/:labelId`.
 - **Comments** — markdown comments in the card modal, newest first, editable/deletable; count badge on the card face. `/cards/:id/comments`, `/comments/:id`.
-- **Covers** — solid color or external image URL, set in the card modal; board settings can hide all covers ("Card covers"). `coverType`/`coverValue` via `PATCH /cards/:id`; board `coversEnabled`.
+- **Covers** — solid color, external image URL, or an uploaded attachment ("Make cover" in the Attachments section); board settings can hide all covers ("Card covers"). `coverType`/`coverValue` via `PATCH /cards/:id`; board `coversEnabled`.
 - **Templates** — mark a card as a template in its modal; the list's add-card form then offers "From template" chips. Creating from a template is a copy — the result is a normal card. `isTemplate` via `PATCH /cards/:id`; creation via `POST /cards/:id/copy`.
 - **Copy / move across boards** — card modal "Move" (board + list + position) and "Copy" (keep checklists/labels). Labels don't survive board crossings. `POST /cards/:id/copy`, `PATCH /cards/:id/move`.
-- **Image attachments** — *API shipped, modal UI landing next*: upload images (PNG/JPEG/WebP/GIF/AVIF, magic-byte validated, ≤10 MiB default) to a card; thumbnails are generated automatically; files are stored on the server's disk beside the database. `POST/GET /cards/:id/attachments`, `DELETE /attachments/:id`, bytes at `GET /files/:id` (+`/thumb`).
+- **Image attachments** — card modal → Attachments: pick files or drag-and-drop images (PNG/JPEG/WebP/GIF/AVIF, magic-byte validated, ≤10 MiB default); thumbnails are generated automatically; "Make cover" puts the image on the card face; paperclip badge shows the count. Files live on the server's disk beside the database. Attachments stay with a card across moves but are not copied. `POST/GET /cards/:id/attachments`, `DELETE /attachments/:id`, bytes at `GET /files/:id` (+`/thumb`).
 - **Quick edit** — pencil icon on the card face for title/labels/due date without opening the modal.
 - **Card aging** — board setting; cards untouched past the threshold fade progressively (completed/Done cards exempt). Board `cardAgingDays`.
 

@@ -10,3 +10,4 @@ export { labels } from './schema/labels.js';
 export { cardLabels } from './schema/card-labels.js';
 export { apiTokens } from './schema/api-tokens.js';
 export { comments } from './schema/comments.js';
+export { attachments } from './schema/attachments.js';

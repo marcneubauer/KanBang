@@ -126,6 +126,21 @@ export const commentSchema = {
   },
 } as const;
 
+export const attachmentSchema = {
+  $id: 'attachment',
+  type: 'object',
+  properties: {
+    id:        { type: 'string' },
+    cardId:    { type: ['string', 'null'] },
+    filename:  { type: 'string' },
+    mimeType:  { type: 'string' },
+    sizeBytes: { type: 'number' },
+    width:     { type: ['number', 'null'] },
+    height:    { type: ['number', 'null'] },
+    createdAt: { type: 'string' },
+  },
+} as const;
+
 export const allSchemas = [
   userSchema,
   boardSchema,
@@ -135,4 +150,5 @@ export const allSchemas = [
   checklistItemSchema,
   labelSchema,
   commentSchema,
+  attachmentSchema,
 ] as const;

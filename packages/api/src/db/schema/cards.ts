@@ -15,7 +15,7 @@ export const cards = sqliteTable(
     position: text('position').notNull(),
     completed: integer('completed', { mode: 'boolean' }).notNull().default(false),
     isTemplate: integer('is_template', { mode: 'boolean' }).notNull().default(false),
-    coverType: text('cover_type', { enum: ['color', 'image'] }),
+    coverType: text('cover_type', { enum: ['color', 'image', 'attachment'] }),
     coverValue: text('cover_value'),
     completedAt: integer('completed_at', { mode: 'timestamp' }),
     dueDate: integer('due_date', { mode: 'timestamp' }),

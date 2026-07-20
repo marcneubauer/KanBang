@@ -13,6 +13,8 @@ const EnvSchema = z.object({
   RP_NAME: z.string().default('KanBang'),
   RP_ORIGIN: z.string().url().default('http://localhost:5173'),
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
+  UPLOADS_DIR: z.string().default('./data/uploads'),
+  UPLOAD_MAX_BYTES: z.coerce.number().default(10 * 1024 * 1024),
 });
 
 const parsed = EnvSchema.safeParse(process.env);
@@ -38,5 +40,9 @@ export const config = {
   },
   cors: {
     origin: env.CORS_ORIGIN,
+  },
+  uploads: {
+    dir: env.UPLOADS_DIR,
+    maxBytes: env.UPLOAD_MAX_BYTES,
   },
 };

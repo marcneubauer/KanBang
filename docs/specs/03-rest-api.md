@@ -26,6 +26,8 @@ Canonical field lists for the core objects. (Older JSON samples below may omit n
 
 **Comment** — `id`, `body` (markdown), `cardId`, `createdAt`, `updatedAt`.
 
+**Attachment** — `id`, `cardId` (null for board-background images), `filename` (original upload name), `mimeType`, `sizeBytes`, `width`/`height` (int px or null), `createdAt`. Internal storage keys are never exposed; fetch the bytes via `GET /api/v1/files/:id`.
+
 ## Error Response Format
 
 All error responses follow this shape:
@@ -1044,6 +1046,36 @@ Mapping: lists/cards keep names, descriptions, and `pos` ordering (converted to 
 ```
 
 **Errors:** `400 INVALID_TRELLO_EXPORT`
+
+---
+
+## Attachments
+
+Image files attached to cards, stored on the API host's disk under `UPLOADS_DIR` (metadata in the `attachments` table). Only images are accepted — PNG, JPEG, WebP, GIF, AVIF — validated by magic bytes, not the claimed content type. Max upload size is `UPLOAD_MAX_BYTES` (default 10 MiB). A ≤480px-wide WebP thumbnail is generated automatically for larger images.
+
+### POST /api/v1/cards/:cardId/attachments
+
+Upload one image as `multipart/form-data` (any field name, one file).
+
+**Response (201):** `{ "attachment": { …attachment fields } }`
+
+**Errors:** `400 NO_FILE` (no file part), `400 UNSUPPORTED_FILE_TYPE` (magic bytes not an allowed image), `413` (over size limit)
+
+### GET /api/v1/cards/:cardId/attachments
+
+List a card's attachments, newest first. **Response (200):** `{ "attachments": [ … ] }`
+
+### DELETE /api/v1/attachments/:attachmentId
+
+Delete an attachment: removes the row and the stored files, and clears any card cover that referenced it (`coverType: "attachment"`). **Response (200):** `{ "ok": true }`
+
+### GET /api/v1/files/:attachmentId
+
+Stream the original image bytes (correct `Content-Type`, `Content-Disposition: inline`, `Cache-Control: private, max-age=31536000, immutable` — content for a given id never changes). Owner-only; 404 for other users' files.
+
+### GET /api/v1/files/:attachmentId/thumb
+
+Stream the WebP thumbnail; falls back to the original when no thumbnail was generated (images ≤480px wide).
 
 ---
 

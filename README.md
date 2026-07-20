@@ -109,6 +109,8 @@ See [.env.example](.env.example) for all available configuration options.
 | `CORS_ORIGIN` | `http://localhost:5173` | Allowed CORS origin |
 | `API_URL` | `http://localhost:3001` | Backend URL (used by SvelteKit server) |
 | `RATE_LIMIT_MAX` | `10` (auth) / `30` (quick-add) | Requests per minute on rate-limited endpoints |
+| `UPLOADS_DIR` | `./data/uploads` | Directory for uploaded images (keep beside the DB so one volume backs up both) |
+| `UPLOAD_MAX_BYTES` | `10485760` | Max image upload size (10 MiB) |
 | `LOG_LEVEL` | `info` | API log level |
 
 ## License

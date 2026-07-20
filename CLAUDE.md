@@ -92,7 +92,8 @@ pnpm db:migrate                  # Drizzle-kit apply migration
 ### Database
 
 - **Fractional indexing** for list/card/checklist positions: string-based lexicographic keys, only 1 row update per reorder
-- **12 tables**: users, credentials, sessions, api_tokens, boards, lists, cards, checklists, checklist_items, labels, card_labels, comments
+- **13 tables**: users, credentials, sessions, api_tokens, boards, lists, cards, checklists, checklist_items, labels, card_labels, comments, attachments
+- **Uploaded images** live on disk under `UPLOADS_DIR` (default `packages/api/data/uploads`, gitignored); the attachments table holds metadata only
 - **Cascade deletes**: boards → lists → cards → checklists/comments; labels and card numbers are board-scoped (never survive cross-board moves)
 - **IDs**: nanoid text primary keys; cards also carry a board-scoped auto-increment `number`
 

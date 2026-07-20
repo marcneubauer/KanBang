@@ -10,6 +10,7 @@
      │            └─────────────┘
      ├──── sessions
      ├──── api_tokens          (quick-add bearer tokens)
+     ├──── attachments         (also FK → cards; card_id NULL ⇒ board-background image)
      │
      └──── boards
               ├──── labels ────────────┐
@@ -20,6 +21,7 @@
                                │       │
                                │    card_labels (join)
                                ├──── comments
+                               ├──── attachments
                                └──── checklists
                                         │
                                         └──── checklist_items
@@ -197,6 +199,28 @@ Markdown comments on cards (single-user app, so no author column).
 
 **Indexes**: `(card_id)`.
 
+### attachments
+
+Metadata for uploaded images. The bytes live on disk under `UPLOADS_DIR` (default `./data/uploads`, in Docker inside the same volume as the DB) — never in the database. Storage keys are always `<id>.<ext>` / `<id>.thumb.webp`, derived from the row id, never from user input.
+
+| Column | Type | Constraints |
+|--------|------|-------------|
+| id | TEXT | PRIMARY KEY (nanoid) |
+| user_id | TEXT | NOT NULL, FK → users.id, CASCADE |
+| card_id | TEXT | NULLABLE, FK → cards.id, CASCADE — NULL means the file is a board-background image referenced by `boards.background_value` |
+| filename | TEXT | NOT NULL (original upload name, display only) |
+| mime_type | TEXT | NOT NULL (validated by magic bytes: png/jpeg/webp/gif/avif) |
+| size_bytes | INTEGER | NOT NULL |
+| width | INTEGER | NULLABLE (px) |
+| height | INTEGER | NULLABLE (px) |
+| storage_key | TEXT | NOT NULL (filename inside `UPLOADS_DIR`) |
+| thumb_key | TEXT | NULLABLE (WebP thumbnail, generated for images >480px wide) |
+| created_at | INTEGER | NOT NULL (Unix timestamp) |
+
+**Indexes**: `(card_id)`.
+
+Files are unlinked by the API when an attachment is deleted. A startup sweep (`FileStorageService.gc`) removes files whose row disappeared outside the API, skipping files younger than one hour.
+
 ## Fractional Indexing Strategy
 
 Instead of integer position fields, we use **string-based fractional indexing** for the `position` column on `lists` and `cards`.
@@ -236,7 +260,7 @@ Boards, lists, and cards are never permanently deleted. Instead, each table has 
 
 Archive state is **independent per item**. Archiving a board does not archive its lists or cards; archiving a list does not archive its cards. Display logic hides children transitively (e.g., an archived list's cards are not shown even if those cards are active). This means unarchiving is always a single-item operation — just clear that item's `archived_at`.
 
-Items are never permanently deleted through the application. The only content that can be permanently deleted is passkeys (credentials), checklists, checklist items, labels, comments, and the quick-add token — these are lightweight and do not warrant archival.
+Items are never permanently deleted through the application. The only content that can be permanently deleted is passkeys (credentials), checklists, checklist items, labels, comments, attachments, and the quick-add token — these are lightweight and do not warrant archival.
 
 ## Done Column Auto-Archive
 

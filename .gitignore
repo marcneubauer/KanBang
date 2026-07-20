@@ -3,6 +3,7 @@ dist
 .svelte-kit
 build
 *.db
+packages/api/data/
 *.db-journal
 *.db-shm
 *.db-wal

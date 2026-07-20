@@ -5,6 +5,7 @@ import rateLimit from '@fastify/rate-limit';
 import sensible from '@fastify/sensible';
 import dbPlugin from './plugins/db.js';
 import authPlugin from './plugins/auth.js';
+import uploadsPlugin from './plugins/uploads.js';
 import authRoutes from './routes/auth/index.js';
 import boardRoutes from './routes/boards/index.js';
 import listRoutes from './routes/lists/index.js';
@@ -16,12 +17,15 @@ import labelRoutes from './routes/labels/index.js';
 import quickAddRoutes from './routes/quick-add/index.js';
 import importRoutes from './routes/import/index.js';
 import commentRoutes from './routes/comments/index.js';
+import attachmentRoutes from './routes/attachments/index.js';
 import { config } from './config.js';
 import { allSchemas } from './schemas/index.js';
 
 export interface BuildAppOptions {
   databaseUrl?: string;
   logger?: boolean | object;
+  uploadsDir?: string;
+  uploadMaxBytes?: number;
 }
 
 export async function buildApp(opts: BuildAppOptions = {}) {
@@ -42,6 +46,10 @@ export async function buildApp(opts: BuildAppOptions = {}) {
   await app.register(rateLimit, { global: false });
   await app.register(dbPlugin, { databaseUrl: opts.databaseUrl });
   await app.register(authPlugin);
+  await app.register(uploadsPlugin, {
+    uploadsDir: opts.uploadsDir,
+    uploadMaxBytes: opts.uploadMaxBytes,
+  });
 
   // Register shared JSON schemas for fast-json-stringify serialization
   for (const schema of allSchemas) {
@@ -86,6 +94,7 @@ export async function buildApp(opts: BuildAppOptions = {}) {
   await app.register(quickAddRoutes, { prefix: '/api/v1' });
   await app.register(importRoutes, { prefix: '/api/v1' });
   await app.register(commentRoutes, { prefix: '/api/v1' });
+  await app.register(attachmentRoutes, { prefix: '/api/v1' });
 
   return app;
 }

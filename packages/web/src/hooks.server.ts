@@ -53,8 +53,9 @@ async function proxyToApi(event: RequestEvent): Promise<Response> {
   const apiUrl = `${API_URL}${event.url.pathname}${event.url.search}`;
   const response = await fetch(apiUrl, {
     method: event.request.method,
+    // Forward the raw stream — reading as text would corrupt binary bodies (image uploads)
+    body: event.request.method !== 'GET' ? event.request.body : undefined,
     headers: buildProxyHeaders(event.request),
-    body: event.request.method !== 'GET' ? await event.request.text() : undefined,
     // @ts-expect-error: duplex is required at runtime for streaming bodies but missing from RequestInit types
     duplex: 'half',
   });

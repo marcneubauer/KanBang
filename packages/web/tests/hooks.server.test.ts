@@ -6,6 +6,7 @@ interface EventOptions {
   method?: string;
   headers?: Record<string, string>;
   sessionCookie?: string;
+  body?: BodyInit;
 }
 
 function makeEvent(path: string, opts: EventOptions = {}): RequestEvent {
@@ -15,7 +16,7 @@ function makeEvent(path: string, opts: EventOptions = {}): RequestEvent {
     request: new Request(`http://localhost:5173${path}`, {
       method,
       headers,
-      body: method === 'GET' ? undefined : '{}',
+      body: method === 'GET' ? undefined : (opts.body ?? '{}'),
     }),
     cookies: {
       get: (name: string) => (name === 'kanbang_session' ? sessionCookie : undefined),
@@ -78,6 +79,29 @@ describe('API proxy header allowlist', () => {
     // Authorization must pass through so bearer-token endpoints (quick-add) work via the proxy
     expect(sent.get('authorization')).toBe('Bearer kb_shortcut-token');
     expect(sent.get('host')).toBeNull();
+  });
+
+  it('forwards binary request bodies unmangled (image uploads)', async () => {
+    const fetchMock = vi.fn<typeof fetch>(async () => apiResponse());
+    vi.stubGlobal('fetch', fetchMock);
+    const handle = await loadHandle();
+
+    // Bytes that are not valid UTF-8 — request.text() would mangle them
+    const bytes = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x9f, 0x80, 0xfe]);
+    await handle({
+      event: makeEvent('/api/v1/cards/c1/attachments', {
+        method: 'POST',
+        headers: { 'content-type': 'multipart/form-data; boundary=x' },
+        body: bytes,
+      }),
+      resolve,
+    });
+
+    const init = fetchMock.mock.calls[0][1] as RequestInit;
+    const forwarded = new Uint8Array(
+      await new Response(init.body as ReadableStream).arrayBuffer(),
+    );
+    expect(forwarded).toEqual(bytes);
   });
 
   it('does not call /auth/me for proxied API requests', async () => {

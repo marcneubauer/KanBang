@@ -1,12 +1,23 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import type { LightMyRequestResponse } from 'light-my-request';
 import { buildApp } from '../../src/app.js';
 
-export async function createTestApp() {
+export async function createTestApp(opts: { uploadsDir?: string; uploadMaxBytes?: number } = {}) {
+  const autoDir = opts.uploadsDir ? null : fs.mkdtempSync(path.join(os.tmpdir(), 'kanbang-uploads-'));
   const app = await buildApp({
     databaseUrl: ':memory:',
     logger: false,
+    uploadsDir: opts.uploadsDir ?? autoDir!,
+    uploadMaxBytes: opts.uploadMaxBytes,
   });
+  if (autoDir) {
+    app.addHook('onClose', async () => {
+      fs.rmSync(autoDir, { recursive: true, force: true });
+    });
+  }
   await app.ready();
   return app;
 }

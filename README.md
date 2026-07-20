@@ -11,9 +11,10 @@ See **[docs/FEATURES.md](docs/FEATURES.md)** for the full feature guide (what ea
 Highlights:
 
 - Boards, lists, and cards with drag-and-drop (fractional indexing), archive/undo, and board-scoped card numbers (#1, #2…)
-- Cards: due dates, markdown descriptions, checklists, labels, comments, covers (color/image), templates, copy/move across boards, quick edit
+- Cards: due dates, markdown descriptions, checklists, labels, comments, image attachments, covers (color/image/attachment), templates, copy/move across boards, quick edit
 - Lists: sort, WIP limits, collapse, copy, move to another board, Done list with auto-move and auto-archive
-- Boards: color/gradient backgrounds with derived accent theming, card aging, search and filters
+- Boards: color/gradient/image backgrounds with derived accent theming, card aging, search and filters
+- Dark mode: per-account Light/Dark/System theme, applied before first paint
 - Quick-add REST endpoint with bearer-token auth for iOS/watchOS Shortcuts (dictate a task from an Apple Watch)
 - Trello board import (JSON export) and full JSON data export
 - Auth: password (argon2id) + passkeys/WebAuthn, cookie sessions with sliding expiry, rate limiting

@@ -97,6 +97,13 @@
     background: rgba(255, 255, 255, 0.3);
   }
 
+  /* Dark mode: a bright accent-colored bar is glaring — use a dark surface.
+     White nav text/controls still read fine on it. */
+  :global([data-theme='dark']) .nav {
+    background-color: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+  }
+
   main {
     height: 100vh;
   }

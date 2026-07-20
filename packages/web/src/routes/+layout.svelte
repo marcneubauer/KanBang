@@ -6,6 +6,19 @@
 
   let { data, children } = $props();
 
+  // Follow OS light/dark changes live while the preference is 'system'
+  $effect(() => {
+    const pref = data.user?.theme ?? localStorage.getItem('kanbangTheme') ?? 'system';
+    if (pref !== 'system') return;
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const apply = () => {
+      document.documentElement.dataset.theme = mq.matches ? 'dark' : 'light';
+    };
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  });
+
   async function logout() {
     await api('/auth/logout', { method: 'POST' });
     window.location.href = '/login';

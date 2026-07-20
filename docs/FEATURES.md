@@ -51,6 +51,10 @@ What KanBang can do, where each feature lives in the UI, and the API behind it. 
 - **JSON export** — Settings → "Export data": everything (including archived items, comments, and attachment metadata) as one JSON file. `GET /api/v1/export`. For a full backup including the image files themselves, `GET /api/v1/export/archive` streams a zip (`export.json` + `files/`).
 - **Quick add (Shortcuts / Apple Watch)** — Settings → "Quick add": pick a default list and generate a bearer token, then `POST /api/v1/quick-add` with `{"text": "..."}` and `Authorization: Bearer kb_...` creates a card. A "Board name: title" prefix targets that board instead. Built for iOS/watchOS Shortcuts dictation; works from any script.
 
+## Appearance
+
+- **Theme** — Settings → Appearance: Light / Dark / System (follows the OS and switches live). Stored per account (`user.theme` via `PATCH /auth/me`), mirrored to localStorage so the login page matches, applied server-side before paint (no flash of the wrong theme).
+
 ## Account & security
 
 - **Auth** — email+password (argon2id) and passkeys/WebAuthn; cookie sessions with 30-day sliding expiry; rate-limited auth endpoints; generic login/register errors (anti-enumeration).

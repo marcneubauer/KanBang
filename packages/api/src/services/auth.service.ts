@@ -29,6 +29,7 @@ export class AuthService {
         id: users.id,
         email: users.email,
         username: users.username,
+        theme: users.theme,
       });
 
     const session = await this.createSession(user.id);
@@ -53,7 +54,7 @@ export class AuthService {
 
     const session = await this.createSession(user.id);
     return {
-      user: { id: user.id, email: user.email, username: user.username },
+      user: { id: user.id, email: user.email, username: user.username, theme: user.theme },
       session,
     };
   }
@@ -113,6 +114,7 @@ export class AuthService {
         userId: users.id,
         email: users.email,
         username: users.username,
+        theme: users.theme,
       })
       .from(sessions)
       .innerJoin(users, eq(sessions.userId, users.id))
@@ -137,6 +139,7 @@ export class AuthService {
       id: result.userId,
       email: result.email,
       username: result.username,
+      theme: result.theme,
     };
   }
 
@@ -150,10 +153,26 @@ export class AuthService {
         id: users.id,
         email: users.email,
         username: users.username,
+        theme: users.theme,
       })
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
+
+    return user ?? null;
+  }
+
+  async updateTheme(userId: string, theme: 'light' | 'dark' | 'system') {
+    const [user] = await this.db
+      .update(users)
+      .set({ theme, updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning({
+        id: users.id,
+        email: users.email,
+        username: users.username,
+        theme: users.theme,
+      });
 
     return user ?? null;
   }

@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyReply } from 'fastify';
-import { registerSchema, loginSchema, changePasswordSchema } from '@kanbang/shared/validation/auth.js';
+import { registerSchema, loginSchema, changePasswordSchema, updateMeSchema } from '@kanbang/shared/validation/auth.js';
 import { COOKIE_NAME, SESSION_MAX_AGE } from '../../plugins/auth.js';
 import { config } from '../../config.js';
 
@@ -183,5 +183,28 @@ export default async function authRoutes(fastify: FastifyInstance) {
     },
   }, async (request) => {
     return { user: request.user };
+  });
+
+  // PATCH /api/v1/auth/me — user preferences (currently: theme)
+  fastify.patch('/me', {
+    preHandler: [fastify.requireAuth],
+    schema: {
+      response: {
+        200: userResponse,
+        400: errorResponse,
+      },
+    },
+  }, async (request, reply) => {
+    const parsed = updateMeSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.code(400).send({
+        error: 'Validation failed',
+        code: 'VALIDATION_ERROR',
+        details: parsed.error.flatten().fieldErrors,
+      });
+    }
+
+    const user = await fastify.authService.updateTheme(request.user!.id, parsed.data.theme);
+    return { user };
   });
 }

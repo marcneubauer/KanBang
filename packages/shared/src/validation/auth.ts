@@ -21,6 +21,11 @@ export const changePasswordSchema = z.object({
   newPassword: z.string().min(12).max(128),
 });
 
+export const updateMeSchema = z.object({
+  theme: z.enum(['light', 'dark', 'system']),
+});
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+export type UpdateMeInput = z.infer<typeof updateMeSchema>;

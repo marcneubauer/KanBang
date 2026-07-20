@@ -1,7 +1,28 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="%kanbang.theme%">
   <head>
     <meta charset="utf-8" />
+    <script>
+      // Resolve the theme before first paint (no flash of wrong theme).
+      // data-theme arrives as the user's stored preference; 'system' (or the
+      // login page's unresolved placeholder) falls back to localStorage, then
+      // to the OS preference.
+      (function () {
+        try {
+          var root = document.documentElement;
+          var theme = root.getAttribute('data-theme');
+          if (theme !== 'light' && theme !== 'dark') {
+            theme = localStorage.getItem('kanbangTheme');
+          }
+          if (theme !== 'light' && theme !== 'dark') {
+            theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          }
+          root.setAttribute('data-theme', theme);
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      })();
+    </script>
     <link rel="icon" href="%sveltekit.assets%/kanbang.png" />
     <link rel="manifest" href="%sveltekit.assets%/manifest.webmanifest" />
     <link rel="apple-touch-icon" href="%sveltekit.assets%/apple-touch-icon.png" />

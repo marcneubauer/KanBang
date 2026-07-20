@@ -7,6 +7,7 @@ interface AuthUser {
   id: string;
   email: string;
   username: string;
+  theme: 'light' | 'dark' | 'system';
 }
 
 /** Request type after requireAuth preHandler has run — user is guaranteed non-null */

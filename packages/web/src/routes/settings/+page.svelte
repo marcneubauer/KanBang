@@ -9,6 +9,22 @@
 
   let { data } = $props();
 
+  // --- Appearance ---
+  let theme = $state<'light' | 'dark' | 'system'>(data.user?.theme ?? 'system');
+
+  async function setTheme(next: 'light' | 'dark' | 'system') {
+    theme = next;
+    localStorage.setItem('kanbangTheme', next);
+    const resolved =
+      next === 'system'
+        ? window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark'
+          : 'light'
+        : next;
+    document.documentElement.dataset.theme = resolved;
+    await api('/auth/me', { method: 'PATCH', body: JSON.stringify({ theme: next }) });
+  }
+
   let passkeys = $state(data.passkeys as Array<{
     id: string;
     deviceType: string;
@@ -274,6 +290,28 @@
 
 <div class="settings-page">
   <h1>Settings</h1>
+
+  <section class="section">
+    <h2>Appearance</h2>
+    <p class="section-desc">Theme for this account, applied on every device you sign in from.</p>
+    <div class="theme-options">
+      <label class="theme-option">
+        <input type="radio" name="theme" value="light" checked={theme === 'light'}
+          onchange={() => setTheme('light')} />
+        Light
+      </label>
+      <label class="theme-option">
+        <input type="radio" name="theme" value="dark" checked={theme === 'dark'}
+          onchange={() => setTheme('dark')} />
+        Dark
+      </label>
+      <label class="theme-option">
+        <input type="radio" name="theme" value="system" checked={theme === 'system'}
+          onchange={() => setTheme('system')} />
+        System
+      </label>
+    </div>
+  </section>
 
   <section class="section">
     <h2>Passkeys</h2>
@@ -661,6 +699,19 @@
     font-size: 13px;
     color: var(--color-text-subtle);
     margin-bottom: 16px;
+  }
+
+  .theme-options {
+    display: flex;
+    gap: 20px;
+  }
+
+  .theme-option {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    cursor: pointer;
   }
 
   .error {

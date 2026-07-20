@@ -110,6 +110,42 @@ describe('Auth routes', () => {
       expect(response.statusCode).toBe(401);
     });
 
+    it('defaults theme to system and persists PATCHed changes', async () => {
+      const { sessionCookie } = await registerUser(app);
+
+      const me = await app.inject({
+        method: 'GET',
+        url: '/api/v1/auth/me',
+        headers: authHeader(sessionCookie!),
+      });
+      expect(JSON.parse(me.body).user.theme).toBe('system');
+
+      const patch = await app.inject({
+        method: 'PATCH',
+        url: '/api/v1/auth/me',
+        headers: authHeader(sessionCookie!),
+        payload: { theme: 'dark' },
+      });
+      expect(patch.statusCode).toBe(200);
+      expect(JSON.parse(patch.body).user.theme).toBe('dark');
+
+      // Round-trips through the session-based /me (serialization check)
+      const me2 = await app.inject({
+        method: 'GET',
+        url: '/api/v1/auth/me',
+        headers: authHeader(sessionCookie!),
+      });
+      expect(JSON.parse(me2.body).user.theme).toBe('dark');
+
+      const bad = await app.inject({
+        method: 'PATCH',
+        url: '/api/v1/auth/me',
+        headers: authHeader(sessionCookie!),
+        payload: { theme: 'neon' },
+      });
+      expect(bad.statusCode).toBe(400);
+    });
+
     it('returns 401 with invalid session', async () => {
       const response = await app.inject({
         method: 'GET',

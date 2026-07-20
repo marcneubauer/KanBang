@@ -127,6 +127,13 @@
       "when": 1784514303824,
       "tag": "0017_silly_wallop",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1784515159537,
+      "tag": "0018_sparkling_skin",
+      "breakpoints": true
     }
   ]
 }

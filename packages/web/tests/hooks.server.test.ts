@@ -119,6 +119,35 @@ describe('API proxy header allowlist', () => {
   });
 });
 
+describe('theme injection', () => {
+  it('replaces %kanbang.theme% with the user theme, or system when logged out', async () => {
+    const fetchMock = vi.fn(async () =>
+      apiResponse({ body: { user: { id: 'u1', theme: 'dark' } } }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const handle = await loadHandle();
+
+    const resolveSpy = vi.fn(
+      async (_event: unknown, opts?: { transformPageChunk?: (i: { html: string }) => string }) => {
+        const html = opts?.transformPageChunk?.({ html: '<html data-theme="%kanbang.theme%">' });
+        return new Response(html ?? 'page');
+      },
+    );
+
+    const loggedIn = await handle({
+      event: makeEvent('/boards', { sessionCookie: 'sess-theme' }),
+      resolve: resolveSpy as never,
+    });
+    expect(await loggedIn.text()).toBe('<html data-theme="dark">');
+
+    const loggedOut = await handle({
+      event: makeEvent('/login'),
+      resolve: resolveSpy as never,
+    });
+    expect(await loggedOut.text()).toBe('<html data-theme="system">');
+  });
+});
+
 describe('auth cache', () => {
   it('two page requests with the same session make one /auth/me call', async () => {
     const fetchMock = vi.fn(async () => apiResponse({ body: { user: { id: 'u1' } } }));

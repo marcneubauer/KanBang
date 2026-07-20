@@ -139,9 +139,15 @@ Returns the currently authenticated user.
 **Response (200):**
 ```json
 {
-  "user": { "id": "abc123", "email": "user@example.com", "username": "alice" }
+  "user": { "id": "abc123", "email": "user@example.com", "username": "alice", "theme": "system" }
 }
 ```
+
+### PATCH /api/v1/auth/me
+
+Update user preferences. Currently accepts `{ "theme": "light" | "dark" | "system" }` (the UI theme, applied on every device the user signs in from).
+
+**Response (200):** the updated user object — **Errors:** `400 VALIDATION_ERROR`
 
 ---
 

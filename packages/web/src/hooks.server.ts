@@ -90,5 +90,9 @@ export const handle: Handle = async ({ event, resolve }) => {
   const sessionCookie = event.cookies.get('kanbang_session');
   event.locals.user = sessionCookie ? await resolveUser(sessionCookie) : null;
 
-  return resolve(event);
+  const theme = event.locals.user?.theme ?? 'system';
+  return resolve(event, {
+    // 'system' is resolved to light/dark by the inline script in app.html before paint
+    transformPageChunk: ({ html }) => html.replace('%kanbang.theme%', theme),
+  });
 };

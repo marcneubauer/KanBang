@@ -15,6 +15,7 @@ export const userSchema = {
     id:       { type: 'string' },
     email:    { type: 'string' },
     username: { type: 'string' },
+    theme:    { type: 'string' },
   },
 } as const;
 

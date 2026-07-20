@@ -369,6 +369,46 @@ describe('Attachment routes', () => {
     expect(fs.existsSync(path.join(uploadsDir, `${imageId}.png`))).toBe(false);
   });
 
+  it('export JSON includes attachment metadata and board background image', async () => {
+    const { body: attBody } = await upload(await makePng(50, 50), 'export-me.png');
+    await uploadBoardBackground(await makePng(600, 300));
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/export',
+      headers: authHeader(cookie),
+    });
+    const data = JSON.parse(res.body);
+    const board = data.boards[0];
+
+    expect(board.backgroundImage).toBeTruthy();
+    expect(board.backgroundImage.cardId).toBeNull();
+    expect(board.backgroundImage.storageKey).toContain(board.backgroundValue);
+
+    const card = board.lists[0].cards.find((c: { id: string }) => c.id === cardId);
+    expect(card.attachments).toHaveLength(1);
+    expect(card.attachments[0].id).toBe(attBody.attachment.id);
+    expect(card.attachments[0].filename).toBe('export-me.png');
+  });
+
+  it('export archive is a zip containing export.json and the attachment files', async () => {
+    const { body: attBody } = await upload(await makePng(50, 50));
+    const storageKey = `${attBody.attachment.id}.png`;
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/export/archive',
+      headers: authHeader(cookie),
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['content-type']).toBe('application/zip');
+
+    const payload = res.rawPayload;
+    expect(payload.subarray(0, 2).toString()).toBe('PK');
+    expect(payload.includes(Buffer.from('export.json'))).toBe(true);
+    expect(payload.includes(Buffer.from(`files/${storageKey}`))).toBe(true);
+  });
+
   it('gc removes stale orphans but keeps valid and fresh files', async () => {
     const { body } = await upload(await makePng(50, 50));
     const validId = body.attachment.id;

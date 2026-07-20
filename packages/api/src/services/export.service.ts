@@ -1,9 +1,33 @@
 import { asc, eq, inArray } from 'drizzle-orm';
 import type { Database } from '../db/index.js';
-import { boards, lists, cards, checklists, checklistItems, labels, cardLabels, comments } from '../db/schema.js';
+import { boards, lists, cards, checklists, checklistItems, labels, cardLabels, comments, attachments } from '../db/schema.js';
+
+/** Attachment fields included in exports (no userId; storageKey maps to files/ in the zip archive). */
+function attachmentMetadata(att: typeof attachments.$inferSelect) {
+  return {
+    id: att.id,
+    cardId: att.cardId,
+    filename: att.filename,
+    mimeType: att.mimeType,
+    sizeBytes: att.sizeBytes,
+    width: att.width,
+    height: att.height,
+    storageKey: att.storageKey,
+    createdAt: att.createdAt,
+  };
+}
 
 export class ExportService {
   constructor(private db: Database) {}
+
+  /** All attachment rows owned by the user (card attachments + board backgrounds). */
+  async listAttachments(userId: string) {
+    return this.db
+      .select()
+      .from(attachments)
+      .where(eq(attachments.userId, userId))
+      .orderBy(asc(attachments.createdAt));
+  }
 
   /** Full nested export of all the user's data, including archived items. */
   async exportUserData(userId: string) {
@@ -72,8 +96,18 @@ export class ExportService {
         .orderBy(asc(comments.createdAt))
       : [];
 
+    const userAttachments = await this.listAttachments(userId);
+    const attachmentById = new Map(userAttachments.map((a) => [a.id, a]));
+
     return userBoards.map((board) => ({
       ...board,
+      backgroundImage:
+        board.backgroundType === 'image' && board.backgroundValue
+          ? (() => {
+            const att = attachmentById.get(board.backgroundValue);
+            return att ? attachmentMetadata(att) : null;
+          })()
+          : null,
       labels: userLabels.filter((label) => label.boardId === board.id),
       lists: userLists
         .filter((list) => list.boardId === board.id)
@@ -86,6 +120,9 @@ export class ExportService {
               labelIds: userCardLabels
                 .filter((cl) => cl.cardId === card.id)
                 .map((cl) => cl.labelId),
+              attachments: userAttachments
+                .filter((a) => a.cardId === card.id)
+                .map(attachmentMetadata),
               comments: userComments.filter((comment) => comment.cardId === card.id),
               checklists: userChecklists
                 .filter((checklist) => checklist.cardId === card.id)

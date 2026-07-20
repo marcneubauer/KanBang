@@ -61,6 +61,8 @@ docker compose up --build -d
 
 The app is accessible at `http://localhost:3000`.
 
+**Backups:** the `db-data` volume holds everything — the SQLite database *and* uploaded images (`UPLOADS_DIR` points inside it). Backing up or cloud-syncing that one volume (or bind-mounting it to a synced NAS folder) captures all data. For a portable snapshot, `GET /api/v1/export/archive` downloads a zip of all data plus image files.
+
 ## Project Structure
 
 ```

@@ -9,6 +9,8 @@ services:
       - db-data:/app/packages/api/data
     environment:
       - DATABASE_URL=/app/packages/api/data/kanbang.db
+      # Same volume as the DB: one volume backs up database + images together
+      - UPLOADS_DIR=/app/packages/api/data/uploads
       - SESSION_SECRET=${SESSION_SECRET:-change-me-to-a-random-string-at-least-32-chars}
       - API_PORT=3001
       - API_HOST=0.0.0.0

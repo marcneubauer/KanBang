@@ -48,7 +48,7 @@ What KanBang can do, where each feature lives in the UI, and the API behind it. 
 ## Getting data in and out
 
 - **Trello import** — Settings → "Import from Trello": upload a per-board JSON export; lists/cards/labels/due dates/checklists/archived state preserved. `POST /api/v1/import/trello`.
-- **JSON export** — Settings → "Export data": everything (including archived items and comments) as one JSON file. `GET /api/v1/export`.
+- **JSON export** — Settings → "Export data": everything (including archived items, comments, and attachment metadata) as one JSON file. `GET /api/v1/export`. For a full backup including the image files themselves, `GET /api/v1/export/archive` streams a zip (`export.json` + `files/`).
 - **Quick add (Shortcuts / Apple Watch)** — Settings → "Quick add": pick a default list and generate a bearer token, then `POST /api/v1/quick-add` with `{"text": "..."}` and `Authorization: Bearer kb_...` creates a card. A "Board name: title" prefix targets that board instead. Built for iOS/watchOS Shortcuts dictation; works from any script.
 
 ## Account & security

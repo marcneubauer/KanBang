@@ -1093,4 +1093,8 @@ Stream the WebP thumbnail; falls back to the original when no thumbnail was gene
 
 ### GET /api/v1/export
 
-Download all of the authenticated user's boards, lists, cards, checklists, labels, and comments (including archived items) as a JSON file (`Content-Disposition: attachment`). Shape: `{ exportedAt, user, boards: [ { ...board, labels, lists: [ { ...list, cards: [ { ...card, labelIds, comments, checklists: [ { ...checklist, items } ] } ] } ] } ] }`.
+Download all of the authenticated user's boards, lists, cards, checklists, labels, and comments (including archived items) as a JSON file (`Content-Disposition: attachment`). Shape: `{ exportedAt, user, boards: [ { ...board, backgroundImage, labels, lists: [ { ...list, cards: [ { ...card, labelIds, attachments, comments, checklists: [ { ...checklist, items } ] } ] } ] } ] }`. `attachments` and `backgroundImage` are metadata only (including `storageKey`, which names the file inside the archive export below).
+
+### GET /api/v1/export/archive
+
+Streamed zip containing `export.json` (same payload as above) plus every attachment's original file under `files/<storageKey>`. This is a complete portable backup; thumbnails are not included (they regenerate on upload).

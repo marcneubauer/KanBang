@@ -83,16 +83,48 @@
   }
 
   // --- Background picker ---
-  let backgroundTab = $state<'color' | 'gradient'>(background.type === 'color' ? 'color' : 'gradient');
+  let backgroundTab = $state<'color' | 'gradient' | 'image'>(
+    background.type === 'color' ? 'color' : background.type === 'image' ? 'image' : 'gradient',
+  );
   let currentBackground = $state(background);
   let colorValue = $state(background.type === 'color' && background.value ? background.value : '#0079bf');
 
-  async function setBackground(type: BackgroundType | null, value: string | null) {
+  async function setBackground(type: 'color' | 'gradient' | null, value: string | null) {
     currentBackground = { type, value };
     await api(`/boards/${boardId}`, {
       method: 'PATCH',
       body: JSON.stringify({ backgroundType: type, backgroundValue: value }),
     });
+    onupdated();
+  }
+
+  let uploadingBackground = $state(false);
+  let backgroundError = $state<string | null>(null);
+  let backgroundFileInput = $state<HTMLInputElement | undefined>();
+
+  async function uploadBackground(file: File) {
+    backgroundError = null;
+    uploadingBackground = true;
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const { board } = await api<{ board: { backgroundValue: string | null } }>(
+        `/boards/${boardId}/background`,
+        { method: 'POST', body: form },
+      );
+      currentBackground = { type: 'image', value: board.backgroundValue };
+      onupdated();
+    } catch (err) {
+      backgroundError = err instanceof Error ? err.message : 'Upload failed';
+    } finally {
+      uploadingBackground = false;
+    }
+  }
+
+  async function removeBackground() {
+    // DELETE also unlinks an image background's stored file
+    await api(`/boards/${boardId}/background`, { method: 'DELETE' });
+    currentBackground = { type: null, value: null };
     onupdated();
   }
 
@@ -170,6 +202,13 @@
           aria-selected={backgroundTab === 'color'}
           onclick={() => { backgroundTab = 'color'; }}
         >Color</button>
+        <button
+          class="bg-tab"
+          class:bg-tab-active={backgroundTab === 'image'}
+          role="tab"
+          aria-selected={backgroundTab === 'image'}
+          onclick={() => { backgroundTab = 'image'; }}
+        >Image</button>
       </div>
 
       {#if backgroundTab === 'gradient'}
@@ -189,7 +228,7 @@
             </button>
           {/each}
         </div>
-      {:else}
+      {:else if backgroundTab === 'color'}
         <div class="color-row">
           <input
             type="color"
@@ -199,10 +238,47 @@
           />
           <span class="color-value">{currentBackground.type === 'color' ? currentBackground.value : 'No color set'}</span>
         </div>
+      {:else}
+        <div class="bg-image-panel">
+          {#if currentBackground.type === 'image' && currentBackground.value}
+            <div
+              class="bg-image-preview"
+              style="background-image: url(/api/v1/files/{currentBackground.value})"
+            ></div>
+          {/if}
+          <input
+            bind:this={backgroundFileInput}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
+            hidden
+            onchange={(e) => {
+              const input = e.target as HTMLInputElement;
+              const file = input.files?.[0];
+              if (file) {
+                void uploadBackground(file);
+                input.value = '';
+              }
+            }}
+          />
+          <button
+            class="bg-upload-btn"
+            onclick={() => backgroundFileInput?.click()}
+            disabled={uploadingBackground}
+          >
+            {uploadingBackground
+              ? 'Uploading…'
+              : currentBackground.type === 'image'
+                ? 'Replace image'
+                : 'Upload image'}
+          </button>
+          {#if backgroundError}
+            <p class="bg-error">{backgroundError}</p>
+          {/if}
+        </div>
       {/if}
 
       {#if currentBackground.type != null}
-        <button class="bg-reset" onclick={() => setBackground(null, null)}>
+        <button class="bg-reset" onclick={removeBackground}>
           Remove background
         </button>
       {/if}
@@ -372,6 +448,46 @@
   .bg-reset:hover {
     color: var(--color-text);
     background: rgba(0, 0, 0, 0.04);
+  }
+
+  .bg-image-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .bg-image-preview {
+    width: 100%;
+    height: 90px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    background-size: cover;
+    background-position: center;
+  }
+
+  .bg-upload-btn {
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 6px 12px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .bg-upload-btn:hover:not(:disabled) {
+    background: var(--color-primary-hover);
+  }
+
+  .bg-upload-btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+
+  .bg-error {
+    font-size: 12px;
+    color: var(--color-danger);
   }
 
   .modal-close {

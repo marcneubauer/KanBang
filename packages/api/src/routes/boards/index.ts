@@ -1,7 +1,9 @@
 import type { FastifyInstance } from 'fastify';
+import { nanoid } from 'nanoid';
 import type { AuthenticatedRequest } from '../../plugins/auth.js';
 import { BoardService } from '../../services/board.service.js';
 import { CardService } from '../../services/card.service.js';
+import { AttachmentService } from '../../services/attachment.service.js';
 import { createBoardSchema, updateBoardSchema } from '@kanbang/shared/validation/board.js';
 import { searchCardsSchema } from '@kanbang/shared/validation/card.js';
 import { validateBody } from '../../utils/validate.js';
@@ -94,6 +96,16 @@ const archivedListWithCardsSchema = {
 export default async function boardRoutes(fastify: FastifyInstance) {
   const boardService = new BoardService(fastify.db);
   const cardService = new CardService(fastify.db);
+  const attachmentService = new AttachmentService(fastify.db);
+
+  /** Remove a board-background attachment (row + files); no-op for other background types. */
+  const removeBackgroundAttachment = async (
+    background: { backgroundType: string | null; backgroundValue: string | null } | null,
+  ) => {
+    if (background?.backgroundType !== 'image' || !background.backgroundValue) return;
+    const old = await attachmentService.delete(background.backgroundValue);
+    if (old) await fastify.fileStorage.remove(old.storageKey, old.thumbKey);
+  };
 
   // All board routes require auth
   fastify.addHook('preHandler', fastify.requireAuth);
@@ -152,6 +164,7 @@ export default async function boardRoutes(fastify: FastifyInstance) {
                 isTemplate:      { type: 'boolean' },
                 backgroundType:  { type: ['string', 'null'] },
                 backgroundValue: { type: ['string', 'null'] },
+                backgroundAccent: { type: ['string', 'null'] },
                 createdAt:       { type: 'string' },
                 updatedAt:       { type: 'string' },
                 archivedAt:      { type: ['string', 'null'] },
@@ -265,7 +278,81 @@ export default async function boardRoutes(fastify: FastifyInstance) {
     const data = await validateBody(updateBoardSchema, request.body, reply);
     if (!data) return;
 
+    // Switching away from an image background orphans its file — clean it up
+    const previous = data.backgroundType !== undefined
+      ? await boardService.getBackground(boardId)
+      : null;
+
     const board = await boardService.update(boardId, data);
+    await removeBackgroundAttachment(previous);
+    return { board };
+  });
+
+  // POST /api/v1/boards/:boardId/background — multipart image upload
+  fastify.post<{ Params: { boardId: string } }>('/:boardId/background', {
+    schema: {
+      response: {
+        200: { type: 'object', properties: { board: { $ref: 'board#' } } },
+        400: { type: 'object', properties: { error: { type: 'string' }, code: { type: 'string' } } },
+      },
+    },
+  }, async (request, reply) => {
+    const { user } = request as AuthenticatedRequest;
+    const { boardId } = request.params;
+
+    await verifyBoardOwnership(boardId, user.id, boardService);
+
+    const file = await request.file();
+    if (!file) {
+      return reply.code(400).send({ error: 'No file uploaded', code: 'NO_FILE' });
+    }
+    const buffer = await file.toBuffer();
+
+    const previous = await boardService.getBackground(boardId);
+
+    const id = nanoid();
+    const stored = await fastify.fileStorage.storeImage(id, buffer);
+    let board;
+    try {
+      await attachmentService.create({
+        id,
+        userId: user.id,
+        cardId: null,
+        filename: file.filename || 'background',
+        mimeType: stored.mimeType,
+        sizeBytes: buffer.length,
+        width: stored.width,
+        height: stored.height,
+        storageKey: stored.storageKey,
+        thumbKey: stored.thumbKey,
+      });
+      const accent = await fastify.fileStorage.dominantColor(buffer);
+      board = await boardService.setBackgroundImage(boardId, id, accent);
+    } catch (err) {
+      await fastify.fileStorage.remove(stored.storageKey, stored.thumbKey);
+      throw err;
+    }
+
+    await removeBackgroundAttachment(previous);
+    return { board };
+  });
+
+  // DELETE /api/v1/boards/:boardId/background
+  fastify.delete<{ Params: { boardId: string } }>('/:boardId/background', {
+    schema: {
+      response: {
+        200: { type: 'object', properties: { board: { $ref: 'board#' } } },
+      },
+    },
+  }, async (request) => {
+    const { user } = request as AuthenticatedRequest;
+    const { boardId } = request.params;
+
+    await verifyBoardOwnership(boardId, user.id, boardService);
+
+    const previous = await boardService.getBackground(boardId);
+    const board = await boardService.clearBackground(boardId);
+    await removeBackgroundAttachment(previous);
     return { board };
   });
 

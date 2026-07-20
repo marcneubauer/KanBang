@@ -30,6 +30,7 @@ export const boardSchema = {
     isTemplate:      { type: 'boolean' },
     backgroundType:  { type: ['string', 'null'] },
     backgroundValue: { type: ['string', 'null'] },
+    backgroundAccent: { type: ['string', 'null'] },
     createdAt:       { type: 'string' },
     updatedAt:       { type: 'string' },
     archivedAt:      { type: ['string', 'null'] },

@@ -80,6 +80,17 @@ export class FileStorageService {
     return { mimeType: type.mime, storageKey, thumbKey, width, height };
   }
 
+  /** Dominant color of an image as '#rrggbb', or null when it can't be computed. */
+  async dominantColor(buffer: Buffer): Promise<string | null> {
+    try {
+      const { dominant } = await sharp(buffer).stats();
+      const hex = (n: number) => n.toString(16).padStart(2, '0');
+      return `#${hex(dominant.r)}${hex(dominant.g)}${hex(dominant.b)}`;
+    } catch {
+      return null;
+    }
+  }
+
   async remove(...keys: Array<string | null | undefined>): Promise<void> {
     for (const key of keys) {
       if (!key) continue;

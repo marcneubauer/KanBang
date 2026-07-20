@@ -40,8 +40,8 @@ What KanBang can do, where each feature lives in the UI, and the API behind it. 
 
 ## Boards
 
-- **Backgrounds** — board settings → Background: solid color or 10 gradient presets; columns go frosted, header text flips white. `backgroundType`/`backgroundValue`.
-- **Color theme** — buttons and header controls take an accent derived from the background; new labels default to the accent when it's in the palette.
+- **Backgrounds** — board settings → Background: solid color, 10 gradient presets, or an uploaded image (Image tab; stored like attachments); columns go frosted, header text flips white. `backgroundType`/`backgroundValue` via `PATCH /boards/:id`; image uploads via `POST /boards/:id/background`, removal via `DELETE /boards/:id/background`.
+- **Color theme** — buttons and header controls take an accent derived from the background (for image backgrounds, the image's dominant color, computed at upload); new labels default to the accent when it's in the palette.
 - **Search & filters** — board header: text search, label chips, due-date filter; non-matching cards dim. Server search: `GET /boards/:id/cards/search`.
 - **Board templates** — *partial*: `isTemplate` exists on boards; duplicate-from-template flow is not built yet (GH-27).
 

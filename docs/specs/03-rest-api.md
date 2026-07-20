@@ -16,7 +16,7 @@ All endpoints except auth registration/login require a valid session cookie (`ka
 
 Canonical field lists for the core objects. (Older JSON samples below may omit newer fields; the serialized responses always include all of them.)
 
-**Board** — `id`, `name`, `userId`, `cardAgingDays` (int days or null; cards untouched this long render faded), `coversEnabled` (bool, default true), `isTemplate` (bool), `backgroundType` (`"color"` | `"gradient"` | null), `backgroundValue` (hex color or gradient preset id), `createdAt`, `updatedAt`, `archivedAt`.
+**Board** — `id`, `name`, `userId`, `cardAgingDays` (int days or null; cards untouched this long render faded), `coversEnabled` (bool, default true), `isTemplate` (bool), `backgroundType` (`"color"` | `"gradient"` | `"image"` | null), `backgroundValue` (hex color, gradient preset id, or attachment id), `backgroundAccent` (dominant-color hex derived at upload for image backgrounds; null otherwise), `createdAt`, `updatedAt`, `archivedAt`. Image backgrounds are set only via `POST /boards/:id/background` (PATCH accepts `color`/`gradient`/null).
 
 **List** — `id`, `name`, `boardId`, `position` (fractional-index string), `isDone` (bool; completed cards auto-move here), `cardLimit` (int WIP limit or null; advisory), `createdAt`, `updatedAt`, `archivedAt`.
 
@@ -334,9 +334,19 @@ Update a board's name and/or settings. All fields optional.
 - `cardAgingDays`: integer 1-365 or `null` (off)
 - `coversEnabled`: boolean — hide/show all card covers on this board
 - `isTemplate`: boolean
-- `backgroundType` + `backgroundValue` must be sent together: `"color"` requires a `#rrggbb` hex value; `"gradient"` requires a preset id (`ocean`, `sunset`, `forest`, `lavender`, `flamingo`, `midnight`, `aqua`, `citrus`, `mint`, `slate`); `null`/`null` clears the background
+- `backgroundType` + `backgroundValue` must be sent together: `"color"` requires a `#rrggbb` hex value; `"gradient"` requires a preset id (`ocean`, `sunset`, `forest`, `lavender`, `flamingo`, `midnight`, `aqua`, `citrus`, `mint`, `slate`); `null`/`null` clears the background. Setting these while an image background is active also deletes the stored image.
 
 **Response (200):** Updated board object (same shape as POST response)
+
+### POST /api/v1/boards/:boardId/background
+
+Upload an image board background as `multipart/form-data` (same constraints as card attachments: PNG/JPEG/WebP/GIF/AVIF by magic bytes, `UPLOAD_MAX_BYTES` limit). Stores the file as a board-scoped attachment (`cardId: null`), sets `backgroundType: "image"` with the attachment id as `backgroundValue`, and derives `backgroundAccent` from the image's dominant color. Replacing an existing image background deletes the previous file.
+
+**Response (200):** `{ "board": { …board fields } }` — **Errors:** `400 NO_FILE` / `400 UNSUPPORTED_FILE_TYPE`, `413`
+
+### DELETE /api/v1/boards/:boardId/background
+
+Clear the board background (any type). For image backgrounds this also deletes the stored file. **Response (200):** `{ "board": … }`
 
 ### GET /api/v1/boards/:boardId/cards/search
 

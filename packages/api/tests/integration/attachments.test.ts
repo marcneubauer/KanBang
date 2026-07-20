@@ -34,6 +34,7 @@ function uploadForm(buffer: Buffer, filename = 'photo.png', contentType = 'image
 describe('Attachment routes', () => {
   let app: FastifyInstance;
   let cookie: string;
+  let boardId: string;
   let cardId: string;
   let uploadsDir: string;
 
@@ -43,7 +44,8 @@ describe('Attachment routes', () => {
     const { sessionCookie } = await registerUser(app);
     cookie = sessionCookie!;
     const { body: boardBody } = await createBoard(app, cookie);
-    const { body: listBody } = await createList(app, cookie, boardBody.board.id);
+    boardId = boardBody.board.id;
+    const { body: listBody } = await createList(app, cookie, boardId);
     const { body: cardBody } = await createCard(app, cookie, listBody.list.id);
     cardId = cardBody.card.id;
   });
@@ -293,6 +295,78 @@ describe('Attachment routes', () => {
     const { card: copy } = JSON.parse(copyRes.body);
     expect(copy.coverType).toBeNull();
     expect(copy.coverValue).toBeNull();
+  });
+
+  async function uploadBoardBackground(buffer: Buffer) {
+    const form = uploadForm(buffer, 'bg.png');
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/boards/${boardId}/background`,
+      headers: { ...authHeader(cookie), ...form.headers },
+      payload: form.payload,
+    });
+    return { response, body: JSON.parse(response.body) };
+  }
+
+  it('uploads a board image background and derives an accent color', async () => {
+    const { response, body } = await uploadBoardBackground(await makePng(600, 300));
+
+    expect(response.statusCode).toBe(200);
+    expect(body.board.backgroundType).toBe('image');
+    expect(body.board.backgroundValue).toBeTruthy();
+    // 200x60x60 red-ish fill → dominant color should be a red-dominant hex
+    expect(body.board.backgroundAccent).toMatch(/^#[0-9a-f]{6}$/);
+
+    expect(fs.existsSync(path.join(uploadsDir, `${body.board.backgroundValue}.png`))).toBe(true);
+
+    // Serialization check: board GET carries the background fields
+    const res = await app.inject({
+      method: 'GET',
+      url: `/api/v1/boards/${boardId}`,
+      headers: authHeader(cookie),
+    });
+    const { board } = JSON.parse(res.body);
+    expect(board.backgroundType).toBe('image');
+    expect(board.backgroundAccent).toBe(body.board.backgroundAccent);
+  });
+
+  it('replacing and removing a board background deletes the stored files', async () => {
+    const first = await uploadBoardBackground(await makePng(600, 300));
+    const firstId = first.body.board.backgroundValue;
+
+    const second = await uploadBoardBackground(await makePng(500, 200));
+    const secondId = second.body.board.backgroundValue;
+    expect(secondId).not.toBe(firstId);
+    expect(fs.existsSync(path.join(uploadsDir, `${firstId}.png`))).toBe(false);
+    expect(fs.existsSync(path.join(uploadsDir, `${secondId}.png`))).toBe(true);
+
+    const del = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/boards/${boardId}/background`,
+      headers: authHeader(cookie),
+    });
+    expect(del.statusCode).toBe(200);
+    const { board } = JSON.parse(del.body);
+    expect(board.backgroundType).toBeNull();
+    expect(board.backgroundAccent).toBeNull();
+    expect(fs.existsSync(path.join(uploadsDir, `${secondId}.png`))).toBe(false);
+  });
+
+  it('switching an image background to a gradient via PATCH cleans up the file', async () => {
+    const { body } = await uploadBoardBackground(await makePng(600, 300));
+    const imageId = body.board.backgroundValue;
+
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/boards/${boardId}`,
+      headers: authHeader(cookie),
+      payload: { backgroundType: 'gradient', backgroundValue: 'ocean' },
+    });
+    expect(res.statusCode).toBe(200);
+    const { board } = JSON.parse(res.body);
+    expect(board.backgroundType).toBe('gradient');
+    expect(board.backgroundAccent).toBeNull();
+    expect(fs.existsSync(path.join(uploadsDir, `${imageId}.png`))).toBe(false);
   });
 
   it('gc removes stale orphans but keeps valid and fresh files', async () => {

@@ -168,8 +168,11 @@ export class BoardService {
     if (input.name !== undefined) updates.name = input.name;
     if (input.cardAgingDays !== undefined) updates.cardAgingDays = input.cardAgingDays;
     if (input.coversEnabled !== undefined) updates.coversEnabled = input.coversEnabled;
+    if (input.isTemplate !== undefined) updates.isTemplate = input.isTemplate;
     if (input.backgroundType !== undefined) updates.backgroundType = input.backgroundType;
     if (input.backgroundValue !== undefined) updates.backgroundValue = input.backgroundValue;
+    // The accent only exists for image backgrounds, which are set via the upload endpoint
+    if (input.backgroundType !== undefined) updates.backgroundAccent = null;
 
     const [board] = await this.db
       .update(boards)
@@ -177,6 +180,43 @@ export class BoardService {
       .where(eq(boards.id, boardId))
       .returning();
 
+    return board ?? null;
+  }
+
+  async getBackground(boardId: string) {
+    const [row] = await this.db
+      .select({ backgroundType: boards.backgroundType, backgroundValue: boards.backgroundValue })
+      .from(boards)
+      .where(eq(boards.id, boardId))
+      .limit(1);
+    return row ?? null;
+  }
+
+  async setBackgroundImage(boardId: string, attachmentId: string, accent: string | null) {
+    const [board] = await this.db
+      .update(boards)
+      .set({
+        backgroundType: 'image',
+        backgroundValue: attachmentId,
+        backgroundAccent: accent,
+        updatedAt: new Date(),
+      })
+      .where(eq(boards.id, boardId))
+      .returning();
+    return board ?? null;
+  }
+
+  async clearBackground(boardId: string) {
+    const [board] = await this.db
+      .update(boards)
+      .set({
+        backgroundType: null,
+        backgroundValue: null,
+        backgroundAccent: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(boards.id, boardId))
+      .returning();
     return board ?? null;
   }
 

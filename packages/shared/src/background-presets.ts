@@ -14,7 +14,10 @@ export const BACKGROUND_GRADIENT_PRESETS = [
 
 export type BackgroundGradientId = (typeof BACKGROUND_GRADIENT_PRESETS)[number]['id'];
 
-export type BackgroundType = 'color' | 'gradient';
+export type BackgroundType = 'color' | 'gradient' | 'image';
+
+/** Fallback accent for image backgrounds whose dominant color is unknown. */
+export const IMAGE_BACKGROUND_FALLBACK_ACCENT = '#344563';
 
 /** Resolve a board's background fields to a CSS background value ('' when unset/unknown). */
 export function resolveBoardBackground(
@@ -25,6 +28,10 @@ export function resolveBoardBackground(
   if (backgroundType === 'gradient') {
     return BACKGROUND_GRADIENT_PRESETS.find((p) => p.id === backgroundValue)?.css ?? '';
   }
+  if (backgroundType === 'image' && backgroundValue) {
+    // backgroundValue is an attachment id; full shorthand so cover sizing survives style:background
+    return `url(/api/v1/files/${backgroundValue}) center / cover no-repeat`;
+  }
   return '';
 }
 
@@ -32,10 +39,14 @@ export function resolveBoardBackground(
 export function resolveBoardAccent(
   backgroundType: BackgroundType | null,
   backgroundValue: string | null,
+  backgroundAccent?: string | null,
 ): string {
   if (backgroundType === 'color' && backgroundValue) return backgroundValue;
   if (backgroundType === 'gradient') {
     return BACKGROUND_GRADIENT_PRESETS.find((p) => p.id === backgroundValue)?.accent ?? '';
+  }
+  if (backgroundType === 'image') {
+    return backgroundAccent ?? IMAGE_BACKGROUND_FALLBACK_ACCENT;
   }
   return '';
 }

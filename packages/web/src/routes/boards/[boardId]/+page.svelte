@@ -22,13 +22,16 @@
   let boardLabels: Label[] = $state(data.board.labels);
   let cardAgingDays = $state<number | null>(data.board.cardAgingDays ?? null);
   let coversEnabled = $state<boolean>(data.board.coversEnabled ?? true);
-  let boardBackground = $state<{ type: BackgroundType | null; value: string | null }>({
+  let boardBackground = $state<{ type: BackgroundType | null; value: string | null; accent: string | null }>({
     type: data.board.backgroundType ?? null,
     value: data.board.backgroundValue ?? null,
+    accent: data.board.backgroundAccent ?? null,
   });
 
   let backgroundCss = $derived(resolveBoardBackground(boardBackground.type, boardBackground.value));
-  let accentColor = $derived(resolveBoardAccent(boardBackground.type, boardBackground.value));
+  let accentColor = $derived(
+    resolveBoardAccent(boardBackground.type, boardBackground.value, boardBackground.accent),
+  );
 
   const flipDurationMs = 200;
 
@@ -40,6 +43,7 @@
     coversEnabled: boolean;
     backgroundType: BackgroundType | null;
     backgroundValue: string | null;
+    backgroundAccent: string | null;
   }
 
   async function refetchBoard() {
@@ -48,7 +52,11 @@
     boardLabels = board.labels;
     cardAgingDays = board.cardAgingDays;
     coversEnabled = board.coversEnabled;
-    boardBackground = { type: board.backgroundType, value: board.backgroundValue };
+    boardBackground = {
+      type: board.backgroundType,
+      value: board.backgroundValue,
+      accent: board.backgroundAccent,
+    };
     return board;
   }
 

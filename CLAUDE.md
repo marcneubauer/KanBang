@@ -52,8 +52,9 @@ kanbang/
 ## Environment Setup
 
 - **Node.js 25** via NVM (`.nvmrc` present)
-- **pnpm** via corepack: `corepack enable pnpm`
+- **pnpm** installed standalone (e.g. `brew install pnpm`). Node 25 no longer bundles corepack, so `corepack enable pnpm` is not available. The exact pnpm version comes from the `packageManager` field in the root `package.json` — pnpm self-manages to it, so any recent pnpm on PATH is fine.
 - Run `pnpm` commands directly (e.g. `pnpm test`, `pnpm typecheck`)
+- If pnpm reports `ERR_PNPM_UNSUPPORTED_ENGINE` while `.nvmrc` says 25, check `which -a node` — a Node earlier on PATH than nvm's bin dir will shadow it, and pnpm (a `#!/usr/bin/env node` script) inherits whatever resolves first.
 
 ## Key Commands
 
